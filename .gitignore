@@ -4,3 +4,4 @@
 /.workspace
 /.idea
 *.pyc
+/.venv
