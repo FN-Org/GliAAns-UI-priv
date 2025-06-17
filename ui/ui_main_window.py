@@ -7,7 +7,7 @@ from PyQt6.QtCore import QTranslator, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QFileDialog,
     QListView, QTreeView, QVBoxLayout,
-    QSplitter, QMenuBar
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
@@ -52,8 +52,18 @@ class MainWindow(QMainWindow):
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
 
+        # self.tree_model.directoryLoaded.connect(self._update_footer_visibility)
+
         self.main_layout.addWidget(self.splitter)
         self.splitter.splitterMoved.connect(self.adjust_tree_columns)
+
+        self.footer = QtWidgets.QWidget()
+        self.footer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        self.footer_layout = QHBoxLayout(self.footer)
+        self.footer_layout.setContentsMargins(0, 0, 0, 0)
+        self._update_footer_visibility()
+
+        self.main_layout.addWidget(self.footer)
 
         self._setup_menus()
 
@@ -145,6 +155,19 @@ class MainWindow(QMainWindow):
             else:
                 self.tree_view.hideColumn(i)
 
+    def _update_footer_visibility(self):
+        has_content = any(
+            os.path.isdir(os.path.join(self.workspace_path, name)) or
+            os.path.islink(os.path.join(self.workspace_path, name))
+            for name in os.listdir(self.workspace_path)
+            if not name.startswith(".")
+        )
+
+        if has_content:
+            self.footer.show()
+        else:
+            self.footer.hide()
+
     def open_folder_dialog(self):
         dialog = QFileDialog(self, "Select Folder")
         dialog.setFileMode(QFileDialog.FileMode.Directory)
@@ -181,6 +204,7 @@ class MainWindow(QMainWindow):
                 os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
             try:
                 os.symlink(path, target_path)
+                self._update_footer_visibility()
             except Exception as e:
                 QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
 
@@ -188,6 +212,7 @@ class MainWindow(QMainWindow):
             if os.path.exists(target_path):
                 shutil.rmtree(target_path)
             shutil.copytree(path, target_path)
+            self._update_footer_visibility()
 
 if __name__ == "__main__":
     import sys
