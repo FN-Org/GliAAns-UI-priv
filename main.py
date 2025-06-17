@@ -1,31 +1,25 @@
 import sys
-import os
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QTreeView, QFileDialog, QListView, QMessageBox
-)
-from importa_paziente_ui import UiMainWindow
-import shutil
-from PyQt6.QtGui import QStandardItem, QFileSystemModel
-from PyQt6.QtWidgets import QFileIconProvider
-from PyQt6.QtCore import QTranslator, QLocale, QFileInfo
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.ui = UiMainWindow()
-        self.ui.setupUi(self)
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication
 
-        # self.tree = self.ui.treeView
-
-        self.splitter = self.ui.splitter
-
-        self.splitter.splitterMoved.connect(self.update_tree_columns) # type: ignore
-        self.update_tree_columns()
+from ui.ui_button import Ui_Button
+from ui.ui_import_frame import ImportFrame
+from ui.ui_main_window import MainWindow
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
+    gui = MainWindow()
+
+    # Import frame
+    import_frame = ImportFrame(parent=gui.splitter, context=gui)
+    gui.splitter.addWidget(import_frame)
+    gui.splitter.setSizes([200, 600])
+    gui.adjust_tree_columns()
+
+    # Bottom button
+    next_button = Ui_Button(parent=gui.centralWidget(), text="Next", context=gui)
+    gui.main_layout.addWidget(next_button, 0, Qt.AlignmentFlag.AlignRight)
+
+    gui.show()
     sys.exit(app.exec())
- 
- 

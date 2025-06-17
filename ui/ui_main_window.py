@@ -1,353 +1,198 @@
 import os
 import shutil
-
-from PyQt6.QtGui import QStandardItem, QFileSystemModel
-
-from ui_import_frame import ImportFrame
-
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtCore import QTranslator, QFileInfo
-from PyQt6.QtWidgets import QApplication, QMessageBox, QFileDialog, QFileIconProvider
-
 import json
 
-LANG_CONFIG_PATH = "config_lang.json"
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QTranslator, pyqtSignal
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QMessageBox, QFileDialog,
+    QListView, QTreeView, QVBoxLayout,
+    QSplitter, QMenuBar
+)
+from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
-class UiMainWindow(object):
+LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
+TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
+
+class MainWindow(QMainWindow):
+
+    language_changed = pyqtSignal(str)
+
     def __init__(self):
-        self.languageActionGroup = None
-        self.actionItalian = None
-        self.actionEnglish = None
-        self.menuLanguage = None
-        self.actionImport = None
-        self.actionClear_all = None
-        self.actionClear_copies = None
-        self.actionClear_links = None
-        self.actionExport = None
-        self.menuWorkspace = None
-        self.menuHelp = None
-        self.menuSettings = None
-        self.menuFile = None
-        self.menubar = None
-        self.pushButton = None
-        self.labelDropText = None
-        self.horizontalLayout_2 = None
-        self.importFrame = None
-        self.treeView = None
-        self.splitter = None
-        self.verticalLayout_3 = None
-        self.centralwidget = None
+        super().__init__()
 
-        workspace_path = os.path.join(os.getcwd(), ".workspace")
-        os.makedirs(workspace_path, exist_ok=True)
+        self.translator = QTranslator()
+        self.language_actions = {}
+        self.workspace_path = os.path.join(os.getcwd(), ".workspace")
+        os.makedirs(self.workspace_path, exist_ok=True)
 
-        self.model = QFileSystemModel()
-        self.model.setRootPath(workspace_path)
+        self._init_ui()
 
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(840, 441)
-        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        saved_lang = self._load_saved_language()
+        self.set_language(saved_lang)
 
-        # --- Splitter and its children ---
-        self.splitter = QtWidgets.QSplitter(parent=self.centralwidget)
-        self.splitter.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.splitter.setObjectName("splitter")
+    def _init_ui(self):
+        self.setObjectName("MainWindow")
+        self.resize(840, 441)
 
-        self.splitter.splitterMoved.connect(self.update_tree_columns)  # type: ignore
-        self.update_tree_columns()
+        central_widget = QtWidgets.QWidget()
+        self.setCentralWidget(central_widget)
 
-        self.treeView = QtWidgets.QTreeView(parent=self.splitter)
-        self.treeView.setMinimumSize(QtCore.QSize(200, 0))
-        self.treeView.setObjectName("treeView")
-        self.treeView.setModel(self.model)
-        self.treeView.setRootIndex(self.model.index(workspace_path))
-        self.treeView.setHeaderHidden(False)
+        self.main_layout = QVBoxLayout(central_widget)
 
-        self.importFrame = ImportFrame(parent=self.splitter)
-        self.importFrame.setEnabled(True)
-        self.importFrame.setStyleSheet("border: 2px dashed gray;")
-        self.importFrame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.importFrame.setObjectName("dropFrame")
+        # Splitter with TreeView and ImportFrame
+        self.splitter = QSplitter(QtCore.Qt.Orientation.Horizontal)
 
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.importFrame)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.labelDropText = QtWidgets.QLabel(parent=self.importFrame)
-        font = QtGui.QFont()
-        font.setPointSize(14)
-        self.labelDropText.setFont(font)
-        self.labelDropText.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.labelDropText.setObjectName("labelDropText")
-        self.horizontalLayout_2.addWidget(self.labelDropText)
+        # TreeView
+        self.tree_view = QTreeView()
+        self.tree_model = QFileSystemModel()
+        self.tree_model.setRootPath(self.workspace_path)
+        self.tree_view.setModel(self.tree_model)
+        self.tree_view.setRootIndex(self.tree_model.index(self.workspace_path))
+        self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
+        self.splitter.addWidget(self.tree_view)
 
-        # Re-size the splitter with its children
-        self.splitter.setSizes([200, 600])
+        self.main_layout.addWidget(self.splitter)
+        self.splitter.splitterMoved.connect(self.adjust_tree_columns)
 
-        self.verticalLayout_3.addWidget(self.splitter)
+        self._setup_menus()
 
-        # --- Push button at the bottom ---
-        self.pushButton = QtWidgets.QPushButton(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
-        self.pushButton.setSizePolicy(sizePolicy)
-        self.pushButton.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
-        self.pushButton.setObjectName("pushButton")
-        self.verticalLayout_3.addWidget(self.pushButton, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+    def _setup_menus(self):
+        self.menu_bar = QMenuBar()
+        self.setMenuBar(self.menu_bar)
 
-        MainWindow.setCentralWidget(self.centralwidget)
+        # File
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.import_action = QAction("Import", self)
+        self.export_action = QAction("Export", self)
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.export_action)
 
-        ##
-        ### --- Language ---
-        ##
+        # Workspace
+        self.workspace_menu = self.menu_bar.addMenu("Workspace")
+        self.clear_links_action = QAction("Clear link", self)
+        self.clear_copies_action = QAction("Clear copies", self)
+        self.clear_all_action = QAction("Clear all", self)
+        self.workspace_menu.addAction(self.clear_links_action)
+        self.workspace_menu.addAction(self.clear_copies_action)
+        self.workspace_menu.addAction(self.clear_all_action)
 
-        # --- Menu setup ---
-        self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 840, 24))
-        self.menubar.setObjectName("menubar")
-        self.menuFile = QtWidgets.QMenu(parent=self.menubar)
-        self.menuFile.setObjectName("menuFile")
-        self.menuSettings = QtWidgets.QMenu(parent=self.menubar)
-        self.menuSettings.setObjectName("menuSettings")
-        self.menuHelp = QtWidgets.QMenu(parent=self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
-        self.menuWorkspace = QtWidgets.QMenu(parent=self.menubar)
-        self.menuWorkspace.setObjectName("menuWorkspace")
-        self.menuLanguage = QtWidgets.QMenu(parent=self.menubar)
-        self.menuLanguage.setObjectName("menuLanguage")
-        MainWindow.setMenuBar(self.menubar)
+        # Settings
+        self.settings_menu = self.menu_bar.addMenu("Settings")
 
-        self.actionExport = QtGui.QAction(parent=MainWindow)
-        self.actionExport.setObjectName("actionExport")
-        self.actionClear_links = QtGui.QAction(parent=MainWindow)
-        self.actionClear_links.setObjectName("actionClear_links")
-        self.actionClear_copies = QtGui.QAction(parent=MainWindow)
-        self.actionClear_copies.setObjectName("actionClear_copies")
-        self.actionClear_all = QtGui.QAction(parent=MainWindow)
-        self.actionClear_all.setObjectName("actionClear_all")
-        self.actionImport = QtGui.QAction(parent=MainWindow)
-        self.actionImport.setObjectName("actionImport")
-        self.actionEnglish = QtGui.QAction(parent=MainWindow)
-        self.actionEnglish.setObjectName("actionEnglish")
-        self.actionItalian = QtGui.QAction(parent=MainWindow)
-        self.actionItalian.setObjectName("actionItalian")
+        self.help_menu = self.menu_bar.addMenu("Help")
 
-        self.actionEnglish.triggered.connect(lambda: self.set_language("en"))
-        self.actionItalian.triggered.connect(lambda: self.set_language("it"))
+        # Language menu
+        self.language_menu = self.settings_menu.addMenu("Language")
+        self.language_action_group = QActionGroup(self)
+        self.language_action_group.setExclusive(True)
 
-        self.languageActionGroup = QtGui.QActionGroup(MainWindow)
-        self.languageActionGroup.setExclusive(True)
+        self._add_language_option("English", "en")
+        self._add_language_option("Italiano", "it")
 
-        self.actionEnglish.setCheckable(True)
-        self.actionItalian.setCheckable(True)
+    def _add_language_option(self, name, code):
+        action = QAction(name, self, checkable=True)
+        self.language_action_group.addAction(action)
+        self.language_menu.addAction(action)
+        action.triggered.connect(lambda: self.set_language(code))
+        self.language_actions[code] = action
 
-        self.languageActionGroup.addAction(self.actionEnglish)
-        self.languageActionGroup.addAction(self.actionItalian)
-
-        # English as a default language
-        self.actionEnglish.setChecked(True)
-
-        self.menuFile.addAction(self.actionImport)
-        self.menuFile.addAction(self.actionExport)
-        self.menuWorkspace.addAction(self.actionClear_links)
-        self.menuWorkspace.addAction(self.actionClear_copies)
-        self.menuWorkspace.addAction(self.actionClear_all)
-        self.menuLanguage.addAction(self.actionEnglish)
-        self.menuLanguage.addAction(self.actionItalian)
-
-        self.menuSettings.addMenu(self.menuLanguage)
-
-        self.menubar.addAction(self.menuFile.menuAction())
-        self.menubar.addAction(self.menuWorkspace.menuAction())
-        self.menubar.addAction(self.menuSettings.menuAction())
-        self.menubar.addAction(self.menuHelp.menuAction())
-
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
-    def get_saved_language(self):
-        if not os.path.exists(LANG_CONFIG_PATH):
-            return "en"
-        with open(LANG_CONFIG_PATH, "r") as f:
-            return json.load(f).get("lang", "en")
+    def _load_saved_language(self):
+        if os.path.exists(LANG_CONFIG_PATH):
+            with open(LANG_CONFIG_PATH, "r") as f:
+                return json.load(f).get("lang", "en")
+        return "en"
 
     def save_language(self, lang_code):
         with open(LANG_CONFIG_PATH, "w") as f:
             json.dump({"lang": lang_code}, f)
 
-    def load_language(self, lang_code):
-        self.translator = QTranslator()
-        qm_file = f"translations/{lang_code}.qm"
-        if self.translator.load(qm_file):
-            QApplication.instance().installTranslator(self.translator)
-            self.retranslateUi(self)
-
     def set_language(self, lang_code):
         self.save_language(lang_code)
-        self.load_language(lang_code)
 
-    def load_workspace_content(self):
-        workspace_dir = os.path.join(os.getcwd(), ".workspace")
-        os.makedirs(workspace_dir, exist_ok=True)
-        self.treeView.setRootIndex(self.model.index(workspace_dir))
+        if self.translator.load(f"{TRANSLATIONS_DIR}/{lang_code}.qm"):
+            QApplication.instance().installTranslator(self.translator)
 
-    def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Glioma Patient Data Importer"))
-        self.labelDropText.setText(_translate("MainWindow", "Import or select patients' data"))
-        self.pushButton.setText(_translate("MainWindow", "Next"))
-        self.menuFile.setTitle(_translate("MainWindow", "File"))
-        self.menuSettings.setTitle(_translate("MainWindow", "Settings"))
-        self.menuHelp.setTitle(_translate("MainWindow", "Help"))
-        self.menuWorkspace.setTitle(_translate("MainWindow", "Workspace"))
-        self.actionExport.setText(_translate("MainWindow", "Export"))
-        self.actionClear_links.setText(_translate("MainWindow", "Clear link"))
-        self.actionClear_copies.setText(_translate("MainWindow", "Clear copies"))
-        self.actionClear_all.setText(_translate("MainWindow", "Clear all"))
-        self.actionImport.setText(_translate("MainWindow", "Import"))
-        self.menuLanguage.setTitle(_translate("MainWindow", "Language"))
-        self.actionEnglish.setText(_translate("MainWindow", "English"))
-        self.actionItalian.setText(_translate("MainWindow", "Italiano"))
+        if lang_code in self.language_actions:
+            self.language_actions[lang_code].setChecked(True)
 
+        self._retranslate_ui()
+        self.language_changed.emit(lang_code)
 
-    ##
-    ### Backend
-    ##
+    def _retranslate_ui(self):
+        _ = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_("MainWindow", "Glioma Patient Data Importer"))
+        self.file_menu.setTitle(_("MainWindow", "File"))
+        self.workspace_menu.setTitle(_("MainWindow", "Workspace"))
+        self.settings_menu.setTitle(_("MainWindow", "Settings"))
+        self.help_menu.setTitle(_("MainWindow", "Help"))
+        self.language_menu.setTitle(_("MainWindow", "Language"))
 
-    def populate_subitems(self, parent_item, path):
-        try:
-            for item_name in os.listdir(path):
-                full_path = os.path.join(path, item_name)
-                item = self._create_item_from_path(full_path)
-                parent_item.appendRow([item])
+        self.import_action.setText(_("MainWindow", "Import"))
+        self.export_action.setText(_("MainWindow", "Export"))
+        self.clear_links_action.setText(_("MainWindow", "Clear link"))
+        self.clear_copies_action.setText(_("MainWindow", "Clear copies"))
+        self.clear_all_action.setText(_("MainWindow", "Clear all"))
+        self.language_actions["en"].setText(_("MainWindow", "English"))
+        self.language_actions["it"].setText(_("MainWindow", "Italiano"))
 
-                if os.path.isdir(full_path):
-                    self.populate_subitems(item, full_path)
-
-        except Exception as e:
-            print(f"Errore nel leggere '{path}': {e}")
-
-    def update_tree_columns(self):
-        tree_width = self.treeView.width()
-        threshold = 350  # larghezza a cui iniziare a mostrare le altre colonne
-
-        for col in range(1, self.model.columnCount()):
-            if tree_width > threshold:
-                if self.treeView.isColumnHidden(col):
-                    self.treeView.showColumn(col)
-                    self.treeView.setColumnWidth(col, 100)  # o altro valore utile
+    def adjust_tree_columns(self):
+        width = self.tree_view.width()
+        for i in range(1, self.tree_model.columnCount()):
+            if width > 350:
+                self.tree_view.showColumn(i)
+                self.tree_view.setColumnWidth(i, 100)
             else:
-                if not self.treeView.isColumnHidden(col):
-                    self.treeView.setColumnWidth(col, 0)
-                    self.treeView.hideColumn(col)
+                self.tree_view.hideColumn(i)
 
-    def handle_folder_drop(self, path):
-        if not os.path.isdir(path):
-            return
-
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("Importa risorsa")
-        msg_box.setText(f"Stai per importare la risorsa:\n\"{path}\"\n\nIn che modo vuoi importarla?")
-
-        link_button = msg_box.addButton("Link", QMessageBox.ButtonRole.AcceptRole)
-        copy_button = msg_box.addButton("Copy", QMessageBox.ButtonRole.DestructiveRole)
-        cancel_button = msg_box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
-
-        msg_box.exec()
-
-        if msg_box.clickedButton() == link_button:
-            workspace_dir = os.path.join(os.getcwd(), ".workspace")
-            os.makedirs(workspace_dir, exist_ok=True)
-
-            # Estrai il nome della cartella/file dalla path originale
-            # Assicurati di rimuovere eventuali slash finali per basename
-            folder_or_file_name = os.path.basename(os.path.normpath(path))
-
-            # Percorso dove verrà creato il link simbolico all'interno di '.workspace'
-            link_path = os.path.join(workspace_dir, folder_or_file_name)
-
-            # Rimuovi il link esistente se già presente per evitare errori
-            if os.path.exists(link_path) or os.path.islink(link_path):
-                if os.path.islink(link_path):
-                    os.unlink(link_path)  # Rimuove il link simbolico
-                elif os.path.isdir(link_path):
-                    shutil.rmtree(link_path)  # Rimuove la directory se per qualche motivo era una copia
-                else:
-                    os.remove(link_path)  # Rimuove il file se per qualche motivo era una copia
-
-            try:
-                os.symlink(path, link_path)
-                # self.load_workspace_content()
-            except OSError as e:
-                # Gestione degli errori, ad esempio se l'utente non ha i permessi
-                # o se il sistema operativo non supporta i symlink in quel contesto
-                print(f"Errore nella creazione del link simbolico: {e}")
-                # Potresti mostrare un messaggio di errore all'utente qui
-                QMessageBox.critical(self, "Errore Link", f"Impossibile creare il collegamento simbolico: {e}")
-
-        elif msg_box.clickedButton() == copy_button:
-            workspace_dir = os.path.join(os.getcwd(), ".workspace")
-            os.makedirs(workspace_dir, exist_ok=True)
-
-            folder_name = os.path.basename(path.rstrip("/\\"))
-            dest_path = os.path.join(workspace_dir, folder_name)
-
-            if os.path.exists(dest_path):
-                shutil.rmtree(dest_path)
-
-            shutil.copytree(path, dest_path)
-            # self.load_workspace_content()
-
-    def open_file_dialog(self):
-        dialog = QFileDialog(self)
-        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+    def open_folder_dialog(self):
+        dialog = QFileDialog(self, "Select Folder")
         dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setOption(QFileDialog.Option.ReadOnly, True)
         dialog.setDirectory(os.path.expanduser("~"))
 
-        # Forza il dialogo a mostrare cartelle come selezionabili
-        for view in dialog.findChildren((QListView, QTreeView)):  # type: ignore
+        for view in dialog.findChildren((QListView, QTreeView)):
             view.setSelectionMode(view.SelectionMode.MultiSelection)
 
         if dialog.exec():
-            selected_paths = dialog.selectedFiles()
-            folders = [os.path.abspath(path) for path in selected_paths if os.path.isdir(path)]
+            folders = [os.path.abspath(path) for path in dialog.selectedFiles() if os.path.isdir(path)]
+            unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
+            for folder in unique_folders:
+                self._handle_folder_import(folder)
 
-            # Mantieni solo le cartelle più profonde (interne)
-            final_folders = []
-            for folder in folders:
-                is_nested = False
-                for other in folders:
-                    if other != folder and folder.startswith(other + os.sep):
-                        is_nested = True
-                        break
-                if not is_nested:
-                    final_folders.append(folder)
+    def _handle_folder_import(self, path):
+        if not os.path.isdir(path):
+            return
 
-            # Rimuovi i genitori, tieni solo le più profonde
-            # (inverti la logica precedente)
-            deepest_folders = []
-            for f in folders:
-                if not any(f != other and other.startswith(f + os.sep) for other in folders):
-                    deepest_folders.append(f)
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Import Resource")
+        msg.setText(f"You're about to import the resource:\n\"{path}\"\n\nHow do you want to import it?")
+        link_button = msg.addButton("Link", QMessageBox.ButtonRole.AcceptRole)
+        copy_button = msg.addButton("Copy", QMessageBox.ButtonRole.DestructiveRole)
+        cancel_button = msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
 
-            for folder_path in deepest_folders:
-                self.handle_folder_drop(folder_path)
+        msg.exec()
+        folder_name = os.path.basename(os.path.normpath(path))
+        target_path = os.path.join(self.workspace_path, folder_name)
 
-    @staticmethod
-    def _create_item_from_path(path):
-        icon_provider = QFileIconProvider()
-        info = QFileInfo(path)
-        icon = icon_provider.icon(info)
-        item = QStandardItem(info.fileName())
-        item.setIcon(icon)
-        item.setToolTip(info.absoluteFilePath())
-        return item
+        if msg.clickedButton() == link_button:
+            if os.path.exists(target_path):
+                os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
+            try:
+                os.symlink(path, target_path)
+            except Exception as e:
+                QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
+
+        elif msg.clickedButton() == copy_button:
+            if os.path.exists(target_path):
+                shutil.rmtree(target_path)
+            shutil.copytree(path, target_path)
 
 if __name__ == "__main__":
     import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = UiMainWindow()
-    MainWindow.show()
+
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec())
