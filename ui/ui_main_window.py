@@ -228,7 +228,6 @@ class MainWindow(QMainWindow):
             return False
 
     def _convert_dicom_folder_to_nifti(self, dicom_folder, output_folder):
-        os.makedirs(output_folder, exist_ok=True)
         try:
             command = [
                 "dcm2niix",
@@ -250,7 +249,7 @@ class MainWindow(QMainWindow):
             return
 
         for root, _, files in os.walk(folder_path):
-            dest_dir = os.path.join(self.workspace_path, os.path.relpath(root, folder_path))
+            dest_dir = os.path.join(self.workspace_path, os.path.basename(folder_path))
             os.makedirs(dest_dir, exist_ok=True)
 
             nifti_files = []
