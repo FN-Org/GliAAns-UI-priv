@@ -2,6 +2,8 @@ import os
 import shutil
 import json
 
+import subprocess
+import pydicom
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QTranslator, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -209,10 +211,74 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
 
         elif msg.clickedButton() == copy_button:
-            if os.path.exists(target_path):
-                shutil.rmtree(target_path)
-            shutil.copytree(path, target_path)
+            # if os.path.exists(target_path):
+            #     shutil.rmtree(target_path)
+            # shutil.copytree(path, target_path)
+            self._handle_import(path)
             self._update_footer_visibility()
+
+    def _is_nifti_file(self, file_path):
+        return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
+
+    def _is_dicom_file(self, file_path):
+        try:
+            dcm = pydicom.dcmread(file_path, stop_before_pixels=True)
+            return True
+        except Exception:
+            return False
+
+    def _convert_dicom_folder_to_nifti(self, dicom_folder, output_folder):
+        os.makedirs(output_folder, exist_ok=True)
+        try:
+            command = [
+                "dcm2niix",
+                "-f", "%f_%p_%t_%s",  # Naming format (filename_patient_series_time_slice)
+                "-p", "y",  # Preserve original acquisition order
+                "-z", "y",  # Compress output as .nii.gz
+                "-o", output_folder,  # Destination folder
+                dicom_folder  # Source DICOM folder
+            ]
+            subprocess.run(command, check=True)
+            print(f"🚀 Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Conversion error: {e}")
+        except Exception as e:
+            print(f"⚠ Failed to convert DICOM: {e}")
+
+    def _handle_import(self, folder_path):
+        if not os.path.isdir(folder_path):
+            return
+
+        for root, _, files in os.walk(folder_path):
+            dest_dir = os.path.join(self.workspace_path, os.path.relpath(root, folder_path))
+            os.makedirs(dest_dir, exist_ok=True)
+
+            nifti_files = []
+            dicom_files = []
+
+            for file in files:
+                file_path = os.path.join(root, file)
+
+                if self._is_nifti_file(file):
+                    nifti_files.append(file_path)
+
+                elif self._is_dicom_file(file_path):
+                    dicom_files.append(file_path)
+
+                else:
+                    shutil.copy2(file_path, dest_dir)
+                    print(f"🗂 Imported other file: {file}")
+
+            # ✅ Importa tutti i NIfTI senza problemi
+            for nifti in nifti_files:
+                shutil.copy2(nifti, dest_dir)
+                print(f"📦 Imported NIfTI file: {os.path.basename(nifti)}")
+
+            # 🚀 Converte solo **una volta** se ha trovato DICOM
+            if dicom_files:
+                self._convert_dicom_folder_to_nifti(root, dest_dir)
+
+        print("✅ Import completed.")
 
 if __name__ == "__main__":
     import sys
