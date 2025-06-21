@@ -251,33 +251,44 @@ class MainWindow(QMainWindow):
         nifti_files = []
         dicom_files = []
 
-        for root, _, files in os.walk(folder_path):
-            dest_dir = os.path.join(self.workspace_path, os.path.basename(os.path.normpath(folder_path)))
-            os.makedirs(dest_dir, exist_ok=True)
+        base_folder_name = os.path.basename(os.path.normpath(folder_path))
+        base_dest_dir = os.path.join(self.workspace_path, base_folder_name)
 
+        for root, _, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
 
+                relative_path = os.path.relpath(root, folder_path)
+                dest_dir = os.path.join(base_dest_dir, relative_path)
+                os.makedirs(dest_dir, exist_ok=True)
+
                 if self._is_nifti_file(file):
-                    nifti_files.append(file_path)
+                    nifti_files.append((file_path, os.path.join(dest_dir, file)))
 
                 elif self._is_dicom_file(file_path):
                     dicom_files.append(file_path)
 
                 else:
-                    shutil.copy2(file_path, dest_dir)
-                    print(f"Imported other file: {file}")
+                    shutil.copy2(file_path, os.path.join(dest_dir, file))
+                    print(f"Imported other file: {os.path.join(relative_path, file)}")
 
-            # Importa tutti i NIfTI senza problemi
-            for nifti in nifti_files:
-                shutil.copy2(nifti, dest_dir)
-                print(f"Imported NIfTI file: {os.path.basename(nifti)}")
+        for src, dest in nifti_files:
+            shutil.copy2(src, dest)
+            print(f"Imported NIfTI file: {os.path.relpath(dest, base_dest_dir)}")
 
-        # 🚀 Converte solo una volta se ha trovato DICOM
         if dicom_files:
-            self._convert_dicom_folder_to_nifti(folder_path, dest_dir)
+            self._convert_dicom_folder_to_nifti(folder_path, base_dest_dir)
 
         print("Import completed.")
+
+    def set_right_widget(self, new_widget):
+        if self.splitter.count() > 1:
+            old_widget = self.splitter.widget(1)
+            self.splitter.replaceWidget(1, new_widget)
+            old_widget.deleteLater()
+        else:
+            self.splitter.addWidget(new_widget)
+        self.right_panel = new_widget  # utile per riferimenti futuri
 
 if __name__ == "__main__":
     import sys
