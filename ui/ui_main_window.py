@@ -238,22 +238,22 @@ class MainWindow(QMainWindow):
                 dicom_folder  # Source DICOM folder
             ]
             subprocess.run(command, check=True)
-            print(f"🚀 Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
+            print(f"Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
         except subprocess.CalledProcessError as e:
-            print(f"❌ Conversion error: {e}")
+            print(f"Conversion error: {e}")
         except Exception as e:
-            print(f"⚠ Failed to convert DICOM: {e}")
+            print(f"Failed to convert DICOM: {e}")
 
     def _handle_import(self, folder_path):
         if not os.path.isdir(folder_path):
             return
 
-        for root, _, files in os.walk(folder_path):
-            dest_dir = os.path.join(self.workspace_path, os.path.basename(folder_path))
-            os.makedirs(dest_dir, exist_ok=True)
+        nifti_files = []
+        dicom_files = []
 
-            nifti_files = []
-            dicom_files = []
+        for root, _, files in os.walk(folder_path):
+            dest_dir = os.path.join(self.workspace_path, os.path.basename(os.path.normpath(folder_path)))
+            os.makedirs(dest_dir, exist_ok=True)
 
             for file in files:
                 file_path = os.path.join(root, file)
@@ -266,18 +266,18 @@ class MainWindow(QMainWindow):
 
                 else:
                     shutil.copy2(file_path, dest_dir)
-                    print(f"🗂 Imported other file: {file}")
+                    print(f"Imported other file: {file}")
 
-            # ✅ Importa tutti i NIfTI senza problemi
+            # Importa tutti i NIfTI senza problemi
             for nifti in nifti_files:
                 shutil.copy2(nifti, dest_dir)
-                print(f"📦 Imported NIfTI file: {os.path.basename(nifti)}")
+                print(f"Imported NIfTI file: {os.path.basename(nifti)}")
 
-            # 🚀 Converte solo **una volta** se ha trovato DICOM
-            if dicom_files:
-                self._convert_dicom_folder_to_nifti(root, dest_dir)
+        # 🚀 Converte solo una volta se ha trovato DICOM
+        if dicom_files:
+            self._convert_dicom_folder_to_nifti(folder_path, dest_dir)
 
-        print("✅ Import completed.")
+        print("Import completed.")
 
 if __name__ == "__main__":
     import sys
