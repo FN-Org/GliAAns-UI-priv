@@ -5,13 +5,18 @@ import json
 import subprocess
 import pydicom
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal
+from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QFileDialog,
     QListView, QTreeView, QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
+
+from ui.ui_button import UiButton
+from ui.ui_import_frame import ImportFrame
+from ui.ui_patient_selection_frame import PatientSelectionPage
+from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
@@ -29,6 +34,8 @@ class MainWindow(QMainWindow):
         os.makedirs(self.workspace_path, exist_ok=True)
 
         self._init_ui()
+
+        self.setup_controller()
 
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
@@ -57,13 +64,22 @@ class MainWindow(QMainWindow):
         # self.tree_model.directoryLoaded.connect(self._update_footer_visibility)
 
         self.main_layout.addWidget(self.splitter)
+        self.splitter.setSizes([200, 600])
         self.splitter.splitterMoved.connect(self.adjust_tree_columns)
 
         self.footer = QtWidgets.QWidget()
         self.footer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.footer_layout = QHBoxLayout(self.footer)
         self.footer_layout.setContentsMargins(0, 0, 0, 0)
-        self._update_footer_visibility()
+        # self._update_footer_visibility()
+
+        self.back_button = UiButton(text="Back", context=self)
+        self.back_button.clicked.connect(lambda: self.controller.go_to_previous_page())
+        self.footer_layout.addWidget(self.back_button, 0, Qt.AlignmentFlag.AlignLeft)
+
+        self.next_button = UiButton(text="Next", context=self)
+        self.next_button.clicked.connect(lambda: self.controller.go_to_next_page())
+        self.footer_layout.addWidget(self.next_button, 0, Qt.AlignmentFlag.AlignRight)
 
         self.main_layout.addWidget(self.footer)
 
@@ -101,6 +117,17 @@ class MainWindow(QMainWindow):
 
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
+
+    def setup_controller(self):
+        self.controller = WizardController(self.next_button, self.back_button, self)
+
+        import_page = ImportFrame(self.next_button, self)
+        self.controller.add_page(import_page)
+
+        patient_selection_page = PatientSelectionPage(self.workspace_path)
+        self.controller.add_page(patient_selection_page)
+
+        self.controller.start()
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)
@@ -206,7 +233,8 @@ class MainWindow(QMainWindow):
                 os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
             try:
                 os.symlink(path, target_path)
-                self._update_footer_visibility()
+                # self._update_footer_visibility()
+                self.controller.update_buttons_state()
             except Exception as e:
                 QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
 
@@ -215,7 +243,7 @@ class MainWindow(QMainWindow):
             #     shutil.rmtree(target_path)
             # shutil.copytree(path, target_path)
             self._handle_import(path)
-            self._update_footer_visibility()
+            # self._update_footer_visibility()
 
     def _is_nifti_file(self, file_path):
         return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
@@ -279,15 +307,20 @@ class MainWindow(QMainWindow):
         if dicom_files:
             self._convert_dicom_folder_to_nifti(folder_path, base_dest_dir)
 
+        self.controller.update_next_button_state()
         print("Import completed.")
 
     def set_right_widget(self, new_widget):
         if self.splitter.count() > 1:
             old_widget = self.splitter.widget(1)
             self.splitter.replaceWidget(1, new_widget)
-            old_widget.deleteLater()
+            self.splitter.setSizes([200, 600])
+            self.adjust_tree_columns()
+            # old_widget.deleteLater()
         else:
             self.splitter.addWidget(new_widget)
+            self.splitter.setSizes([200, 600])
+            self.adjust_tree_columns()
         self.right_panel = new_widget  # utile per riferimenti futuri
 
 if __name__ == "__main__":

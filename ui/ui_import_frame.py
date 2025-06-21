@@ -25,6 +25,28 @@ class ImportFrame(QFrame):
         if context and hasattr(context, "language_changed"):
             context.language_changed.connect(self._retranslate_ui)
 
+    def on_enter(self, controller):
+        """Hook chiamato quando si entra nella pagina."""
+        pass
+
+    def is_ready_to_advance(self):
+        """Restituisce True se si può avanzare alla prossima pagina."""
+        has_content = any(
+            os.path.isdir(os.path.join(self.main_window_logic.workspace_path, name)) or
+            os.path.islink(os.path.join(self.main_window_logic.workspace_path, name))
+            for name in os.listdir(self.main_window_logic.workspace_path)
+            if not name.startswith(".")
+        )
+
+        if has_content:
+            return True
+        else:
+            return False
+
+    def is_ready_to_go_back(self):
+        """Restituisce True se si può tornare indietro alla pagina precedente."""
+        return False
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()

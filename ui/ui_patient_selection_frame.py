@@ -41,6 +41,19 @@ class PatientSelectionPage(QWidget):
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
+    def on_enter(self, controller):
+        """Hook chiamato quando si entra nella pagina."""
+        self._load_patients()
+        pass
+
+    def is_ready_to_advance(self):
+        """Restituisce True se si può avanzare alla prossima pagina."""
+        return True
+
+    def is_ready_to_go_back(self):
+        """Restituisce True se si può tornare indietro alla pagina precedente."""
+        return True
+
     def _load_patients(self):
         patient_dirs = self._find_patient_dirs()
         patient_dirs.sort()
@@ -95,12 +108,14 @@ class PatientSelectionPage(QWidget):
         for patient_id, button in self.patient_buttons.items():
             if not button.isChecked():
                 button.setChecked(True)
+                button.setText("Selected")
                 self.selected_patients.add(patient_id)
 
     def _deselect_all_patients(self):
         for patient_id, button in self.patient_buttons.items():
             if button.isChecked():
                 button.setChecked(False)
+                button.setText("Select")
                 self.selected_patients.discard(patient_id)
 
     def _find_patient_dirs(self):
