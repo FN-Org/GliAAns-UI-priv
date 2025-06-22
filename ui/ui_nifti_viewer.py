@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize
 from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                          QBrush, QResizeEvent, QMouseEvent)
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib
 
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -197,14 +198,17 @@ class NiftiViewer(QWidget):
 
     def __init__(self):
         super().__init__()
+
         self.setMinimumSize(1000, 700)
         self.resize(1400, 1000)
 
+        # Data variables
         # Data variables
         self.img_data = None
         self.affine = None
         self.dims = None
         self.is_4d = False
+        self.tac = None
         self.current_slices = [0, 0, 0]  # axial, coronal, sagittal
         self.current_time = 0
         self.current_coordinates = [0, 0, 0]  # x, y, z in image space
@@ -221,6 +225,10 @@ class NiftiViewer(QWidget):
         self.slice_spins = []
         self.slice_labels = []
         self.coord_displays = []
+        self.canvas = None
+        self.cursor_line = None
+        self.info_text = None
+        self.time_graph_layout = None
 
         # Time slider for 4D data
         self.time_slider = None
@@ -435,30 +443,50 @@ class NiftiViewer(QWidget):
             self.scenes.append(scene)
             self.pixmap_items.append(pixmap_item)
 
-        # Add info panel to bottom right !! TODO fix or remove
-        time_widget = QFrame()
-        info_widget = QFrame()
-        info_widget.setFrameStyle(QFrame.Shape.StyledPanel)
-        info_layout = QVBoxLayout(info_widget)
+        # Add time graph to bottom right
+        time_graph_widget = QFrame()
+        time_graph_widget.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.time_graph_layout = QVBoxLayout(time_graph_widget)
 
-        info_title = QLabel("Image Information")
-        info_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_title.setStyleSheet("font-weight: bold; padding: 4px; ") #background-color: #404040;")
-        info_layout.addWidget(info_title)
+        time_graph_title = QLabel("Time Graph")
+        time_graph_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        time_graph_title.setStyleSheet("font-weight: bold; padding: 4px;")# background-color: #404040;")
+        self.time_graph_layout.addWidget(time_graph_title)
 
         self.info_text = QLabel("No image loaded")
         self.info_text.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.info_text.setStyleSheet("color: #cccccc; font-size: 11px; padding: 10px;")
         self.info_text.setWordWrap(True)
-        info_layout.addWidget(self.info_text)
+        self.time_graph_layout.addWidget(self.info_text)
 
-        display_layout.addWidget(info_widget, 1, 1)
+        display_layout.addWidget(time_graph_widget, 1, 1)
 
         parent.addWidget(display_widget)
 
         # Setup crosshairs after views are created
         QTimer.singleShot(100, self.setup_crosshairs)
 
+    def create_tac(self,parent):
+        self.tac = self.img_data.reshape(-1, self.img_data.shape[-1]).mean(axis=0)
+        fig,ax = plt.subplots(figsize = (3,3))
+        self.canvas = FigureCanvas(fig)
+
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        parent.addWidget(self.canvas)
+
+        ax.plot(self.tac,label="TAC")
+        self.cursor_line = ax.axvline(self.current_time, color='r', linestyle='--', label='Current frame')
+        ax.grid(True)
+        ax.legend()
+        # removing text
+        #parent.removeWidget(self.info_text)
+        #self.info_text.setParent(None)
+        #self.info_text.deleteLater()
+        self.info_text.setVisible(False)
+
+        self.canvas.draw()
+        self.canvas.resize(300, 200)
     def setup_crosshairs(self):
         """Setup crosshairs for all views"""
         for view in self.views:
@@ -833,10 +861,14 @@ class NiftiViewer(QWidget):
 
         # Update slice info in status bar
         if self.img_data is not None:
-            spatial_dims = self.dims[:3] if self.is_4d else self.dims
+            spatial_dims = self.dims[:3][::-1] if self.is_4d else self.dims[::-1]
             slice_info = f"Slices: {self.current_slices[0] + 1}/{spatial_dims[2]} | {self.current_slices[1] + 1}/{spatial_dims[1]} | {self.current_slices[2] + 1}/{spatial_dims[0]}"
             if self.is_4d:
                 slice_info += f" | Time: {self.current_time + 1}/{self.dims[3]}"
+                if self.tac is None:
+                    self.create_tac(self.time_graph_layout)
+                self.cursor_line.set_xdata([self.current_time])
+                self.canvas.draw_idle()
             self.slice_info_label.setText(slice_info)
 
     def resizeEvent(self, event: QResizeEvent):
