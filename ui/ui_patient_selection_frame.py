@@ -1,14 +1,21 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout
+import shutil
+
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
+    QMessageBox
 from PyQt6.QtCore import Qt
 import os
 
-class PatientSelectionPage(QWidget):
-    def __init__(self, workspace_path):
+from wizard_controller import WizardPage
+
+
+class PatientSelectionPage(WizardPage):
+    def __init__(self, context=None):
         super().__init__()
 
         self.patient_buttons = {}  # patient_id -> QPushButton
+        self.context = context
 
-        self.workspace_path = workspace_path
+        self.workspace_path = context.workspace_path
         self.selected_patients = set()
 
         self.layout = QVBoxLayout(self)
@@ -46,9 +53,30 @@ class PatientSelectionPage(QWidget):
         self._load_patients()
         pass
 
+    def on_exit(self, controller):
+        to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
+
+        if not to_delete:
+            return
+
+        reply = QMessageBox.question(self, "Confirm Cleanup",
+                                     f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            for patient_path in to_delete:
+                try:
+                    shutil.rmtree(patient_path)
+                    print(f"Deleted: {patient_path}")
+                except Exception as e:
+                    print(f"Failed to delete {patient_path}: {e}")
+
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
-        return True
+        if self.selected_patients:
+            return True
+        else:
+            return False
 
     def is_ready_to_go_back(self):
         """Restituisce True se si può tornare indietro alla pagina precedente."""
@@ -110,6 +138,7 @@ class PatientSelectionPage(QWidget):
                 button.setChecked(True)
                 button.setText("Selected")
                 self.selected_patients.add(patient_id)
+        self.context.controller.update_buttons_state()
 
     def _deselect_all_patients(self):
         for patient_id, button in self.patient_buttons.items():
@@ -117,6 +146,7 @@ class PatientSelectionPage(QWidget):
                 button.setChecked(False)
                 button.setText("Select")
                 self.selected_patients.discard(patient_id)
+        self.context.controller.update_buttons_state()
 
     def _find_patient_dirs(self):
         patient_dirs = []
@@ -139,6 +169,7 @@ class PatientSelectionPage(QWidget):
         else:
             self.selected_patients.discard(patient_id)
             button.setText("Select")
+        self.context.controller.update_buttons_state()
 
     def get_selected_patients(self):
         return list(self.selected_patients)

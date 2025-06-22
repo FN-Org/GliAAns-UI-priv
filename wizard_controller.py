@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
-
+from PyQt6.QtWidgets import QWidget
 
 class WizardPage(QWidget):
     def on_enter(self, controller):
@@ -13,6 +12,10 @@ class WizardPage(QWidget):
     def is_ready_to_go_back(self):
         """Restituisce True se si può tornare indietro alla pagina precedente."""
         return True
+
+    def on_exit(self, controller):
+        """Hook chiamato quando si lascia la pagina (es: clic su Next)."""
+        pass
 
 class WizardController:
     def __init__(self, next_button, back_button, main_window):
@@ -47,6 +50,7 @@ class WizardController:
     def go_to_next_page(self):
         """Vai alla pagina successiva."""
         if self.current_page.is_ready_to_advance() and self.current_page_index < len(self.pages) - 1:
+            self.current_page.on_exit(self)
             self.current_page_index += 1
             self.current_page = self.pages[self.current_page_index]
             self._show_current_page()

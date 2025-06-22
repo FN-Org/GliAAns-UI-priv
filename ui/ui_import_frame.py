@@ -3,17 +3,18 @@ from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication
 
+from wizard_controller import WizardPage
 
-class ImportFrame(QFrame):
+class ImportFrame(WizardPage):
 
-    def __init__(self, parent=None, context=None):
-        super().__init__(parent)
+    def __init__(self, context=None):
+        super().__init__()
         self.setAcceptDrops(True)
         self.main_window_logic = context
 
         self.setEnabled(True)
         self.setStyleSheet("border: 2px dashed gray;")
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        # self.setFrameShape(QFrame.Shape.StyledPanel)
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")

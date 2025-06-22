@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
 from ui.ui_button import UiButton
+from ui.ui_fsl_frame import SkullStrippingPage
 from ui.ui_import_frame import ImportFrame
 from ui.ui_patient_selection_frame import PatientSelectionPage
 from wizard_controller import WizardController
@@ -33,14 +34,15 @@ class MainWindow(QMainWindow):
         self.workspace_path = os.path.join(os.getcwd(), ".workspace")
         os.makedirs(self.workspace_path, exist_ok=True)
 
-        self._init_ui()
-
-        self.setup_controller()
+        # Setup
+        self._setup_ui()
+        self._setup_menus()
+        self._setup_controller()
 
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
 
-    def _init_ui(self):
+    def _setup_ui(self):
         self.setObjectName("MainWindow")
         self.resize(840, 441)
 
@@ -83,8 +85,6 @@ class MainWindow(QMainWindow):
 
         self.main_layout.addWidget(self.footer)
 
-        self._setup_menus()
-
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
         self.setMenuBar(self.menu_bar)
@@ -118,14 +118,17 @@ class MainWindow(QMainWindow):
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
 
-    def setup_controller(self):
+    def _setup_controller(self):
         self.controller = WizardController(self.next_button, self.back_button, self)
 
-        import_page = ImportFrame(self.next_button, self)
+        import_page = ImportFrame(self)
         self.controller.add_page(import_page)
 
-        patient_selection_page = PatientSelectionPage(self.workspace_path)
+        patient_selection_page = PatientSelectionPage(self)
         self.controller.add_page(patient_selection_page)
+
+        fsl_page = SkullStrippingPage(self)
+        self.controller.add_page(fsl_page)
 
         self.controller.start()
 
@@ -178,7 +181,7 @@ class MainWindow(QMainWindow):
     def adjust_tree_columns(self):
         width = self.tree_view.width()
         for i in range(1, self.tree_model.columnCount()):
-            if width > 350:
+            if width > 400:
                 self.tree_view.showColumn(i)
                 self.tree_view.setColumnWidth(i, 100)
             else:
@@ -307,7 +310,7 @@ class MainWindow(QMainWindow):
         if dicom_files:
             self._convert_dicom_folder_to_nifti(folder_path, base_dest_dir)
 
-        self.controller.update_next_button_state()
+        self.controller.update_buttons_state()
         print("Import completed.")
 
     def set_right_widget(self, new_widget):
