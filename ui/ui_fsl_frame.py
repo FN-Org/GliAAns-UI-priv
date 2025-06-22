@@ -1,9 +1,10 @@
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
-    QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView
+    QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView, QHBoxLayout,
+    QListView
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
 import subprocess
 
@@ -24,9 +25,23 @@ class SkullStrippingPage(WizardPage):
         self.layout.addWidget(self.label)
 
         # Pulsante per aprire treeview
+        # self.file_button = QPushButton("Choose NIfTI File")
+        # self.file_button.clicked.connect(self.open_tree_dialog)
+        # self.layout.addWidget(self.file_button)
+
+        # Layout orizzontale per bottone + campo percorso
+        file_selector_layout = QHBoxLayout()
+
+        self.file_path_display = QLineEdit()
+        self.file_path_display.setReadOnly(True)
+        self.file_path_display.setPlaceholderText("No file selected")
+        file_selector_layout.addWidget(self.file_path_display, stretch=1)
+
         self.file_button = QPushButton("Choose NIfTI File")
         self.file_button.clicked.connect(self.open_tree_dialog)
-        self.layout.addWidget(self.file_button)
+        file_selector_layout.addWidget(self.file_button)
+
+        self.layout.addLayout(file_selector_layout)
 
         # Parametro principale
         self.f_input = QLineEdit()
@@ -96,43 +111,65 @@ class SkullStrippingPage(WizardPage):
         self.layout.addWidget(self.status_label)
 
     def open_tree_dialog(self):
+
         dialog = QDialog(self)
         dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(600, 400)
+        dialog.resize(600, 500)
 
         layout = QVBoxLayout(dialog)
 
-        model = QFileSystemModel()
-        model.setRootPath(self.context.workspace_path)
-        model.setNameFilters(["*.nii", "*.nii.gz"])
-        model.setNameFilterDisables(False)
+        search_bar = QLineEdit()
+        search_bar.setPlaceholderText("Search (e.g., FLAIR)")
+        layout.addWidget(QLabel("Search:"))
+        layout.addWidget(search_bar)
 
-        view = QTreeView()
-        view.setModel(model)
-        view.setRootIndex(model.index(self.context.workspace_path))
-        view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
-        view.setColumnWidth(0, 300)
+        # 🔍 Scansione ricorsiva di tutti i file .nii / .nii.gz nel workspace
+        nii_files = []
+        for root, dirs, files in os.walk(self.context.workspace_path):
+            for f in files:
+                if f.endswith((".nii", ".nii.gz")):
+                    full_path = os.path.join(root, f)
+                    nii_files.append(full_path)
 
+        # Modello semplice di stringhe
+        model = QStringListModel(nii_files)
+
+        # Filtro
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
+        view = QListView()
+        view.setModel(proxy)
+        view.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
         layout.addWidget(view)
 
+        # Collegamento della search bar
+        search_bar.textChanged.connect(proxy.setFilterFixedString)
+
+        # Pulsanti
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         layout.addWidget(buttons)
 
         def accept():
             index = view.currentIndex()
-            if not index.isValid() or model.isDir(index):
-                QMessageBox.warning(dialog, "Invalid selection", "Please select a valid NIfTI file.")
+            if not index.isValid():
+                QMessageBox.warning(dialog, "Invalid selection", "Please select a NIfTI file.")
                 return
-            file_path = model.filePath(index)
-            self.selected_file = file_path
-            self.file_button.setText(f"Selected: {os.path.basename(file_path)}")
-            self.context.controller.update_buttons_state()
+            selected = proxy.data(index)
+            self.set_selected_file(selected)
             dialog.accept()
 
         buttons.accepted.connect(accept)
         buttons.rejected.connect(dialog.reject)
 
         dialog.exec()
+
+    def set_selected_file(self, file_path):
+        self.selected_file = file_path
+        self.file_path_display.setText(file_path)
+        self.file_button.setText("Choose NIfTI File")
+        self.context.controller.update_buttons_state()
 
     def toggle_advanced(self):
         is_checked = self.advanced_btn.isChecked()

@@ -63,6 +63,8 @@ class MainWindow(QMainWindow):
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
 
+        # Tree view già esistente nella tua UI
+        self.tree_view.selectionModel().selectionChanged.connect(self.handle_workspace_selection)
         # self.tree_model.directoryLoaded.connect(self._update_footer_visibility)
 
         self.main_layout.addWidget(self.splitter)
@@ -84,6 +86,13 @@ class MainWindow(QMainWindow):
         self.footer_layout.addWidget(self.next_button, 0, Qt.AlignmentFlag.AlignRight)
 
         self.main_layout.addWidget(self.footer)
+
+    def handle_workspace_selection(self, selected, _):
+        for index in selected.indexes():
+            path = self.tree_view.model().filePath(index)
+            if path.endswith(".nii") or path.endswith(".nii.gz"):
+                if self.controller.current_page.set_selected_file(path):
+                    break  # usa solo il primo file selezionato valido
 
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
