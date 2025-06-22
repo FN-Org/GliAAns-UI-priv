@@ -436,6 +436,7 @@ class NiftiViewer(QWidget):
             self.pixmap_items.append(pixmap_item)
 
         # Add info panel to bottom right !! TODO fix or remove
+        time_widget = QFrame()
         info_widget = QFrame()
         info_widget.setFrameStyle(QFrame.Shape.StyledPanel)
         info_layout = QVBoxLayout(info_widget)
@@ -483,12 +484,8 @@ class NiftiViewer(QWidget):
         for view in self.views:
             view.coordinate_changed.connect(self.update_coordinates)
 
-    def open_file(self):
+    def open_file(self,file_path):
         """Open a NIfTI file with progress dialog"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open NIfTI File", "",
-            "NIfTI Files (*.nii *.nii.gz);;All Files (*)"
-        )
 
         if file_path:
             # Show progress dialog
@@ -541,7 +538,7 @@ class NiftiViewer(QWidget):
             return
 
         # Set up slice controls for spatial dimensions
-        spatial_dims = self.dims[:3] if self.is_4d else self.dims
+        spatial_dims = self.dims[:3][::-1] if self.is_4d else self.dims[::-1]
 
         for i in range(3):
             max_slice = spatial_dims[i] - 1
