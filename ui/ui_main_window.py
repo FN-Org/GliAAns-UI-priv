@@ -5,13 +5,21 @@ import json
 import subprocess
 import pydicom
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal
+from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QFileDialog,
     QListView, QTreeView, QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
+
+from ui.tool_selection_frame import ToolChoicePage
+from ui.ui_button import UiButton
+from ui.ui_fsl_frame import SkullStrippingPage
+from ui.ui_import_frame import ImportFrame
+from ui.ui_patient_selection_frame import PatientSelectionPage
+from ui.ui_work_in_progress import WorkInProgressPage
+from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
@@ -28,12 +36,15 @@ class MainWindow(QMainWindow):
         self.workspace_path = os.path.join(os.getcwd(), ".workspace")
         os.makedirs(self.workspace_path, exist_ok=True)
 
-        self._init_ui()
+        # Setup
+        self._setup_ui()
+        self._setup_menus()
+        self._setup_controller()
 
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
 
-    def _init_ui(self):
+    def _setup_ui(self):
         self.setObjectName("MainWindow")
         self.resize(840, 441)
 
@@ -54,20 +65,36 @@ class MainWindow(QMainWindow):
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
 
+        # Tree view già esistente nella tua UI
+        self.tree_view.selectionModel().selectionChanged.connect(self.handle_workspace_selection)
         # self.tree_model.directoryLoaded.connect(self._update_footer_visibility)
 
         self.main_layout.addWidget(self.splitter)
+        self.splitter.setSizes([200, 600])
         self.splitter.splitterMoved.connect(self.adjust_tree_columns)
 
         self.footer = QtWidgets.QWidget()
         self.footer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.footer_layout = QHBoxLayout(self.footer)
         self.footer_layout.setContentsMargins(0, 0, 0, 0)
-        self._update_footer_visibility()
+        # self._update_footer_visibility()
+
+        self.back_button = UiButton(text="Back", context=self)
+        self.back_button.clicked.connect(lambda: self.controller.go_to_previous_page())
+        self.footer_layout.addWidget(self.back_button, 0, Qt.AlignmentFlag.AlignLeft)
+
+        self.next_button = UiButton(text="Next", context=self)
+        self.next_button.clicked.connect(lambda: self.controller.go_to_next_page())
+        self.footer_layout.addWidget(self.next_button, 0, Qt.AlignmentFlag.AlignRight)
 
         self.main_layout.addWidget(self.footer)
 
-        self._setup_menus()
+    def handle_workspace_selection(self, selected, _):
+        for index in selected.indexes():
+            path = self.tree_view.model().filePath(index)
+            if path.endswith(".nii") or path.endswith(".nii.gz"):
+                if self.controller.current_page.set_selected_file(path):
+                    break  # usa solo il primo file selezionato valido
 
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
@@ -101,6 +128,32 @@ class MainWindow(QMainWindow):
 
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
+
+    def _setup_controller(self):
+        self.controller = WizardController(self.next_button, self.back_button, self)
+
+        import_page = ImportFrame(self)
+        self.controller.add_page(import_page)
+
+        patient_selection_page = PatientSelectionPage(self)
+        self.controller.add_page(patient_selection_page)
+
+        tool_page = ToolChoicePage(self)
+        self.controller.add_page(tool_page)
+
+        fsl_page = SkullStrippingPage(self)
+        self.controller.add_page(fsl_page)
+
+        work = WorkInProgressPage()
+        self.controller.add_page(work)
+
+        work2 = WorkInProgressPage()
+        self.controller.add_page(work2)
+
+        work3 = WorkInProgressPage()
+        self.controller.add_page(work3)
+
+        self.controller.start()
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)
@@ -151,7 +204,7 @@ class MainWindow(QMainWindow):
     def adjust_tree_columns(self):
         width = self.tree_view.width()
         for i in range(1, self.tree_model.columnCount()):
-            if width > 350:
+            if width > 400:
                 self.tree_view.showColumn(i)
                 self.tree_view.setColumnWidth(i, 100)
             else:
@@ -206,7 +259,8 @@ class MainWindow(QMainWindow):
                 os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
             try:
                 os.symlink(path, target_path)
-                self._update_footer_visibility()
+                # self._update_footer_visibility()
+                self.controller.update_buttons_state()
             except Exception as e:
                 QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
 
@@ -215,7 +269,7 @@ class MainWindow(QMainWindow):
             #     shutil.rmtree(target_path)
             # shutil.copytree(path, target_path)
             self._handle_import(path)
-            self._update_footer_visibility()
+            # self._update_footer_visibility()
 
     def _is_nifti_file(self, file_path):
         return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
@@ -251,33 +305,49 @@ class MainWindow(QMainWindow):
         nifti_files = []
         dicom_files = []
 
-        for root, _, files in os.walk(folder_path):
-            dest_dir = os.path.join(self.workspace_path, os.path.basename(os.path.normpath(folder_path)))
-            os.makedirs(dest_dir, exist_ok=True)
+        base_folder_name = os.path.basename(os.path.normpath(folder_path))
+        base_dest_dir = os.path.join(self.workspace_path, base_folder_name)
 
+        for root, _, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
 
+                relative_path = os.path.relpath(root, folder_path)
+                dest_dir = os.path.join(base_dest_dir, relative_path)
+                os.makedirs(dest_dir, exist_ok=True)
+
                 if self._is_nifti_file(file):
-                    nifti_files.append(file_path)
+                    nifti_files.append((file_path, os.path.join(dest_dir, file)))
 
                 elif self._is_dicom_file(file_path):
                     dicom_files.append(file_path)
 
                 else:
-                    shutil.copy2(file_path, dest_dir)
-                    print(f"Imported other file: {file}")
+                    shutil.copy2(file_path, os.path.join(dest_dir, file))
+                    print(f"Imported other file: {os.path.join(relative_path, file)}")
 
-            # Importa tutti i NIfTI senza problemi
-            for nifti in nifti_files:
-                shutil.copy2(nifti, dest_dir)
-                print(f"Imported NIfTI file: {os.path.basename(nifti)}")
+        for src, dest in nifti_files:
+            shutil.copy2(src, dest)
+            print(f"Imported NIfTI file: {os.path.relpath(dest, base_dest_dir)}")
 
-        # 🚀 Converte solo una volta se ha trovato DICOM
         if dicom_files:
-            self._convert_dicom_folder_to_nifti(folder_path, dest_dir)
+            self._convert_dicom_folder_to_nifti(folder_path, base_dest_dir)
 
+        self.controller.update_buttons_state()
         print("Import completed.")
+
+    def set_right_widget(self, new_widget):
+        if self.splitter.count() > 1:
+            old_widget = self.splitter.widget(1)
+            self.splitter.replaceWidget(1, new_widget)
+            self.splitter.setSizes([200, 600])
+            self.adjust_tree_columns()
+            # old_widget.deleteLater()
+        else:
+            self.splitter.addWidget(new_widget)
+            self.splitter.setSizes([200, 600])
+            self.adjust_tree_columns()
+        self.right_panel = new_widget  # utile per riferimenti futuri
 
 if __name__ == "__main__":
     import sys

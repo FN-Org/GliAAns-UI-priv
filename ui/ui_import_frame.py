@@ -3,17 +3,18 @@ from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication
 
+from wizard_controller import WizardPage
 
-class ImportFrame(QFrame):
+class ImportFrame(WizardPage):
 
-    def __init__(self, parent=None, context=None):
-        super().__init__(parent)
+    def __init__(self, context=None):
+        super().__init__()
         self.setAcceptDrops(True)
         self.main_window_logic = context
 
         self.setEnabled(True)
         self.setStyleSheet("border: 2px dashed gray;")
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        # self.setFrameShape(QFrame.Shape.StyledPanel)
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
@@ -24,6 +25,32 @@ class ImportFrame(QFrame):
         self._retranslate_ui()
         if context and hasattr(context, "language_changed"):
             context.language_changed.connect(self._retranslate_ui)
+
+    def on_enter(self, controller):
+        """Hook chiamato quando si entra nella pagina."""
+        self.controller = controller
+        self.controller.next_page_index = 1
+        self.controller.previous_page_index = 0
+        self.controller.update_buttons_state()
+        pass
+
+    def is_ready_to_advance(self):
+        """Restituisce True se si può avanzare alla prossima pagina."""
+        has_content = any(
+            os.path.isdir(os.path.join(self.main_window_logic.workspace_path, name)) or
+            os.path.islink(os.path.join(self.main_window_logic.workspace_path, name))
+            for name in os.listdir(self.main_window_logic.workspace_path)
+            if not name.startswith(".")
+        )
+
+        if has_content:
+            return True
+        else:
+            return False
+
+    def is_ready_to_go_back(self):
+        """Restituisce True se si può tornare indietro alla pagina precedente."""
+        return False
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
