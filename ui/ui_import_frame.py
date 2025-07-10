@@ -28,6 +28,10 @@ class ImportFrame(WizardPage):
 
     def on_enter(self, controller):
         """Hook chiamato quando si entra nella pagina."""
+        self.controller = controller
+        self.controller.next_page_index = 1
+        self.controller.previous_page_index = 0
+        self.controller.update_buttons_state()
         pass
 
     def is_ready_to_advance(self):

@@ -51,6 +51,10 @@ class PatientSelectionPage(WizardPage):
     def on_enter(self, controller):
         """Hook chiamato quando si entra nella pagina."""
         self._load_patients()
+        self.controller = controller
+        self.controller.next_page_index = 2
+        self.controller.previous_page_index = 0
+        self.controller.update_buttons_state()
         pass
 
     def on_exit(self, controller):
@@ -138,7 +142,7 @@ class PatientSelectionPage(WizardPage):
                 button.setChecked(True)
                 button.setText("Selected")
                 self.selected_patients.add(patient_id)
-        self.context.controller.update_buttons_state()
+        self.controller.update_buttons_state()
 
     def _deselect_all_patients(self):
         for patient_id, button in self.patient_buttons.items():
@@ -146,7 +150,7 @@ class PatientSelectionPage(WizardPage):
                 button.setChecked(False)
                 button.setText("Select")
                 self.selected_patients.discard(patient_id)
-        self.context.controller.update_buttons_state()
+        self.controller.update_buttons_state()
 
     def _find_patient_dirs(self):
         patient_dirs = []

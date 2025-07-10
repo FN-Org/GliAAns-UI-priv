@@ -234,6 +234,10 @@ class SkullStrippingPage(WizardPage):
     def on_enter(self, controller):
         self.status_label.setText("")  # Reset
 
+        self.controller = controller
+        self.controller.update_buttons_state()
+        controller.previous_page_index = 2
+
     def is_ready_to_advance(self):
         return False  # Ultima pagina
 

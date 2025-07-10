@@ -13,10 +13,12 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
+from ui.tool_selection_frame import ToolChoicePage
 from ui.ui_button import UiButton
 from ui.ui_fsl_frame import SkullStrippingPage
 from ui.ui_import_frame import ImportFrame
 from ui.ui_patient_selection_frame import PatientSelectionPage
+from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
@@ -136,8 +138,20 @@ class MainWindow(QMainWindow):
         patient_selection_page = PatientSelectionPage(self)
         self.controller.add_page(patient_selection_page)
 
+        tool_page = ToolChoicePage(self)
+        self.controller.add_page(tool_page)
+
         fsl_page = SkullStrippingPage(self)
         self.controller.add_page(fsl_page)
+
+        work = WorkInProgressPage()
+        self.controller.add_page(work)
+
+        work2 = WorkInProgressPage()
+        self.controller.add_page(work2)
+
+        work3 = WorkInProgressPage()
+        self.controller.add_page(work3)
 
         self.controller.start()
 
