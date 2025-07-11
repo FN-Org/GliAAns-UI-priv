@@ -1,7 +1,14 @@
 import os
+import shutil
+import subprocess
+import json
+import tempfile
+
 from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QFileDialog, QListView, QTreeView, QMessageBox
+
+import pydicom
 
 from wizard_controller import WizardPage
 
@@ -10,7 +17,6 @@ class ImportFrame(WizardPage):
     def __init__(self, context=None):
         super().__init__()
         self.setAcceptDrops(True)
-        self.main_window_logic = context
 
         self.setEnabled(True)
         self.setStyleSheet("border: 2px dashed gray;")
@@ -21,6 +27,9 @@ class ImportFrame(WizardPage):
         self.drop_label.setFont(QFont("", 14))
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
+
+        self.context = context
+        self.workspace_path = context.workspace_path
 
         self._retranslate_ui()
         if context and hasattr(context, "language_changed"):
@@ -37,9 +46,9 @@ class ImportFrame(WizardPage):
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
         has_content = any(
-            os.path.isdir(os.path.join(self.main_window_logic.workspace_path, name)) or
-            os.path.islink(os.path.join(self.main_window_logic.workspace_path, name))
-            for name in os.listdir(self.main_window_logic.workspace_path)
+            os.path.isdir(os.path.join(self.workspace_path, name)) or
+            os.path.islink(os.path.join(self.workspace_path, name))
+            for name in os.listdir(self.workspace_path)
             if not name.startswith(".")
         )
 
@@ -62,11 +71,212 @@ class ImportFrame(WizardPage):
             for url in urls:
                 file_path = url.toLocalFile()
                 if os.path.exists(file_path) and os.path.isdir(file_path):
-                    self.main_window_logic._handle_folder_import(file_path)
+                    self._handle_folder_import(file_path)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.main_window_logic.open_folder_dialog()
+            self.open_folder_dialog()
+
+    def open_folder_dialog(self):
+        dialog = QFileDialog(self.context, "Select Folder")
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dialog.setOption(QFileDialog.Option.ReadOnly, True)
+        dialog.setDirectory(os.path.expanduser("~"))
+
+        for view in dialog.findChildren((QListView, QTreeView)):
+            view.setSelectionMode(view.SelectionMode.MultiSelection)
+
+        if dialog.exec():
+            folders = [os.path.abspath(path) for path in dialog.selectedFiles() if os.path.isdir(path)]
+            unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
+            for folder in unique_folders:
+                self._open_import_dialog(folder)
+
+    def _open_import_dialog(self, path):
+        if not os.path.isdir(path):
+            return
+
+        msg = QMessageBox(self.context)
+        msg.setWindowTitle("Import Resource")
+        msg.setText(f"You're about to import the resource:\n\"{path}\"\n\nHow do you want to import it?")
+        link_button = msg.addButton("Link", QMessageBox.ButtonRole.AcceptRole)
+        copy_button = msg.addButton("Copy", QMessageBox.ButtonRole.DestructiveRole)
+        cancel_button = msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+
+        msg.exec()
+        folder_name = os.path.basename(os.path.normpath(path))
+        target_path = os.path.join(self.workspace_path, folder_name)
+
+        if msg.clickedButton() == link_button:
+            if os.path.exists(target_path):
+                os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
+            try:
+                os.symlink(path, target_path)
+                # self._update_footer_visibility()
+                self.controller.update_buttons_state()
+            except Exception as e:
+                QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
+
+        elif msg.clickedButton() == copy_button:
+            # if os.path.exists(target_path):
+            #     shutil.rmtree(target_path)
+            # shutil.copytree(path, target_path)
+            self._handle_import(path)
+            # self._update_footer_visibility()
+
+    def _is_nifti_file(self, file_path):
+        return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
+
+    def _is_dicom_file(self, file_path):
+        try:
+            dcm = pydicom.dcmread(file_path, stop_before_pixels=True)
+            return True
+        except Exception:
+            return False
+
+    def _convert_dicom_folder_to_nifti(self, dicom_folder, output_folder):
+        if os.path.isdir(output_folder):
+            for filename in os.listdir(output_folder):
+                file_path = os.path.join(output_folder, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"⚠️ Errore durante la rimozione di {file_path}: {e}")
+        else:
+            os.makedirs(output_folder, exist_ok=True)
+
+        try:
+            command = [
+                "dcm2niix",
+                "-f", "%p_%s",  # Naming format
+                "-p", "y",  # Preserve original acquisition order
+                "-z", "y",  # Compress output as .nii.gz
+                "-o", output_folder,  # Destination folder
+                dicom_folder  # Source DICOM folder
+            ]
+            subprocess.run(command, check=True)
+            print(f"Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
+        except subprocess.CalledProcessError as e:
+            print(f"Conversion error: {e}")
+        except Exception as e:
+            print(f"Failed to convert DICOM: {e}")
+
+    def _handle_import(self, folder_path):
+        if not os.path.isdir(folder_path):
+            return
+
+        nifti_files = []
+        dicom_files = []
+
+        base_folder_name = os.path.basename(os.path.normpath(folder_path))
+
+        # Creiamo una cartella temporanea per la conversione
+        temp_dir = tempfile.mkdtemp()
+        temp_base_dir = os.path.join(temp_dir, base_folder_name)
+
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+
+                relative_path = os.path.relpath(root, folder_path)
+                dest_dir = os.path.join(temp_base_dir, relative_path)
+                os.makedirs(dest_dir, exist_ok=True)
+
+                if self._is_nifti_file(file):
+                    nifti_files.append((file_path, os.path.join(dest_dir, file)))
+
+                elif self._is_dicom_file(file_path):
+                    dicom_files.append(file_path)
+
+                else:
+                    shutil.copy2(file_path, os.path.join(dest_dir, file))
+                    print(f"Imported other file: {os.path.join(relative_path, file)}")
+
+        for src, dest in nifti_files:
+            shutil.copy2(src, dest)
+            print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
+
+        if dicom_files:
+            self._convert_dicom_folder_to_nifti(folder_path, temp_base_dir)
+
+        # Ora la conversione è fatta su cartella temporanea, ma scrive nel workspace
+        self._convert_to_bids_structure(temp_base_dir)
+
+        # Dopo conversione, cancella cartella temporanea
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+        self.controller.update_buttons_state()
+        print("Import completed.")
+
+    def _convert_to_bids_structure(self, input_folder):
+        """
+        Converte un dataset contenente file NIfTI + JSON in struttura BIDS.
+        Funziona anche se i file sono nella stessa cartella, senza sottocartelle per paziente.
+        """
+        all_json_files = []
+        for root, _, files in os.walk(input_folder):
+            for file in files:
+                if file.endswith(".json"):
+                    all_json_files.append(os.path.join(root, file))
+
+        if not all_json_files:
+            print("[BIDS] Nessun file JSON trovato. Conversione annullata.")
+            return
+
+        sub_id = self._get_next_sub_id()
+        dest_sub_dir = os.path.join(self.workspace_path, sub_id)
+        os.makedirs(dest_sub_dir, exist_ok=True)
+
+        for json_path in all_json_files:
+            nii_path = json_path.replace(".json", ".nii.gz")
+            if not os.path.exists(nii_path):
+                print(f"[BIDS] Skipping: no matching NIfTI for {json_path}")
+                continue
+
+            with open(json_path, "r") as f:
+                metadata = json.load(f)
+
+            modality = metadata.get("Modality", "").upper()
+            original_base = os.path.basename(nii_path).replace(".nii.gz", "")
+            new_base = f"{sub_id}_{original_base}"
+
+            if modality == "MR":
+                anat_dir = os.path.join(dest_sub_dir, "anat")
+                os.makedirs(anat_dir, exist_ok=True)
+                shutil.copy2(nii_path, os.path.join(anat_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(anat_dir, f"{new_base}.json"))
+
+            elif modality == "PT":
+                keys = ["FrameDuration", "FrameReferenceTime"]
+                if all(
+                        k in metadata and isinstance(metadata[k], (list, tuple)) and len(metadata[k]) > 1
+                        for k in keys
+                ):
+                    ses_dir = os.path.join(dest_sub_dir, "ses-02")
+                else:
+                    ses_dir = os.path.join(dest_sub_dir, "ses-01")
+
+                os.makedirs(ses_dir, exist_ok=True)
+                shutil.copy2(nii_path, os.path.join(ses_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(ses_dir, f"{new_base}.json"))
+
+        print(f"[BIDS] Importato {sub_id} in struttura BIDS.")
+
+    def _get_next_sub_id(self):
+        existing = [
+            name for name in os.listdir(self.workspace_path)
+            if os.path.isdir(os.path.join(self.workspace_path, name)) and name.startswith("sub-")
+        ]
+        numbers = sorted([
+            int(name.split("-")[1]) for name in existing
+            if name.split("-")[1].isdigit()
+        ])
+        next_number = numbers[-1] + 1 if numbers else 1
+        return f"sub-{next_number:02d}"
 
     def _retranslate_ui(self):
         _ = QCoreApplication.translate
