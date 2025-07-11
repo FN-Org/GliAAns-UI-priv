@@ -171,12 +171,6 @@ class SkullStrippingPage(WizardPage):
         self.file_button.setText("Choose NIfTI Files")
         self.context.controller.update_buttons_state()
 
-    # def set_selected_file(self, file_path):
-    #     self.selected_file = file_path
-    #     self.file_path_display.setText(file_path)
-    #     self.file_button.setText("Choose NIfTI File")
-    #     self.context.controller.update_buttons_state()
-
     def toggle_advanced(self):
         is_checked = self.advanced_btn.isChecked()
         self.advanced_box.setVisible(is_checked)

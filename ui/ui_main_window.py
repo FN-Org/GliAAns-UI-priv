@@ -63,8 +63,8 @@ class MainWindow(QMainWindow):
         self.splitter.addWidget(self.tree_view)
 
         # Tree view già esistente nella tua UI
-        self.tree_view.selectionModel().selectionChanged.connect(self.handle_workspace_selection)
-        # self.tree_model.directoryLoaded.connect(self._update_footer_visibility)
+        self.tree_view.clicked.connect(self.handle_workspace_click)
+        self.tree_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
 
         self.main_layout.addWidget(self.splitter)
         self.splitter.setSizes([200, 600])
@@ -86,12 +86,19 @@ class MainWindow(QMainWindow):
 
         self.main_layout.addWidget(self.footer)
 
-    def handle_workspace_selection(self, selected, _):
-        for index in selected.indexes():
-            path = self.tree_view.model().filePath(index)
-            if path.endswith(".nii") or path.endswith(".nii.gz"):
-                if self.controller.current_page.set_selected_file(path):
-                    break  # usa solo il primo file selezionato valido
+    def handle_workspace_click(self, index):
+        selected_indexes = self.tree_view.selectionModel().selectedIndexes()
+
+        selected_files = []
+        for idx in selected_indexes:
+            if idx.column() == 0:  # Solo la colonna principale (file name), evita ripetizioni
+                path = self.tree_model.filePath(idx)
+                if path.endswith(".nii") or path.endswith(".nii.gz"):
+                    selected_files.append(path)
+
+        # Passa i file alla pagina corrente, se implementa set_selected_files()
+        if selected_files and hasattr(self.controller.current_page, "set_selected_files"):
+            self.controller.current_page.set_selected_files(selected_files)
 
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
