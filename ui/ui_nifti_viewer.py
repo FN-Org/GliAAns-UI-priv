@@ -1,0 +1,1284 @@
+"""
+NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D files
+"""
+
+import sys
+import os
+import gc
+import numpy as np
+import nibabel as nib
+from PyQt6 import QtCore
+from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
+try:
+    from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                                 QLabel, QSlider, QPushButton, QFileDialog, QSpinBox,
+                                 QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
+                                 QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
+                                 QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox)
+    from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
+    from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
+                             QBrush, QResizeEvent, QMouseEvent)
+    from matplotlib.figure import Figure
+
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+except ImportError:
+    print("PyQt6 not available. Install with: pip install PyQt6")
+    sys.exit(1)
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.cm as cm
+
+_t = QtCore.QCoreApplication.translate
+
+
+
+class ImageLoadThread(QThread):
+    """Thread for loading large NIfTI files without blocking the UI"""
+    finished = pyqtSignal(object, object, object, bool)  # img_data, dims, affine, is_4d
+    error = pyqtSignal(str)
+    progress = pyqtSignal(int)
+
+    def __init__(self, file_path):
+        super().__init__()
+        self.file_path = file_path
+
+    def run(self):
+        try:
+            self.progress.emit(10)
+
+            # Load NIfTI file with memory mapping for efficiency
+            img = nib.load(self.file_path, mmap='c')
+            self.progress.emit(30)
+
+            if not isinstance(img, (nib.Nifti1Image, nib.Nifti2Image)):
+                raise ValueError(_t("NIfTIViewer","Not a valid NIfTI file"))
+
+            # Get dimensions and affine
+            dims = img.header.get_data_shape()
+            affine = img.affine
+            is_4d = len(dims) == 4
+            self.progress.emit(50)
+
+            # Load full data
+            img_data = np.asarray(img.dataobj)
+
+            self.progress.emit(80)
+
+            # Ensure proper orientation (RAS+)
+            if not is_4d:
+                img_data = self._reorient_to_ras(img_data, affine)
+            else:
+                # For 4D data, reorient each volume
+                reoriented_data = np.zeros_like(img_data)
+                for t in range(dims[3]):
+                    reoriented_data[..., t] = self._reorient_to_ras(img_data[..., t], affine)
+                img_data = reoriented_data
+
+            self.progress.emit(100)
+
+            self.finished.emit(img_data, dims, affine, is_4d)
+
+        except Exception as e:
+            self.error.emit(str(e))
+
+    def _reorient_to_ras(self, data, affine):
+        """Reorient image data to RAS+ orientation"""
+        try:
+            # Get current orientation
+            ornt = io_orientation(affine)
+            # Convert to RAS+
+            ras_ornt = axcodes2ornt("RAS")
+            # Calculate transformation
+            transform = ornt_transform(ornt, ras_ornt)
+            # Apply transformation
+            data = apply_orientation(data, transform)
+            return data
+        except Exception:
+            # If reorientation fails, return original data
+            return data
+
+
+class CrosshairGraphicsView(QGraphicsView):
+    """Custom QGraphicsView with crosshair support and coordinate capture"""
+
+    coordinate_changed = pyqtSignal(int, int, int)  # view_idx, x, y
+    slice_changed = pyqtSignal(int, int)  # view_idx, new_slice
+
+    def __init__(self, view_idx, parent=None):
+        super().__init__(parent)
+        self.view_idx = view_idx
+        self.parent_viewer = parent
+        self.setMouseTracking(True)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
+
+        # Crosshair lines
+        self.crosshair_h = None
+        self.crosshair_v = None
+        self.crosshair_visible = False
+
+        # Set rendering hints for smooth display
+        self.setRenderHints(
+            QPainter.RenderHint.Antialiasing |
+            QPainter.RenderHint.SmoothPixmapTransform
+        )
+
+    def setup_crosshairs(self):
+        """Initialize crosshair lines"""
+        if self.scene():
+            pen = QPen(QColor(255, 255, 0, 180), 1)
+            self.crosshair_h = self.scene().addLine(0, 0, 0, 0, pen)
+            self.crosshair_v = self.scene().addLine(0, 0, 0, 0, pen)
+            self.crosshair_h.setVisible(False)
+            self.crosshair_v.setVisible(False)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """Handle mouse movement for coordinate display and crosshairs"""
+        if self.scene() and self.parent_viewer and self.parent_viewer.img_data is not None:
+            pos = self.mapToScene(event.pos())
+            x, y = int(pos.x()), int(pos.y())
+
+            # Check bounds
+            scene_rect = self.scene().sceneRect()
+            if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
+                # Update crosshairs
+                self.update_crosshairs(x, y)
+                # Emit coordinate change
+                self.coordinate_changed.emit(self.view_idx, x, y)
+
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent):
+        """Handle mouse clicks for coordinate selection and slice navigation"""
+        if (event.button() == Qt.MouseButton.LeftButton and
+                self.scene() and self.parent_viewer and
+                self.parent_viewer.img_data is not None):
+
+            pos = self.mapToScene(event.pos())
+            x, y = int(pos.x()), int(pos.y())
+
+            # Check bounds
+            scene_rect = self.scene().sceneRect()
+            if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
+                # Update clicked coordinates and trigger cross-view updates
+                self.parent_viewer.handle_click_coordinates(self.view_idx, x, y)
+
+        super().mousePressEvent(event)
+
+    def update_crosshairs(self, x, y):
+        """Update crosshair position"""
+        if self.crosshair_h and self.crosshair_v and self.scene():
+            scene_rect = self.scene().sceneRect()
+
+            # Horizontal line
+            self.crosshair_h.setLine(0, y, scene_rect.width(), y)
+            # Vertical line
+            self.crosshair_v.setLine(x, 0, x, scene_rect.height())
+
+            if not self.crosshair_visible:
+                self.crosshair_h.setVisible(True)
+                self.crosshair_v.setVisible(True)
+                self.crosshair_visible = True
+
+    def set_crosshair_position(self, x, y):
+        """Set crosshair position from external call"""
+        if self.crosshair_h and self.crosshair_v and self.scene():
+            scene_rect = self.scene().sceneRect()
+            if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
+                self.crosshair_h.setLine(0, y, scene_rect.width(), y)
+                self.crosshair_v.setLine(x, 0, x, scene_rect.height())
+                self.crosshair_h.setVisible(True)
+                self.crosshair_v.setVisible(True)
+                self.crosshair_visible = True
+
+    def leaveEvent(self, event):
+        """Hide crosshairs when mouse leaves the view"""
+        if self.crosshair_h and self.crosshair_v:
+            self.crosshair_h.setVisible(False)
+            self.crosshair_v.setVisible(False)
+            self.crosshair_visible = False
+        super().leaveEvent(event)
+
+
+class NiftiViewer(QMainWindow):
+    """Enhanced NIfTI viewer application with triplanar display and 4D support"""
+
+    def __init__(self):
+        super().__init__()
+
+
+        self.setWindowTitle(_t("NIfTIViewer","NIfTI Image Viewer"))
+        self.setMinimumSize(1000, 700)
+        self.resize(1400, 1000)
+
+        # Data variables
+        self.img_data = None
+        self.affine = None
+        self.dims = None
+        self.is_4d = False
+        self.current_slices = [0, 0, 0]  # axial, coronal, sagittal
+        self.current_time = 0
+        self.current_coordinates = [0, 0, 0]  # x, y, z in image space
+        self.file_path = None
+
+        # Overlay data
+        self.overlay_data = None
+        self.overlay_dims = None
+        self.overlay_alpha = 0.7  # Default overlay transparency
+        self.overlay_threshold = 0.1  # Only show overlay values above this threshold
+        self.overlay_enabled = False
+
+        # Planes
+        self.plane_labels = None
+
+        # Status bar
+        self.status_bar = None
+        self.slice_info_label = None
+        self.value_label = None
+        self.coord_label = None
+
+        # Color mapping
+        self.colormap ='gray'
+
+        # UI components
+        self.views = []
+        self.scenes = []
+        self.pixmap_items = []
+        self.slice_sliders = []
+        self.slice_spins = []
+        self.slice_labels = []
+        self.coord_displays = []
+
+        # Time slider for 4D data
+        self.time_slider = None
+        self.time_spin = None
+        self.time_checkbox = None
+
+        # Other
+        self.open_btn = None
+        self.file_info_label = None
+        self.slice_navigation_label = None
+        self.time_point_label = None
+        self.colormap_combo = None
+        self.overlay_threshold_slider = None
+        self.display_options_label = None
+        self.overlay_alpha_slider = None
+        self.overlay_info_label = None
+
+        # Initialize UI
+        self.init_ui()
+        self.setup_connections()
+
+
+
+
+    def init_ui(self):
+        """Initialize the user interface"""
+        # Central widget with splitter for responsive design
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        # Main horizontal splitter
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        central_widget.layout = QHBoxLayout(central_widget)
+        central_widget.layout.setContentsMargins(5, 5, 5, 5)
+        central_widget.layout.addWidget(main_splitter)
+
+        # Left control panel
+        self.create_control_panel(main_splitter)
+
+        # Right image display area
+        self.create_image_display(main_splitter)
+
+        # Set splitter proportions
+        main_splitter.setSizes([300, 1100])
+        main_splitter.setStretchFactor(0, 0)  # Control panel fixed width
+        main_splitter.setStretchFactor(1, 1)  # Image area stretches
+
+        # Status bar
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+
+        # Coordinate display in status bar
+        self.coord_label = QLabel(_t("NIfTIViewer","Coordinates: (-, -, -)"))
+        self.value_label = QLabel(_t("NIfTIViewer","Value: -"))
+        self.slice_info_label = QLabel(_t("NIfTIViewer","Slice: -/-"))
+
+        self.status_bar.addWidget(self.coord_label)
+        self.status_bar.addPermanentWidget(self.slice_info_label)
+        self.status_bar.addPermanentWidget(self.value_label)
+
+        self.status_bar.showMessage(_t("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
+
+    def create_control_panel(self, parent):
+        """Create the left control panel"""
+        control_widget = QFrame()
+        control_widget.setFrameStyle(QFrame.Shape.StyledPanel)
+        control_widget.setMaximumWidth(350)
+        control_widget.setMinimumWidth(250)
+
+        layout = QVBoxLayout(control_widget)
+        layout.setSpacing(10)
+
+        # File operations
+        file_group = QFrame()
+        file_layout = QVBoxLayout(file_group)
+
+        self.open_btn = QPushButton(_t("NIfTIViewer","📁 Open NIfTI File"))
+        self.open_btn.setMinimumHeight(40)
+        file_layout.addWidget(self.open_btn)
+
+        self.file_info_label = QLabel(_t("NIfTIViewer","No file loaded"))
+        self.file_info_label.setWordWrap(True)
+        self.file_info_label.setStyleSheet("font-size: 11px;")
+        file_layout.addWidget(self.file_info_label)
+
+        layout.addWidget(file_group)
+
+        # Slice controls
+        slice_group = QFrame()
+        slice_layout = QVBoxLayout(slice_group)
+        self.slice_navigation_label = QLabel(_t("NIfTIViewer","Slice Navigation:"))
+        slice_layout.addWidget(self.slice_navigation_label)
+
+        plane_names = [_t("NIfTIViewer","Axial (Z)"), _t("NIfTIViewer","Coronal (Y)"), _t("NIfTIViewer","Sagittal (X)")]
+
+        self.plane_labels = []
+
+        for i, plane_name in enumerate(plane_names):
+            # Plane label
+            label = QLabel(plane_name)
+            self.plane_labels.append(label)
+            label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+            slice_layout.addWidget(label)
+            self.slice_labels.append(label)
+
+            # Slider and spinbox container
+            controls_widget = QWidget()
+            controls_layout = QHBoxLayout(controls_widget)
+            controls_layout.setContentsMargins(0, 0, 0, 0)
+
+            # Slider
+            slider = QSlider(Qt.Orientation.Horizontal)
+            slider.setMinimum(0)
+            slider.setMaximum(100)
+            slider.setValue(50)
+            controls_layout.addWidget(slider, stretch=2)
+
+            # Spinbox
+            spinbox = QSpinBox()
+            spinbox.setMinimum(0)
+            spinbox.setMaximum(100)
+            spinbox.setValue(50)
+            spinbox.setMaximumWidth(60)
+            controls_layout.addWidget(spinbox, stretch=1)
+
+            # Coordinate display
+            coord_label = QLabel("(-, -)")
+            coord_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 10px;")
+            coord_label.setMinimumWidth(50)
+            controls_layout.addWidget(coord_label)
+
+            slice_layout.addWidget(controls_widget)
+
+            self.slice_sliders.append(slider)
+            self.slice_spins.append(spinbox)
+            self.coord_displays.append(coord_label)
+
+        layout.addWidget(slice_group)
+
+        # 4D Time controls
+        time_group = QFrame()
+        time_layout = QVBoxLayout(time_group)
+
+        self.time_checkbox = QCheckBox(_t("NIfTIViewer","Enable 4D Time Navigation"))
+        self.time_checkbox.setChecked(False)
+        time_layout.addWidget(self.time_checkbox)
+
+        time_controls_widget = QWidget()
+        time_controls_layout = QHBoxLayout(time_controls_widget)
+        time_controls_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.time_slider = QSlider(Qt.Orientation.Horizontal)
+        self.time_slider.setMinimum(0)
+        self.time_slider.setMaximum(0)
+        self.time_slider.setValue(0)
+        self.time_slider.setEnabled(False)
+        time_controls_layout.addWidget(self.time_slider, stretch=3)
+
+        self.time_spin = QSpinBox()
+        self.time_spin.setMinimum(0)
+        self.time_spin.setMaximum(0)
+        self.time_spin.setValue(0)
+        self.time_spin.setEnabled(False)
+        self.time_spin.setMaximumWidth(80)
+        time_controls_layout.addWidget(self.time_spin, stretch=1)
+
+        self.time_point_label = QLabel(_t("NIfTIViewer","Time Point:"))
+        time_layout.addWidget(self.time_point_label)
+        time_layout.addWidget(time_controls_widget)
+
+        layout.addWidget(time_group)
+
+        # Display options
+        display_group = QFrame()
+        display_layout = QVBoxLayout(display_group)
+        self.display_options_label = QLabel(_t("NIfTIViewer","Display Options:"))
+        display_layout.addWidget(self.display_options_label)
+
+        # Colormap selection
+        colormap_layout = QHBoxLayout()
+        self.colormap_label = QLabel(_t("NIfTIViewer","Colormap:"))
+        colormap_layout.addWidget(self.colormap_label)
+        self.colormap_combo = QComboBox()
+        self.colormap_combo.addItems([_t("NIfTIViewer",'gray'), _t("NIfTIViewer",'viridis'),_t("NIfTIViewer",'plasma'),_t("NIfTIViewer",'inferno'),_t("NIfTIViewer",'magma'),_t("NIfTIViewer",'hot'),_t("NIfTIViewer",'cool'),_t("NIfTIViewer",'bone')])
+        colormap_layout.addWidget(self.colormap_combo)
+        display_layout.addLayout(colormap_layout)
+
+        layout.addWidget(display_group)
+
+        # Overlay controls
+        overlay_group = QFrame()
+        overlay_layout = QVBoxLayout(overlay_group)
+        self.overlay_control_label = QLabel(_t("NIfTIViewer","Overlay Controls:"))
+        overlay_layout.addWidget(self.overlay_control_label)
+
+        # Overlay file button
+        self.overlay_btn = QPushButton(_t("NIfTIViewer","Load NIfTI Overlay"))
+        self.overlay_btn.setMinimumHeight(35)
+        self.overlay_btn.setEnabled(False)  # Enable only when base image is loaded
+        overlay_layout.addWidget(self.overlay_btn)
+
+        # Overlay enable/disable checkbox
+        self.overlay_checkbox = QCheckBox(_t("NIfTIViewer","Show Overlay"))
+        self.overlay_checkbox.setEnabled(False)
+        overlay_layout.addWidget(self.overlay_checkbox)
+
+        # Overlay alpha slider
+        self.alpha_overlay_label = QLabel(_t("NIfTIViewer","Overlay Transparency:"))
+        self.alpha_overlay_label.setStyleSheet("font-size: 10px;")
+        overlay_layout.addWidget(self.alpha_overlay_label)
+
+        self.overlay_alpha_slider = QSlider(Qt.Orientation.Horizontal)
+        self.overlay_alpha_slider.setMinimum(10)
+        self.overlay_alpha_slider.setMaximum(100)
+        self.overlay_alpha_slider.setValue(70)
+        self.overlay_alpha_slider.setEnabled(False)
+        overlay_layout.addWidget(self.overlay_alpha_slider)
+
+        # Overlay threshold slider
+        self.overlay_threshold_label = QLabel(_t("NIfTIViewer","Overlay Threshold:"))
+        self.overlay_threshold_label.setStyleSheet("font-size: 10px;")
+        overlay_layout.addWidget(self.overlay_threshold_label)
+
+        self.overlay_threshold_slider = QSlider(Qt.Orientation.Horizontal)
+        self.overlay_threshold_slider.setMinimum(0)
+        self.overlay_threshold_slider.setMaximum(100)
+        self.overlay_threshold_slider.setValue(10)
+        self.overlay_threshold_slider.setEnabled(False)
+        overlay_layout.addWidget(self.overlay_threshold_slider)
+
+        # Overlay info
+        self.overlay_info_label = QLabel(_t("NIfTIViewer","No overlay loaded"))
+        self.overlay_info_label.setWordWrap(True)
+        self.overlay_info_label.setStyleSheet("font-size: 10px;")
+        overlay_layout.addWidget(self.overlay_info_label)
+
+        layout.addWidget(overlay_group)
+
+        # Add stretch to push everything to top
+        layout.addStretch()
+
+        parent.addWidget(control_widget)
+
+    def create_image_display(self, parent):
+        """Create the main image display area with three anatomical views"""
+        display_widget = QWidget()
+        display_layout = QGridLayout(display_widget)
+        display_layout.setSpacing(5)
+
+        # Create three views in a 2x2 grid layout
+        view_positions = [(0, 0), (0, 1), (1, 0)]
+        view_titles = [_t("NIfTIViewer","Axial"),_t("NIfTIViewer","Coronal"),_t("NIfTIViewer","Sagittal")]
+
+        self.view_titles_labels = []
+        for i, (row, col) in enumerate(view_positions):
+            # View container with title
+            view_container = QFrame()
+            view_container.setFrameStyle(QFrame.Shape.StyledPanel)
+            container_layout = QVBoxLayout(view_container)
+            container_layout.setContentsMargins(2, 2, 2, 2)
+
+            # Title label
+            title_label = QLabel(view_titles[i])
+            self.view_titles_labels.append(title_label)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_label.setStyleSheet("font-weight: bold; padding: 4px;")
+            container_layout.addWidget(title_label)
+
+            # Graphics view
+            view = CrosshairGraphicsView(i, self)
+            view.setMinimumSize(200, 200)
+            view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+            # Scene
+            scene = QGraphicsScene()
+            view.setScene(scene)
+
+            # Pixmap item
+            pixmap_item = QGraphicsPixmapItem()
+            scene.addItem(pixmap_item)
+
+            container_layout.addWidget(view)
+
+            # Add to grid
+            display_layout.addWidget(view_container, row, col)
+
+            # Store references
+            self.views.append(view)
+            self.scenes.append(scene)
+            self.pixmap_items.append(pixmap_item)
+
+        # Add time series plot panel to bottom right (for 4D data) or info panel (for 3D data)
+        self.fourth_widget = QFrame()
+        self.fourth_widget.setFrameStyle(QFrame.Shape.StyledPanel)
+        fourth_layout = QVBoxLayout(self.fourth_widget)
+
+        self.fourth_title = QLabel(_t("NIfTIViewer","Image Information"))
+        self.fourth_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.fourth_title.setStyleSheet("font-weight: bold; padding: 4px;")
+        fourth_layout.addWidget(self.fourth_title)
+
+        # Container for switching between info and plot
+        self.fourth_content = QWidget()
+        self.fourth_content_layout = QVBoxLayout(self.fourth_content)
+
+        # Info text widget
+        self.info_text = QLabel(_t("NIfTIViewer","No image loaded"))
+        self.info_text.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.info_text.setStyleSheet("color: #cccccc; font-size: 11px; padding: 10px;")
+        self.info_text.setWordWrap(True)
+        self.fourth_content_layout.addWidget(self.info_text)
+
+        # Time series plot widget (will be created when needed)
+        self.time_plot_widget = None
+        self.time_plot_canvas = None
+        self.time_indicator_line = None
+
+        fourth_layout.addWidget(self.fourth_content)
+        display_layout.addWidget(self.fourth_widget, 1, 1)
+
+        parent.addWidget(display_widget)
+
+        # Setup crosshairs after views are created
+        QTimer.singleShot(100, self.setup_crosshairs)
+
+    def setup_crosshairs(self):
+        """Setup crosshairs for all views"""
+        for view in self.views:
+            view.setup_crosshairs()
+
+    def setup_connections(self):
+        """Setup signal-slot connections"""
+        # File operations
+        self.open_btn.clicked.connect(self.open_file)
+        self.overlay_btn.clicked.connect(self.open_overlay_file)
+        self.overlay_checkbox.toggled.connect(self.toggle_overlay)
+        self.overlay_alpha_slider.valueChanged.connect(self.update_overlay_alpha)
+        self.overlay_threshold_slider.valueChanged.connect(self.update_overlay_threshold)
+
+        # Slice controls
+        for i, (slider, spinbox) in enumerate(zip(self.slice_sliders, self.slice_spins)):
+            slider.valueChanged.connect(lambda value, idx=i: self.slice_changed(idx, value))
+            spinbox.valueChanged.connect(lambda value, idx=i: self.slice_changed(idx, value))
+
+        # Time controls
+        self.time_checkbox.toggled.connect(self.toggle_time_controls)
+        self.time_slider.valueChanged.connect(self.time_changed)
+        self.time_spin.valueChanged.connect(self.time_changed)
+
+        # Colormap
+        self.colormap_combo.currentTextChanged.connect(self.colormap_changed)
+
+        # View coordinate changes
+        for view in self.views:
+            view.coordinate_changed.connect(self.update_coordinates)
+
+    def open_file(self):
+        """Open a NIfTI file with progress dialog"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, _t("NIfTIViewer","Open NIfTI File"), "",
+            "NIfTI Files (*.nii *.nii.gz);;All Files (*)"
+        )
+
+        if file_path:
+            # Show progress dialog
+            self.progress_dialog = QProgressDialog(_t("NIfTIViewer","Loading NIfTI file..."), _t("NIfTIViewer","Cancel"), 0, 100, self)
+            self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            self.progress_dialog.setMinimumDuration(0)
+
+            # Start loading thread
+            self.load_thread = ImageLoadThread(file_path)
+            self.load_thread.finished.connect(self.on_file_loaded)
+            self.load_thread.error.connect(self.on_load_error)
+            self.load_thread.progress.connect(self.progress_dialog.setValue)
+            self.load_thread.start()
+
+            self.file_path = file_path
+
+    def on_file_loaded(self, img_data, dims, affine, is_4d):
+        """Handle successful file loading"""
+        self.progress_dialog.close()
+
+        self.img_data = img_data
+        self.dims = dims
+        self.affine = affine
+        self.is_4d = is_4d
+
+        # Update file info
+        filename = os.path.basename(self.file_path)
+        if is_4d:
+            info_text = _t("NIfTIViewer","File")+ f":{filename}\n"+_t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t("NIfTIViewer","4D Time Series")
+            self.time_checkbox.setChecked(True)
+            self.time_checkbox.setEnabled(True)
+            self.setup_time_series_plot()
+        else:
+            info_text = _t("NIfTIViewer","File")+ f":{filename}\n" + _t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n"+ _t("NIfTIViewer","3D Volume")
+            self.time_checkbox.setChecked(False)
+            self.time_checkbox.setEnabled(False)
+            self.hide_time_series_plot()
+
+        self.file_info_label.setText(info_text)
+        self.info_text.setText(info_text)
+
+        self.initialize_display()
+
+    def on_load_error(self, error_message):
+        """Handle file loading errors"""
+        self.progress_dialog.close()
+        QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
+
+    def initialize_display(self):
+        """Initialize display parameters and update all views"""
+        if self.img_data is None:
+            return
+
+        # Set up slice controls for spatial dimensions
+        spatial_dims = self.dims[:3][::-1] if self.is_4d else self.dims[::-1]
+
+        for i in range(3):
+            max_slice = spatial_dims[i] - 1
+            self.slice_sliders[i].setMaximum(max_slice)
+            self.slice_spins[i].setMaximum(max_slice)
+            self.current_slices[i] = max_slice // 2  # Start in middle
+            self.slice_sliders[i].setValue(self.current_slices[i])
+            self.slice_spins[i].setValue(self.current_slices[i])
+
+        # Set up time controls for 4D data
+        if self.is_4d:
+            max_time = self.dims[3] - 1
+            self.time_slider.setMaximum(max_time)
+            self.time_spin.setMaximum(max_time)
+            self.current_time = 0
+            self.time_slider.setValue(0)
+            self.time_spin.setValue(0)
+            self.toggle_time_controls(self.time_checkbox.isChecked())
+
+        # Initialize coordinate display
+        self.current_coordinates = [
+            self.current_slices[2],  # X (sagittal slice)
+            self.current_slices[1],  # Y (coronal slice)
+            self.current_slices[0]  # Z (axial slice)
+        ]
+
+        self.update_all_displays()
+        self.update_coordinate_displays()
+
+        # Enable overlay controls when base image is loaded
+        self.overlay_btn.setEnabled(True)
+
+    def open_overlay_file(self):
+        """Open a NIfTI overlay file"""
+        if self.img_data is None:
+            QMessageBox.warning(self, _t("NIfTIViewer","Warning"), _t("NIfTIViewer","Please load a base image first!"))
+            return
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, _t("NIfTIViewer","Open NIfTI Overlay File"), "",
+            "NIfTI files (*.nii *.nii.gz);;All files (*)"
+        )
+
+        if file_path:
+            try:
+                # Load overlay NIfTI file
+                overlay_img = nib.load(file_path)
+                overlay_data = np.array(overlay_img.dataobj)
+                overlay_dims = overlay_data.shape
+
+                # Check dimensions compatibility
+                base_dims = self.dims[:3] if self.is_4d else self.dims
+                overlay_dims_3d = overlay_dims[:3] if len(overlay_dims) > 3 else overlay_dims
+
+                if overlay_dims_3d != base_dims:
+                    QMessageBox.warning(self, _t("NIfTIViewer","Dimension Mismatch"),
+                                        _t("NIfTIViewer","Overlay dimensions") +  f"{overlay_dims_3d}" + _t("NIfTIViewer","don't match base image dimensions")+f"{base_dims}") # the overlay will be padded")
+
+                    # TODO : check for padding necessity
+                    #diff_dim = np.array(base_dims) - np.array(overlay_dims_3d)
+
+                    #padding = [(d // 2, d - d // 2) for d in diff_dim]
+                    #if np.all(diff_dim >= 0):
+                    #    overlay_data = np.pad(overlay_data, padding, mode="constant", constant_values=0)
+
+                # Store overlay data (use only 3D part if 4D)
+                if len(overlay_dims) > 3:
+                    self.overlay_data = overlay_data[:, :, :, 0]  # Use first time point
+                else:
+                    self.overlay_data = overlay_data
+
+                self.overlay_dims = self.overlay_data.shape
+
+                # Update overlay info
+                filename = os.path.basename(file_path)
+                self.overlay_info_label.setText(f"Overlay: {filename}\n"+_t("NIfTIViewer","Dimensions") + f":{self.overlay_dims}")
+
+                # Enable overlay controls
+                self.overlay_checkbox.setEnabled(True)
+                self.overlay_alpha_slider.setEnabled(True)
+                self.overlay_threshold_slider.setEnabled(True)
+
+                # Auto-enable overlay display
+                self.overlay_checkbox.setChecked(True)
+                self.overlay_enabled = True
+
+                # Update displays
+                self.update_overlay_settings()
+                self.update_all_displays()
+
+                self.status_bar.showMessage(_t("NIfTIViewer","Overlay loaded")+ f":{filename}")
+
+            except Exception as e:
+                QMessageBox.critical(self, _t("NIfTIViewer","Error"), _t("NIfTIViewer","Failed to load overlay")+f":\n{str(e)}")
+
+    def toggle_overlay(self, enabled):
+        """Toggle overlay display on/off"""
+        self.overlay_enabled = enabled
+        if self.overlay_data is not None:
+            self.update_all_displays()
+
+    def update_overlay_alpha(self, value):
+        """Update overlay transparency"""
+        self.overlay_alpha = value / 100.0
+        if self.overlay_enabled and self.overlay_data is not None:
+            self.update_all_displays()
+
+    def update_overlay_threshold(self, value):
+        """Update overlay threshold"""
+        self.overlay_threshold = value / 100.0
+        if self.overlay_enabled and self.overlay_data is not None:
+            self.update_all_displays()
+
+    def update_overlay_settings(self):
+        """Update overlay settings from UI controls"""
+        self.overlay_alpha = self.overlay_alpha_slider.value() / 100.0
+        self.overlay_threshold = self.overlay_threshold_slider.value() / 100.0
+
+    def slice_changed(self, plane_idx, value):
+        """Handle slice navigation"""
+        self.current_slices[plane_idx] = value
+
+        # Update corresponding controls
+        self.slice_sliders[plane_idx].setValue(value)
+        self.slice_spins[plane_idx].setValue(value)
+
+        # Update coordinates based on slice change
+        if plane_idx == 0:  # Axial
+            self.current_coordinates[2] = value
+        elif plane_idx == 1:  # Coronal
+            self.current_coordinates[1] = value
+        elif plane_idx == 2:  # Sagittal
+            self.current_coordinates[0] = value
+
+        self.update_display(plane_idx)
+        self.update_coordinate_displays()
+        self.update_cross_view_lines()
+
+    def time_changed(self, value):
+        """Handle time point changes for 4D data"""
+        self.current_time = value
+        self.time_slider.setValue(value)
+        self.time_spin.setValue(value)
+        self.update_all_displays()
+
+    def toggle_time_controls(self, enabled):
+        """Enable/disable time controls"""
+        self.time_slider.setEnabled(enabled and self.is_4d)
+        self.time_spin.setEnabled(enabled and self.is_4d)
+
+    def colormap_changed(self, colormap_name):
+        """Handle colormap changes"""
+        self.colormap = colormap_name
+        self.update_all_displays()
+
+    def handle_click_coordinates(self, view_idx, x, y):
+        """Handle mouse clicks to update coordinates and cross-view synchronization"""
+        if self.img_data is None:
+            return
+
+        # Convert screen coordinates to image coordinates
+        img_coords = self.screen_to_image_coords(view_idx, x, y)
+        if img_coords is None:
+            return
+
+        # Update current coordinates
+        self.current_coordinates = img_coords
+
+        # Update slice positions based on clicked coordinates
+        self.current_slices[0] = img_coords[2]  # Axial (Z)
+        self.current_slices[1] = img_coords[1]  # Coronal (Y)
+        self.current_slices[2] = img_coords[0]  # Sagittal (X)
+
+        # Update slice controls
+        for i in range(3):
+            self.slice_sliders[i].setValue(self.current_slices[i])
+            self.slice_spins[i].setValue(self.current_slices[i])
+
+        # Update all displays and coordinate displays
+        self.update_all_displays()
+        self.update_coordinate_displays()
+        self.update_cross_view_lines()
+
+    def screen_to_image_coords(self, view_idx, x, y):
+        """Convert screen coordinates to 3D image coordinates"""
+        if self.img_data is None:
+            return None
+
+        # Get current data shape
+        if self.is_4d:
+            shape = self.img_data.shape[:3]
+        else:
+            shape = self.img_data.shape
+
+        # Convert based on view orientation
+        if view_idx == 0:  # Axial (XY plane)
+            # In axial view: x=X, y=Y, z=current slice
+            img_x = min(max(x, 0), shape[0] - 1)
+            img_y = min(max(shape[1] - 1 - y, 0), shape[1] - 1)  # Flip Y
+            img_z = self.current_slices[0]
+        elif view_idx == 1:  # Coronal (XZ plane)
+            # In coronal view: x=X, y=Z, z=current slice
+            img_x = min(max(x, 0), shape[0] - 1)
+            img_y = self.current_slices[1]
+            img_z = min(max(shape[2] - 1 - y, 0), shape[2] - 1)  # Flip Z
+        elif view_idx == 2:  # Sagittal (YZ plane)
+            # In sagittal view: x=Y, y=Z, z=current slice
+            img_x = self.current_slices[2]
+            img_y = min(max(x, 0), shape[1] - 1)
+            img_z = min(max(shape[2] - 1 - y, 0), shape[2] - 1)  # Flip Z
+        else:
+            return None
+
+        return [int(img_x), int(img_y), int(img_z)]
+
+    def update_coordinates(self, view_idx, x, y):
+        """Update coordinate display from mouse movement"""
+        if self.img_data is None:
+            return
+
+        img_coords = self.screen_to_image_coords(view_idx, x, y)
+        if img_coords is None:
+            return
+
+        # Get voxel value
+        try:
+            if self.is_4d:
+                value = self.img_data[img_coords[0], img_coords[1], img_coords[2], self.current_time]
+            else:
+                value = self.img_data[img_coords[0], img_coords[1], img_coords[2]]
+
+            self.coord_label.setText(_t("NIfTIViewer","Coordinates")+f": ({img_coords[0]}, {img_coords[1]}, {img_coords[2]})")
+            self.value_label.setText(_t("NIfTIViewer","Value")+f": {value:.2f}")
+
+        except (IndexError, ValueError):
+            pass
+
+    def update_coordinate_displays(self):
+        """Update coordinate displays next to sliders"""
+        if self.img_data is None:
+            return
+
+        # Update coordinate labels for each plane
+        coords = self.current_coordinates
+
+        # Axial view: shows X, Y coordinates
+        self.coord_displays[0].setText(f"({coords[0]}, {coords[1]})")
+
+        # Coronal view: shows X, Z coordinates
+        self.coord_displays[1].setText(f"({coords[0]}, {coords[2]})")
+
+        # Sagittal view: shows Y, Z coordinates
+        self.coord_displays[2].setText(f"({coords[1]}, {coords[2]})")
+
+        # Update status bar
+        self.coord_label.setText(_t("NIfTIViewer","Coordinates")+f": ({coords[0]}, {coords[1]}, {coords[2]})")
+
+        try:
+            if self.is_4d:
+                value = self.img_data[coords[0], coords[1], coords[2], self.current_time]
+            else:
+                value = self.img_data[coords[0], coords[1], coords[2]]
+            self.value_label.setText(_t("NIfTIViewer","Value")+ f": {value:.2f}")
+        except (IndexError, ValueError):
+            self.value_label.setText(_t("NIfTIViewer","Value")+f": -")
+
+    def update_cross_view_lines(self):
+        """Update crosshair lines across all views to show current position"""
+        if self.img_data is None:
+            return
+
+        coords = self.current_coordinates
+
+        for i, view in enumerate(self.views):
+            if i == 0:  # Axial view
+                # Show crosshairs at X, Y position
+                view.set_crosshair_position(coords[0], self.img_data.shape[1] - 1 - coords[1])
+            elif i == 1:  # Coronal view
+                # Show crosshairs at X, Z position
+                view.set_crosshair_position(coords[0], self.img_data.shape[2] - 1 - coords[2])
+            elif i == 2:  # Sagittal view
+                # Show crosshairs at Y, Z position
+                view.set_crosshair_position(coords[1], self.img_data.shape[2] - 1 - coords[2])
+
+    def update_display(self, plane_idx):
+        """Update a specific plane display with matplotlib-style rendering"""
+        if self.img_data is None:
+            return
+
+        try:
+            # Get current data (3D or 4D)
+            if self.is_4d:
+                current_data = self.img_data[..., self.current_time]
+            else:
+                current_data = self.img_data
+
+            # Extract slice with correct orientation
+            slice_idx = self.current_slices[plane_idx]
+
+            if plane_idx == 0:  # Axial (XY plane)
+                slice_data = current_data[:, :, slice_idx].T
+                # Flip vertically for correct orientation
+                slice_data = np.flipud(slice_data)
+            elif plane_idx == 1:  # Coronal (XZ plane)
+                slice_data = current_data[:, slice_idx, :].T
+                # Flip vertically for correct orientation
+                slice_data = np.flipud(slice_data)
+            elif plane_idx == 2:  # Sagittal (YZ plane)
+                slice_data = current_data[slice_idx, :, :].T
+                # Flip vertically for correct orientation
+                slice_data = np.flipud(slice_data)
+            else:
+                return
+
+            # Get overlay slice if available
+            # TODO: Check the orientation of the overlay
+            overlay_slice = None
+            if self.overlay_enabled and self.overlay_data is not None:
+                if plane_idx == 0:  # Axial
+                    overlay_slice = self.overlay_data[:, :, slice_idx].T
+                    overlay_slice = np.flipud(overlay_slice)
+                elif plane_idx == 1:  # Coronal
+                    overlay_slice = self.overlay_data[:, slice_idx, :].T
+                    overlay_slice = np.flipud(overlay_slice)
+                elif plane_idx == 2:  # Sagittal
+                    overlay_slice = self.overlay_data[slice_idx, :, :].T
+                    overlay_slice = np.flipud(overlay_slice)
+
+            # Create composite image with overlay if enabled
+            if self.overlay_enabled and overlay_slice is not None:
+                # Normalization done in the function
+                qimage = self.create_overlay_composite(slice_data, overlay_slice)
+            else:
+                # Standard display without overlay
+                normalized_data = self.normalize_data_matplotlib_style(slice_data)
+                qimage = self.apply_colormap_matplotlib(normalized_data, self.colormap)
+
+            if qimage is not None:
+                # Update display
+                self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage))
+                self.scenes[plane_idx].setSceneRect(0, 0, qimage.width(), qimage.height())
+
+                # Fit view
+                self.views[plane_idx].fitInView(self.scenes[plane_idx].sceneRect(),
+                                                Qt.AspectRatioMode.KeepAspectRatio)
+
+        except Exception as e:
+            print(f"Error updating display {plane_idx}: {e}")
+
+    def normalize_data_matplotlib_style(self, data):
+        """Normalize data using matplotlib's approach for clear image display"""
+        if data.size == 0:
+            return data
+
+        # Remove NaN and infinite values
+        valid_data = data[np.isfinite(data)]
+        if valid_data.size == 0:
+            return np.zeros_like(data)
+
+        # Use robust percentile normalization like matplotlib
+        vmin, vmax = np.percentile(valid_data, [2, 98])
+
+        # Avoid division by zero
+        if vmax <= vmin:
+            vmax = vmin + 1
+
+        # Normalize to [0, 1]
+        normalized = np.clip((data - vmin) / (vmax - vmin), 0, 1)
+
+        return normalized
+
+    def setup_time_series_plot(self):
+        """Setup time series plot for 4D data"""
+        if self.time_plot_canvas is not None:
+            return  # Already setup
+
+        # Hide info text and show plot
+        self.info_text.hide()
+
+
+        self.time_plot_figure = Figure(figsize=(3, 4), facecolor='black')
+        self.time_plot_canvas = FigureCanvas(self.time_plot_figure)
+        self.time_plot_axes = self.time_plot_figure.add_subplot(111)
+        self.time_plot_axes.set_facecolor('black')
+
+        # Update title and add canvas
+        self.fourth_title.setText(_t("NIfTIViewer","Tracer Concentration Curve"))
+        self.fourth_content_layout.addWidget(self.time_plot_canvas)
+
+    def hide_time_series_plot(self):
+        """Hide time series plot for 3D data"""
+        if self.time_plot_canvas is not None:
+            self.time_plot_canvas.hide()
+            self.fourth_title.setText(_t("NIfTIViewer","Image Information"))
+        self.info_text.show()
+
+    def update_time_series_plot(self):
+        """Update the time series plot with current voxel data"""
+        if not self.is_4d or self.time_plot_canvas is None or self.img_data is None:
+            return
+
+        try:
+            coords = self.current_coordinates
+
+            # Extract time series data for current voxel
+            time_series = self.img_data[coords[0], coords[1], coords[2], :]
+            time_points = np.arange(self.dims[3])
+
+            # Clear and plot
+            self.time_plot_axes.clear()
+            self.time_plot_axes.set_facecolor('black')
+
+            # Plot time series
+            self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=_t('Concentration'))
+
+            # Add current time indicator
+            self.time_indicator_line = self.time_plot_axes.axvline(
+                x=self.current_time, color='yellow', linewidth=2, alpha=0.8, label=_t('Current Time')
+            )
+
+            # Styling
+            self.time_plot_axes.set_xlabel(_t("NIfTIViewer",'Time Point'), color='white')
+            self.time_plot_axes.set_ylabel(_t("NIfTIViewer",'Signal Intensity'), color='white')
+            self.time_plot_axes.set_title(f'Voxel ({coords[0]}, {coords[1]}, {coords[2]})', color='white')
+            self.time_plot_axes.tick_params(colors='white')
+            self.time_plot_axes.legend()
+
+            # Grid
+            self.time_plot_axes.grid(True, alpha=0.3, color='gray')
+
+            self.time_plot_canvas.draw()
+
+        except Exception as e:
+            print(f"Error updating time series plot: {e}")
+
+    def apply_colormap_matplotlib(self, data, colormap_name):
+        """Apply colormap using matplotlib and return QImage"""
+        try:
+            # Get matplotlib colormap
+            cmap = cm.get_cmap(colormap_name)
+
+            # Apply colormap
+            colored_data = cmap(data)
+
+            # Convert to 8-bit RGBA
+            rgba_data = (colored_data * 255).astype(np.uint8)
+
+            height, width = data.shape
+
+            # Create QImage
+            qimage = QImage(rgba_data.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
+
+            return qimage
+
+        except Exception as e:
+            print(f"Error applying colormap: {e}")
+            return None
+
+    def update_all_displays(self):
+        """Update all plane displays"""
+        for i in range(3):
+            self.update_display(i)
+
+        # Update time series plot if available
+        if self.is_4d:
+            self.update_time_series_plot()
+
+        # Update slice info in status bar
+        if self.img_data is not None:
+            spatial_dims = self.dims[:3] if self.is_4d else self.dims
+            slice_info = _t("NIfTIViewer","Slices")+f": {self.current_slices[0] + 1}/{spatial_dims[2]} | {self.current_slices[1] + 1}/{spatial_dims[1]} | {self.current_slices[2] + 1}/{spatial_dims[0]}"
+            if self.is_4d:
+                slice_info += f" | "+_t("NIfTIViewer","Time")+f": {self.current_time + 1}/{self.dims[3]}"
+            self.slice_info_label.setText(slice_info)
+
+    def create_overlay_composite(self, base_data, overlay_slice):
+        """Create a composite image with grayscale base and red overlay"""
+        try:
+            # Normalize base image to grayscale
+            base_normalized = self.normalize_data_matplotlib_style(base_data)
+
+            # Create RGB image from grayscale base
+            height, width = base_data.shape
+            rgb_image = np.zeros((height, width, 3), dtype=np.float32)
+
+            # Set all channels to grayscale values
+            rgb_image[:, :, 0] = base_normalized  # Red channel
+            rgb_image[:, :, 1] = base_normalized  # Green channel
+            rgb_image[:, :, 2] = base_normalized  # Blue channel
+
+            # Apply overlay if available
+            if overlay_slice.size > 0:
+                overlay_normalized = self.normalize_data_matplotlib_style(overlay_slice)
+
+                # Apply threshold - only show overlay values above threshold
+                overlay_max = np.max(overlay_normalized) if np.max(overlay_normalized) > 0 else 1
+                threshold_value = self.overlay_threshold * overlay_max
+                overlay_mask = overlay_normalized > threshold_value
+
+                # Create red overlay where mask is True
+                if np.any(overlay_mask):
+                    # Apply red color to overlay regions
+                    overlay_intensity = overlay_normalized * self.overlay_alpha
+
+                    # Blend overlay with base: keep base grayscale but add red tint
+                    rgb_image[overlay_mask, 0] = np.minimum(1.0,
+                                                            base_normalized[overlay_mask] + overlay_intensity[
+                                                                overlay_mask])  # Enhanced red
+                    rgb_image[overlay_mask, 1] = base_normalized[overlay_mask] * (
+                                1 - overlay_intensity[overlay_mask])  # Reduced green
+                    rgb_image[overlay_mask, 2] = base_normalized[overlay_mask] * (
+                                1 - overlay_intensity[overlay_mask])  # Reduced blue
+
+            # Convert to 8-bit and create QImage
+            rgb_data = (np.clip(rgb_image, 0, 1) * 255).astype(np.uint8)
+
+            # Create QImage from RGB data
+            return QImage(rgb_data.data, width, height, width * 3, QImage.Format.Format_RGB888)
+
+        except Exception as e:
+            print(f"Error creating overlay composite: {e}")
+            # Fallback to regular colormap
+            return self.apply_colormap_matplotlib(base_data, self.colormap)
+
+    def resizeEvent(self, event: QResizeEvent):
+        """Handle window resize to maintain aspect ratios"""
+        super().resizeEvent(event)
+        # Refit all views after a short delay
+        QTimer.singleShot(100, self.fit_all_views)
+
+    def fit_all_views(self):
+        """Fit all views to their scenes while maintaining aspect ratio"""
+        for view in self.views:
+            if view.scene():
+                view.fitInView(view.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def closeEvent(self, event):
+        """Clean up on application exit"""
+        # Clean up any running threads
+        if hasattr(self, 'load_thread') and self.load_thread.isRunning():
+            self.load_thread.terminate()
+            self.load_thread.wait()
+
+        # Clear image data to free memory
+        self.img_data = None
+        gc.collect()
+
+        event.accept()
+
+    def _retranslate_ui(self):
+        self.setWindowTitle(_t("NIfTIViewer", "NIfTI Image Viewer"))
+
+        self.status_bar.showMessage(_t("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
+
+        self.coord_label.setText(_t("NIfTIViewer", "Coordinates: (-, -, -)"))
+        self.value_label.setText(_t("NIfTIViewer", "Value: -"))
+        self.slice_info_label.setText(_t("NIfTIViewer", "Slice: -/-"))
+
+        self.open_btn.setText(_t("NIfTIViewer", "📁 Open NIfTI File"))
+
+        self.file_info_label.setText(_t("NIfTIViewer","No file loaded"))
+
+        plane_names = [_t("NIfTIViewer", "Axial (Z)"), _t("NIfTIViewer", "Coronal (Y)"),
+                       _t("NIfTIViewer", "Sagittal (X)")]
+        for i,name in enumerate(plane_names):
+            self.plane_labels[i].setText(_t("NIfTIViewer", name))
+
+        self.time_checkbox.setText(_t("NIfTIViewer", "Enable 4D Time Navigation"))
+
+        self.time_point_label.setText(_t("NIfTIViewer", "Time Point:"))
+
+        self.display_options_label.setText(_t("NIfTIViewer", "Display Options:"))
+
+        colormap_names = [_t("NIfTIViewer", 'gray'), _t("NIfTIViewer", 'viridis'), _t("NIfTIViewer", 'plasma'),
+             _t("NIfTIViewer", 'inferno'), _t("NIfTIViewer", 'magma'), _t("NIfTIViewer", 'hot'),
+             _t("NIfTIViewer", 'cool'), _t("NIfTIViewer", 'bone')]
+
+        for i,name in enumerate(colormap_names):
+            self.colormap_combo.setItemText(i, name)
+
+        self.colormap_label.setText(_t("NIfTIViewer", "Colormap:"))
+        self.overlay_control_label.setText(_t("NIfTIViewer", "Overlay Controls:"))
+
+        self.overlay_btn.setText(_t("NIfTIViewer", "Load NIfTI Overlay"))
+
+        self.overlay_checkbox.setText(_t("NIfTIViewer", "Show Overlay"))
+
+        self.alpha_overlay_label.setText(_t("NIfTIViewer", "Overlay Transparency:"))
+
+        self.overlay_threshold_label.setText(_t("NIfTIViewer", "Overlay Threshold:"))
+
+        self.overlay_info_label.setTetx(_t("NIfTIViewer", "No overlay loaded"))
+
+        view_titles = [_t("NIfTIViewer", "Axial"), _t("NIfTIViewer", "Coronal"), _t("NIfTIViewer", "Sagittal")]
+        for i,title in enumerate(view_titles):
+            self.view_titles_labels[i].setText(title)
+
+        self.fourth_title.setText(_t("NIfTIViewer", self.fourth_title.text()))
+        self.info_text.setText(_t("NIfTIViewer", "No image loaded"))
+
+        filename = os.path.basename(self.file_path)
+        dims = self.dims
+        if self.is_4d:
+            info_text = _t("NIfTIViewer","File")+ f":{filename}\n"+_t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t("NIfTIViewer","4D Time Series")
+
+        else:
+            info_text = _t("NIfTIViewer","File")+ f":{filename}\n" + _t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n"+ _t("NIfTIViewer","3D Volume")
+
+        self.file_info_label.setText(info_text)
+        self.info_text.setText(info_text)
+
+        if self.overlay_data is not None:
+            self.overlay_info_label.setText(
+                f"Overlay: {filename}\n" + _t("NIfTIViewer", "Dimensions") + f":{self.overlay_dims}")
+
+        coords = self.current_coordinates
+
+
