@@ -1,14 +1,11 @@
 import os
-import shutil
 import json
 
-import subprocess
-import pydicom
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QMessageBox, QFileDialog,
-    QListView, QTreeView, QVBoxLayout,
+    QApplication, QMainWindow,
+    QTreeView, QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
