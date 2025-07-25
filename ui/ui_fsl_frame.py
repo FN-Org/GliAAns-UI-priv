@@ -1,8 +1,8 @@
-from PyQt6.QtGui import QFileSystemModel
+from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
     QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView, QHBoxLayout,
-    QListView, QTextEdit
+    QListView, QTextEdit, QListWidget, QListWidgetItem
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
@@ -26,11 +26,11 @@ class SkullStrippingPage(WizardPage):
         # Layout orizzontale per bottone + campo percorso
         file_selector_layout = QHBoxLayout()
 
-        self.file_path_display = QTextEdit()
-        self.file_path_display.setReadOnly(True)
-        self.file_path_display.setPlaceholderText("No file selected")
-        self.file_path_display.setMaximumHeight(80)
-        file_selector_layout.addWidget(self.file_path_display, stretch=1)
+        self.file_list_widget = QListWidget()
+        self.file_list_widget.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+        self.file_list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.file_list_widget.setMaximumHeight(100)
+        file_selector_layout.addWidget(self.file_list_widget, stretch=1)
 
         self.file_button = QPushButton("Choose NIfTI File")
         self.file_button.clicked.connect(self.open_tree_dialog)
@@ -106,7 +106,6 @@ class SkullStrippingPage(WizardPage):
         self.layout.addWidget(self.status_label)
 
     def open_tree_dialog(self):
-
         dialog = QDialog(self)
         dialog.setWindowTitle("Select a NIfTI file from workspace")
         dialog.resize(600, 500)
@@ -164,11 +163,14 @@ class SkullStrippingPage(WizardPage):
 
     def set_selected_files(self, file_paths):
         self.selected_files = file_paths
-        if len(file_paths) == 1:
-            self.file_path_display.setPlainText(file_paths[0])
-        else:
-            self.file_path_display.setPlainText("\n".join(file_paths))
-        self.file_button.setText("Choose NIfTI Files")
+        self.file_list_widget.clear()
+
+        for path in file_paths:
+            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
+            item.setToolTip(path)
+            self.file_list_widget.addItem(item)
+
+        self.file_button.setText("Choose NIfTI File(s)")
         self.context.controller.update_buttons_state()
 
     def toggle_advanced(self):
@@ -235,6 +237,36 @@ class SkullStrippingPage(WizardPage):
             summary += f"\nFailed files:\n" + "\n".join(failed_files)
 
         self.status_label.setText(summary)
+
+    def reset_page(self):
+        # Resetta file selezionati
+        self.selected_files = []
+        self.file_list_widget.clear()
+        self.file_button.setText("Choose NIfTI File")
+
+        # Resetta i parametri principali
+        self.f_input.clear()
+
+        # Nasconde e resetta le opzioni avanzate
+        self.advanced_btn.setChecked(False)
+        self.advanced_box.setVisible(False)
+        self.advanced_btn.setText("Show Advanced Options")
+
+        for checkbox in [
+            self.opt_o, self.opt_m, self.opt_s, self.opt_n,
+            self.opt_t, self.opt_e, self.opt_R, self.opt_S,
+            self.opt_B, self.opt_Z, self.opt_F, self.opt_A,
+            self.opt_v
+        ]:
+            checkbox.setChecked(False)
+
+        for field in [
+            self.g_input, self.r_input, self.c_input, self.A2_input
+        ]:
+            field.clear()
+
+        # Pulisce lo stato
+        self.status_label.clear()
 
     def on_enter(self, controller):
         self.status_label.setText("")  # Reset

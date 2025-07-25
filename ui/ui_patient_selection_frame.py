@@ -57,6 +57,27 @@ class PatientSelectionPage(WizardPage):
         self.controller.update_buttons_state()
         pass
 
+    def reset_page(self):
+        """Reset della pagina: deseleziona tutti i pazienti e ricarica la lista."""
+        self.selected_patients.clear()
+
+        # Rimuove tutti i widget esistenti dalla griglia
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        self.patient_buttons.clear()
+
+        # Ricarica i pazienti dal workspace (da zero)
+        self._load_patients()
+
+        # Aggiorna stato pulsanti (Next ecc.)
+        if self.controller:
+            self.controller.update_buttons_state()
+
     def on_exit(self, controller):
         to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
 

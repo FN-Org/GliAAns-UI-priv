@@ -1,12 +1,13 @@
 import os
 import json
+import shutil
 
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow,
     QTreeView, QVBoxLayout,
-    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
@@ -113,12 +114,9 @@ class MainWindow(QMainWindow):
 
         # Workspace
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
-        self.clear_links_action = QAction("Clear link", self)
-        self.clear_copies_action = QAction("Clear copies", self)
-        self.clear_all_action = QAction("Clear all", self)
-        self.workspace_menu.addAction(self.clear_links_action)
-        self.workspace_menu.addAction(self.clear_copies_action)
+        self.clear_all_action = QAction("Clear workspace", self)
         self.workspace_menu.addAction(self.clear_all_action)
+        self.clear_all_action.triggered.connect(self.clear_workspace)
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
@@ -199,9 +197,7 @@ class MainWindow(QMainWindow):
 
         self.import_action.setText(_("MainWindow", "Import"))
         self.export_action.setText(_("MainWindow", "Export"))
-        self.clear_links_action.setText(_("MainWindow", "Clear link"))
-        self.clear_copies_action.setText(_("MainWindow", "Clear copies"))
-        self.clear_all_action.setText(_("MainWindow", "Clear all"))
+        self.clear_all_action.setText(_("MainWindow", "Clear workspace"))
         self.language_actions["en"].setText(_("MainWindow", "English"))
         self.language_actions["it"].setText(_("MainWindow", "Italiano"))
 
@@ -214,18 +210,32 @@ class MainWindow(QMainWindow):
             else:
                 self.tree_view.hideColumn(i)
 
-    def _update_footer_visibility(self):
-        has_content = any(
-            os.path.isdir(os.path.join(self.workspace_path, name)) or
-            os.path.islink(os.path.join(self.workspace_path, name))
-            for name in os.listdir(self.workspace_path)
-            if not name.startswith(".")
+    def clear_workspace(self):
+        reply = QMessageBox.question(
+            self,
+            "Conferma eliminazione",
+            "Sei sicuro di voler cancellare completamente il workspace?\n"
+            "ATTENZIONE: Tutti i dati verranno rimossi e tornerai alla pagina di import.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
 
-        if has_content:
-            self.footer.show()
-        else:
-            self.footer.hide()
+        if reply == QMessageBox.StandardButton.Yes:
+            for item in os.listdir(self.workspace_path):
+                item_path = os.path.join(self.workspace_path, item)
+                try:
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.remove(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                except Exception as e:
+                    QMessageBox.warning(self, "Errore", f"Errore durante la rimozione di {item}:\n{str(e)}")
+
+            print("Workspace svuotato.")
+            self.controller.current_page_index = 0
+            self.controller.current_page = self.controller.pages[0]
+            self.controller._show_current_page()
+            self.controller.update_buttons_state()
 
     def set_right_widget(self, new_widget):
         if self.splitter.count() > 1:

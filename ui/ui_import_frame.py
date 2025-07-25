@@ -71,7 +71,7 @@ class ImportFrame(WizardPage):
             for url in urls:
                 file_path = url.toLocalFile()
                 if os.path.exists(file_path) and os.path.isdir(file_path):
-                    self._handle_folder_import(file_path)
+                    self._handle_import(file_path)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -91,39 +91,7 @@ class ImportFrame(WizardPage):
             folders = [os.path.abspath(path) for path in dialog.selectedFiles() if os.path.isdir(path)]
             unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
             for folder in unique_folders:
-                self._open_import_dialog(folder)
-
-    def _open_import_dialog(self, path):
-        if not os.path.isdir(path):
-            return
-
-        msg = QMessageBox(self.context)
-        msg.setWindowTitle("Import Resource")
-        msg.setText(f"You're about to import the resource:\n\"{path}\"\n\nHow do you want to import it?")
-        link_button = msg.addButton("Link", QMessageBox.ButtonRole.AcceptRole)
-        copy_button = msg.addButton("Copy", QMessageBox.ButtonRole.DestructiveRole)
-        cancel_button = msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
-
-        msg.exec()
-        folder_name = os.path.basename(os.path.normpath(path))
-        target_path = os.path.join(self.workspace_path, folder_name)
-
-        if msg.clickedButton() == link_button:
-            if os.path.exists(target_path):
-                os.unlink(target_path) if os.path.islink(target_path) else shutil.rmtree(target_path)
-            try:
-                os.symlink(path, target_path)
-                # self._update_footer_visibility()
-                self.controller.update_buttons_state()
-            except Exception as e:
-                QMessageBox.critical(self, "Link Error", f"Failed to create symlink: {e}")
-
-        elif msg.clickedButton() == copy_button:
-            # if os.path.exists(target_path):
-            #     shutil.rmtree(target_path)
-            # shutil.copytree(path, target_path)
-            self._handle_import(path)
-            # self._update_footer_visibility()
+                self._handle_import(folder)
 
     def _is_nifti_file(self, file_path):
         return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
@@ -169,6 +137,28 @@ class ImportFrame(WizardPage):
         if not os.path.isdir(folder_path):
             return
 
+        # Se è una cartella normale (singolo paziente o BIDS), continua come prima
+        if self._is_bids_folder(folder_path):
+            print(f"BIDS structure detected in: {folder_path}")
+
+            new_sub_id = self._get_next_sub_id()  # es: "sub-03"
+            dest = os.path.join(self.workspace_path, new_sub_id)
+            shutil.copytree(folder_path, dest, dirs_exist_ok=True)
+
+            print(f"BIDS folder copied as {new_sub_id}.")
+            self.controller.update_buttons_state()
+            return
+
+        # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
+        subfolders = [os.path.join(folder_path, d) for d in os.listdir(folder_path) if
+                      os.path.isdir(os.path.join(folder_path, d))]
+        if subfolders and not any(self._is_nifti_file(f) or self._is_dicom_file(os.path.join(folder_path, f)) for f in
+                                  os.listdir(folder_path)):
+            print(f"Multiple patient folders detected in: {folder_path}")
+            for subfolder in subfolders:
+                self._handle_import(subfolder)
+            return
+
         nifti_files = []
         dicom_files = []
 
@@ -211,6 +201,35 @@ class ImportFrame(WizardPage):
 
         self.controller.update_buttons_state()
         print("Import completed.")
+
+    def _is_bids_folder(self, folder_path):
+        """
+        Verifica se una cartella è una cartella BIDS valida per un singolo soggetto.
+        Controlla che:
+        - il nome della cartella inizi con 'sub-'
+        - all'interno ci siano sottocartelle come 'anat', 'func', ecc.
+        - queste contengano file NIfTI (e opzionalmente JSON)
+        """
+        base = os.path.basename(folder_path.rstrip(os.sep))
+
+        # Deve chiamarsi sub-*
+        if not base.startswith("sub-"):
+            return False
+
+        # Cerca sottocartelle BIDS standard con file utili
+        for session_or_modality in os.listdir(folder_path):
+            session_path = os.path.join(folder_path, session_or_modality)
+            if os.path.isdir(session_path):
+                for modality in os.listdir(session_path):
+                    modality_path = os.path.join(session_path, modality)
+                    if os.path.isdir(modality_path):
+                        if any(f.endswith(".nii") or f.endswith(".nii.gz") for f in os.listdir(modality_path)):
+                            return True
+                # oppure è una cartella "anat", "func", ecc. direttamente sotto sub-01 (senza ses-*)
+                if any(f.endswith(".nii") or f.endswith(".nii.gz") for f in os.listdir(session_path)):
+                    return True
+
+        return False
 
     def _convert_to_bids_structure(self, input_folder):
         """
