@@ -41,10 +41,11 @@ class ToolChoicePage(WizardPage):
         self.selected_option = None
 
     def on_selection(self):
+        selected_id = self.radio_group.checkedId()
+        self.selected_option = selected_id + 1
+        self.context.controller.next_page_index += self.selected_option
+        self.context.controller.previous_page_index = self.context.controller.current_page_index
         self.context.controller.update_buttons_state()
-        self.controller.update_buttons_state()
-        self.controller.next_page_index += self.selected_option
-        self.controller.previous_page_index = self.controller.current_page_index
 
     def on_enter(self, controller):
         # Reset selezione
@@ -62,7 +63,6 @@ class ToolChoicePage(WizardPage):
     def is_ready_to_advance(self):
         selected_id = self.radio_group.checkedId()
         if selected_id != -1:
-            self.selected_option = selected_id + 1
             # self.context.selected_processing_step = selected_id
             return True
         return False

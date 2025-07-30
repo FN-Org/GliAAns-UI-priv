@@ -15,6 +15,8 @@ from ui.tool_selection_frame import ToolChoicePage
 from ui.ui_button import UiButton
 from ui.ui_fsl_frame import SkullStrippingPage
 from ui.ui_import_frame import ImportFrame
+from ui.ui_nifti_selection import NiftiSelectionPage
+from ui.ui_nifti_viewer import NiftiViewer
 from ui.ui_patient_selection_frame import PatientSelectionPage
 from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_controller import WizardController
@@ -146,8 +148,11 @@ class MainWindow(QMainWindow):
         fsl_page = SkullStrippingPage(self)
         self.controller.add_page(fsl_page)
 
-        work = WorkInProgressPage()
-        self.controller.add_page(work)
+        nifti_selection = NiftiSelectionPage(self)
+        self.controller.add_page(nifti_selection)
+
+        nifti_viewer = NiftiViewer()
+        self.controller.add_page(nifti_viewer)
 
         work2 = WorkInProgressPage()
         self.controller.add_page(work2)

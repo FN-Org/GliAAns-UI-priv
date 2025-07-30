@@ -58,7 +58,7 @@ class WizardController:
         if self.current_page.is_ready_to_advance() and self.current_page_index < len(self.pages) - 1:
             self.current_page.on_exit(self)
             self.current_page.reset_page()
-            self.current_page_index += 1
+            self.current_page_index = self.next_page_index
             self.current_page = self.pages[self.current_page_index]
             self._show_current_page()
             self.update_buttons_state()
@@ -66,7 +66,7 @@ class WizardController:
     def go_to_previous_page(self):
         if self.current_page_index > 0:
             self.current_page.reset_page()
-            self.current_page_index -= 1
+            self.current_page_index = self.previous_page_index
             self.current_page = self.pages[self.current_page_index]
             self._show_current_page()
             self.update_buttons_state()

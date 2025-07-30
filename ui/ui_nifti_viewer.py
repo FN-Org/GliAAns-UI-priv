@@ -202,6 +202,15 @@ class CrosshairGraphicsView(QGraphicsView):
 class NiftiViewer(QMainWindow):
     """Enhanced NIfTI viewer application with triplanar display and 4D support"""
 
+    def on_enter(self, controller):
+        return True
+
+    def is_ready_to_advance(self):
+        return False  # Ultima pagina
+
+    def is_ready_to_go_back(self):
+        return True
+
     def __init__(self):
         super().__init__()
 

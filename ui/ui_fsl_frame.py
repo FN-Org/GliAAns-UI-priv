@@ -117,7 +117,7 @@ class SkullStrippingPage(WizardPage):
         layout.addWidget(QLabel("Search:"))
         layout.addWidget(search_bar)
 
-        # 🔍 Scansione ricorsiva di tutti i file .nii / .nii.gz nel workspace
+        # Scansione ricorsiva di tutti i file .nii / .nii.gz nel workspace
         nii_files = []
         for root, dirs, files in os.walk(self.context.workspace_path):
             for f in files:
