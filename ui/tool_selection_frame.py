@@ -3,23 +3,28 @@ from PyQt6.QtWidgets import (
     QGroupBox, QButtonGroup
 )
 from PyQt6.QtCore import Qt
-from wizard_controller import WizardPage
+
+from ui.ui_fsl_frame import SkullStrippingPage
+from ui.ui_nifti_selection import NiftiSelectionPage
+from ui.ui_work_in_progress import WorkInProgressPage
+from wizard_state import WizardPage
 
 
 class ToolChoicePage(WizardPage):
-    def __init__(self, context=None):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
+        self.previous_page = previous_page
+        self.next_page = None
+
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        # Titolo
         title = QLabel("Select the next processing step")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(title)
 
-        # Group box con radio buttons
         self.radio_group_box = QGroupBox("Available processes")
         radio_layout = QVBoxLayout()
 
@@ -42,30 +47,46 @@ class ToolChoicePage(WizardPage):
 
     def on_selection(self):
         selected_id = self.radio_group.checkedId()
-        self.selected_option = selected_id + 1
-        self.context.controller.next_page_index += self.selected_option
-        self.context.controller.previous_page_index = self.context.controller.current_page_index
-        self.context.controller.update_buttons_state()
+        self.selected_option = selected_id
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
-    def on_enter(self, controller):
-        # Reset selezione
+    def on_enter(self):
         self.radio_group.setExclusive(False)
         for btn in self.radio_group.buttons():
             btn.setChecked(False)
         self.radio_group.setExclusive(True)
         self.selected_option = None
 
-        self.controller = controller
-        self.controller.next_page_index = 2
-        self.controller.previous_page_index = 1
-        self.controller.update_buttons_state()
-
     def is_ready_to_advance(self):
         selected_id = self.radio_group.checkedId()
         if selected_id != -1:
-            # self.context.selected_processing_step = selected_id
             return True
         return False
 
     def is_ready_to_go_back(self):
         return True
+
+    def next(self, context):
+        if self.selected_option == 0:
+            self.next_page = SkullStrippingPage(context, self)
+        elif self.selected_option == 1:
+            self.next_page = NiftiSelectionPage(context, self)
+        elif self.selected_option == 2:
+            self.next_page = WorkInProgressPage()
+        elif self.selected_option == 3:
+            self.next_page = WorkInProgressPage()
+        else:
+            return None
+
+        self.on_exit()
+        self.next_page.on_enter()
+        return self.next_page
+
+    def back(self, context):
+        if self.previous_page:
+            self.on_exit()
+            self.previous_page.on_enter()
+            return self.previous_page
+
+        return None

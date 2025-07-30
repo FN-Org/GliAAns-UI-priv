@@ -7,13 +7,16 @@ from PyQt6.QtCore import Qt, QStringListModel, QSortFilterProxyModel
 from PyQt6.QtGui import QIcon
 import os
 
-from wizard_controller import WizardPage
+from wizard_state import WizardPage
 
 
 class NiftiSelectionPage(WizardPage):
-    def __init__(self, context=None):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
+        self.previous_page = previous_page
+        self.next_page = None
+
         self.selected_file = None
 
         self.layout = QVBoxLayout(self)

@@ -5,17 +5,21 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt6.QtCore import Qt
 import os
 
-from wizard_controller import WizardPage
+from ui.tool_selection_frame import ToolChoicePage
+from wizard_state import WizardPage
 
 
 class PatientSelectionPage(WizardPage):
-    def __init__(self, context=None):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
 
-        self.patient_buttons = {}  # patient_id -> QPushButton
         self.context = context
+        self.previous_page = previous_page
+        self.next_page = None
 
-        self.workspace_path = context.workspace_path
+        self.workspace_path = context["workspace_path"]
+
+        self.patient_buttons = {}
         self.selected_patients = set()
 
         self.layout = QVBoxLayout(self)
@@ -23,7 +27,6 @@ class PatientSelectionPage(WizardPage):
         self.label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.layout.addWidget(self.label)
 
-        # Pulsanti Seleziona/Deseleziona Tutti
         top_buttons_layout = QHBoxLayout()
 
         select_all_btn = QPushButton("Select All")
@@ -48,20 +51,14 @@ class PatientSelectionPage(WizardPage):
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
-    def on_enter(self, controller):
+    def on_enter(self):
         """Hook chiamato quando si entra nella pagina."""
         self._load_patients()
-        self.controller = controller
-        self.controller.next_page_index = 2
-        self.controller.previous_page_index = 0
-        self.controller.update_buttons_state()
         pass
 
-    def reset_page(self):
-        """Reset della pagina: deseleziona tutti i pazienti e ricarica la lista."""
+    def on_exit(self):
         self.selected_patients.clear()
 
-        # Rimuove tutti i widget esistenti dalla griglia
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
@@ -71,24 +68,27 @@ class PatientSelectionPage(WizardPage):
 
         self.patient_buttons.clear()
 
-        # Ricarica i pazienti dal workspace (da zero)
-        self._load_patients()
+    def is_ready_to_advance(self):
+        if self.selected_patients:
+            return True
+        else:
+            return False
 
-        # Aggiorna stato pulsanti (Next ecc.)
-        if self.controller:
-            self.controller.update_buttons_state()
+    def is_ready_to_go_back(self):
+        return True
 
-    def on_exit(self, controller):
+    def next(self, context):
         to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
 
-        if not to_delete:
-            return
+        if to_delete:
+            reply = QMessageBox.question(self, "Confirm Cleanup",
+                                         f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
-        reply = QMessageBox.question(self, "Confirm Cleanup",
-                                     f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.No:
+                return None
 
-        if reply == QMessageBox.StandardButton.Yes:
+            # If reply == Yes
             for patient_path in to_delete:
                 try:
                     shutil.rmtree(patient_path)
@@ -96,16 +96,38 @@ class PatientSelectionPage(WizardPage):
                 except Exception as e:
                     print(f"Failed to delete {patient_path}: {e}")
 
-    def is_ready_to_advance(self):
-        """Restituisce True se si può avanzare alla prossima pagina."""
-        if self.selected_patients:
-            return True
-        else:
-            return False
+        if not self.next_page:
+            self.next_page = ToolChoicePage(context, self)
 
-    def is_ready_to_go_back(self):
-        """Restituisce True se si può tornare indietro alla pagina precedente."""
-        return True
+        self.on_exit()
+        self.next_page.on_enter()
+        return self.next_page
+
+    def back(self, context):
+        to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
+
+        if to_delete:
+            reply = QMessageBox.question(self, "Confirm Cleanup",
+                                         f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+            if reply == QMessageBox.StandardButton.No:
+                return None
+
+            # If reply == Yes
+            for patient_path in to_delete:
+                try:
+                    shutil.rmtree(patient_path)
+                    print(f"Deleted: {patient_path}")
+                except Exception as e:
+                    print(f"Failed to delete {patient_path}: {e}")
+
+        if self.previous_page:
+            self.on_exit()
+            self.previous_page.on_enter()
+            return self.previous_page
+
+        return None
 
     def _load_patients(self):
         patient_dirs = self._find_patient_dirs()
@@ -163,7 +185,8 @@ class PatientSelectionPage(WizardPage):
                 button.setChecked(True)
                 button.setText("Selected")
                 self.selected_patients.add(patient_id)
-        self.controller.update_buttons_state()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def _deselect_all_patients(self):
         for patient_id, button in self.patient_buttons.items():
@@ -171,7 +194,8 @@ class PatientSelectionPage(WizardPage):
                 button.setChecked(False)
                 button.setText("Select")
                 self.selected_patients.discard(patient_id)
-        self.controller.update_buttons_state()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def _find_patient_dirs(self):
         patient_dirs = []
@@ -194,7 +218,8 @@ class PatientSelectionPage(WizardPage):
         else:
             self.selected_patients.discard(patient_id)
             button.setText("Select")
-        self.context.controller.update_buttons_state()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def get_selected_patients(self):
         return list(self.selected_patients)

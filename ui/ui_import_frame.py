@@ -10,17 +10,20 @@ from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QFileDial
 
 import pydicom
 
-from wizard_controller import WizardPage
+from ui.ui_patient_selection_frame import PatientSelectionPage
+from wizard_state import WizardPage
+
 
 class ImportFrame(WizardPage):
 
     def __init__(self, context=None):
         super().__init__()
-        self.setAcceptDrops(True)
+        self.context = context
+        self.next_page = None
 
+        self.setAcceptDrops(True)
         self.setEnabled(True)
         self.setStyleSheet("border: 2px dashed gray;")
-        # self.setFrameShape(QFrame.Shape.StyledPanel)
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
@@ -29,18 +32,14 @@ class ImportFrame(WizardPage):
         frame_layout.addWidget(self.drop_label)
 
         self.context = context
-        self.workspace_path = context.workspace_path
+        self.workspace_path = context["workspace_path"]
 
         self._retranslate_ui()
         if context and hasattr(context, "language_changed"):
             context.language_changed.connect(self._retranslate_ui)
 
-    def on_enter(self, controller):
+    def on_enter(self):
         """Hook chiamato quando si entra nella pagina."""
-        self.controller = controller
-        self.controller.next_page_index = 1
-        self.controller.previous_page_index = 0
-        self.controller.update_buttons_state()
         pass
 
     def is_ready_to_advance(self):
@@ -58,7 +57,16 @@ class ImportFrame(WizardPage):
             return False
 
     def is_ready_to_go_back(self):
-        """Restituisce True se si può tornare indietro alla pagina precedente."""
+        return False
+
+    def next(self, context):
+        if self.next_page:
+            return self.next_page
+        else:
+            self.next_page = PatientSelectionPage(context, self)
+            return self.next_page
+
+    def back(self, context):
         return False
 
     def dragEnterEvent(self, event):
@@ -113,7 +121,7 @@ class ImportFrame(WizardPage):
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)
                 except Exception as e:
-                    print(f"⚠️ Errore durante la rimozione di {file_path}: {e}")
+                    print(f"Errore durante la rimozione di {file_path}: {e}")
         else:
             os.makedirs(output_folder, exist_ok=True)
 

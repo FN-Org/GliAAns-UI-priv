@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
-from wizard_controller import WizardPage
+
+from wizard_state import WizardPage
+
 
 class WorkInProgressPage(WizardPage):
     def __init__(self):

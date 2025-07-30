@@ -44,16 +44,22 @@ class MainWindow(QMainWindow):
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
 
+    # --------------------------
+    # UI SETUP
+    # --------------------------
     def _setup_ui(self):
         self.setObjectName("MainWindow")
         self.resize(840, 441)
 
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
-
         self.main_layout = QVBoxLayout(central_widget)
 
-        # Splitter with TreeView and ImportFrame
+        self._setup_splitter()
+        self._setup_footer()
+
+    def _setup_splitter(self):
+        # Splitter
         self.splitter = QSplitter(QtCore.Qt.Orientation.Horizontal)
 
         # TreeView
@@ -64,8 +70,6 @@ class MainWindow(QMainWindow):
         self.tree_view.setRootIndex(self.tree_model.index(self.workspace_path))
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
-
-        # Tree view già esistente nella tua UI
         self.tree_view.clicked.connect(self.handle_workspace_click)
         self.tree_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
 
@@ -73,11 +77,11 @@ class MainWindow(QMainWindow):
         self.splitter.setSizes([200, 600])
         self.splitter.splitterMoved.connect(self.adjust_tree_columns)
 
+    def _setup_footer(self):
         self.footer = QtWidgets.QWidget()
         self.footer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.footer_layout = QHBoxLayout(self.footer)
         self.footer_layout.setContentsMargins(0, 0, 0, 0)
-        # self._update_footer_visibility()
 
         self.back_button = UiButton(text="Back", context=self)
         self.back_button.clicked.connect(lambda: self.controller.go_to_previous_page())
@@ -88,20 +92,6 @@ class MainWindow(QMainWindow):
         self.footer_layout.addWidget(self.next_button, 0, Qt.AlignmentFlag.AlignRight)
 
         self.main_layout.addWidget(self.footer)
-
-    def handle_workspace_click(self, index):
-        selected_indexes = self.tree_view.selectionModel().selectedIndexes()
-
-        selected_files = []
-        for idx in selected_indexes:
-            if idx.column() == 0:  # Solo la colonna principale (file name), evita ripetizioni
-                path = self.tree_model.filePath(idx)
-                if path.endswith(".nii") or path.endswith(".nii.gz"):
-                    selected_files.append(path)
-
-        # Passa i file alla pagina corrente, se implementa set_selected_files()
-        if selected_files and hasattr(self.controller.current_page, "set_selected_files"):
-            self.controller.current_page.set_selected_files(selected_files)
 
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
@@ -122,10 +112,6 @@ class MainWindow(QMainWindow):
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
-
-        self.help_menu = self.menu_bar.addMenu("Help")
-
-        # Language menu
         self.language_menu = self.settings_menu.addMenu("Language")
         self.language_action_group = QActionGroup(self)
         self.language_action_group.setExclusive(True)
@@ -133,34 +119,46 @@ class MainWindow(QMainWindow):
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
 
+        self.help_menu = self.menu_bar.addMenu("Help")
+
+    # --------------------------
+    # WIZARD CONTROLLER SETUP
+    # --------------------------
     def _setup_controller(self):
-        self.controller = WizardController(self.next_button, self.back_button, self)
+        self.controller = WizardController(
+            next_button=self.next_button,
+            back_button=self.back_button,
+            main_window=self
+        )
 
-        import_page = ImportFrame(self)
-        self.controller.add_page(import_page)
+        # Aggiungi le pagine al wizard
+        # self.controller.add_page(ImportFrame(self))
+        # self.controller.add_page(PatientSelectionPage(self))
+        # self.controller.add_page(ToolChoicePage(self))
+        # self.controller.add_page(SkullStrippingPage(self))
+        # self.controller.add_page(NiftiSelectionPage(self))
+        # self.controller.add_page(NiftiViewer())
+        # self.controller.add_page(WorkInProgressPage())  # terza scelta
+        # self.controller.add_page(WorkInProgressPage())  # quarta scelta
 
-        patient_selection_page = PatientSelectionPage(self)
-        self.controller.add_page(patient_selection_page)
+        # self.controller.start()
 
-        tool_page = ToolChoicePage(self)
-        self.controller.add_page(tool_page)
+    # --------------------------
+    # WORKSPACE & TREEVIEW
+    # --------------------------
+    def handle_workspace_click(self, index):
+        selected_indexes = self.tree_view.selectionModel().selectedIndexes()
 
-        fsl_page = SkullStrippingPage(self)
-        self.controller.add_page(fsl_page)
+        selected_files = []
+        for idx in selected_indexes:
+            if idx.column() == 0:  # Solo la colonna principale (file name), evita ripetizioni
+                path = self.tree_model.filePath(idx)
+                if path.endswith(".nii") or path.endswith(".nii.gz"):
+                    selected_files.append(path)
 
-        nifti_selection = NiftiSelectionPage(self)
-        self.controller.add_page(nifti_selection)
-
-        nifti_viewer = NiftiViewer()
-        self.controller.add_page(nifti_viewer)
-
-        work2 = WorkInProgressPage()
-        self.controller.add_page(work2)
-
-        work3 = WorkInProgressPage()
-        self.controller.add_page(work3)
-
-        self.controller.start()
+        # Passa i file alla pagina corrente, se implementa set_selected_files()
+        if selected_files and hasattr(self.controller.current_page, "set_selected_files"):
+            self.controller.current_page.set_selected_files(selected_files)
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)

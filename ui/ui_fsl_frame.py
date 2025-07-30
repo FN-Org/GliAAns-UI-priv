@@ -8,14 +8,21 @@ from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
 import subprocess
 
-from wizard_controller import WizardPage
+from wizard_state import WizardPage
+
 
 class SkullStrippingPage(WizardPage):
-    def __init__(self, context=None):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
+        self.previous_page = previous_page
+        self.next_page = None
+
         self.selected_file = None
 
+        self._setup_ui()
+
+    def _setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
@@ -268,15 +275,12 @@ class SkullStrippingPage(WizardPage):
         # Pulisce lo stato
         self.status_label.clear()
 
-    def on_enter(self, controller):
-        self.status_label.setText("")  # Reset
-
-        self.controller = controller
-        self.controller.update_buttons_state()
-        controller.previous_page_index = 2
+    def on_enter(self):
+        # self.status_label.setText("")  # Reset
+        pass
 
     def is_ready_to_advance(self):
-        return False  # Ultima pagina
+        return False # You can't advance from here
 
     def is_ready_to_go_back(self):
         return True
