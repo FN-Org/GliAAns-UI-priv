@@ -5,10 +5,6 @@ class WizardPage(QWidget):
     def _setup_ui(self):
         pass
 
-    def on_enter(self):
-        """Hook chiamato quando si entra nella pagina."""
-        pass
-
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
         return True
@@ -24,5 +20,9 @@ class WizardPage(QWidget):
     def next(self, context):
         pass
 
-    def back(self, context):
+    def back(self):
+        pass
+
+    def update_selected_files(self, files):
+        """Optional: override to react to external file selections"""
         pass

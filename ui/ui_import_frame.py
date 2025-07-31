@@ -38,10 +38,6 @@ class ImportFrame(WizardPage):
         if context and hasattr(context, "language_changed"):
             context.language_changed.connect(self._retranslate_ui)
 
-    def on_enter(self):
-        """Hook chiamato quando si entra nella pagina."""
-        pass
-
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
         has_content = any(
@@ -66,7 +62,7 @@ class ImportFrame(WizardPage):
             self.next_page = PatientSelectionPage(context, self)
             return self.next_page
 
-    def back(self, context):
+    def back(self):
         return False
 
     def dragEnterEvent(self, event):

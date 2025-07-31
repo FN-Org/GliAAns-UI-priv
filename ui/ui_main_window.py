@@ -11,14 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
-from ui.tool_selection_frame import ToolChoicePage
 from ui.ui_button import UiButton
-from ui.ui_fsl_frame import SkullStrippingPage
-from ui.ui_import_frame import ImportFrame
-from ui.ui_nifti_selection import NiftiSelectionPage
-from ui.ui_nifti_viewer import NiftiViewer
-from ui.ui_patient_selection_frame import PatientSelectionPage
-from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
@@ -131,34 +124,24 @@ class MainWindow(QMainWindow):
             main_window=self
         )
 
-        # Aggiungi le pagine al wizard
-        # self.controller.add_page(ImportFrame(self))
-        # self.controller.add_page(PatientSelectionPage(self))
-        # self.controller.add_page(ToolChoicePage(self))
-        # self.controller.add_page(SkullStrippingPage(self))
-        # self.controller.add_page(NiftiSelectionPage(self))
-        # self.controller.add_page(NiftiViewer())
-        # self.controller.add_page(WorkInProgressPage())  # terza scelta
-        # self.controller.add_page(WorkInProgressPage())  # quarta scelta
-
-        # self.controller.start()
+        self.context = self.controller.context
 
     # --------------------------
     # WORKSPACE & TREEVIEW
     # --------------------------
     def handle_workspace_click(self, index):
-        selected_indexes = self.tree_view.selectionModel().selectedIndexes()
+        selected_indexes = self.tree_view.selectionModel().selectedRows()
 
         selected_files = []
         for idx in selected_indexes:
-            if idx.column() == 0:  # Solo la colonna principale (file name), evita ripetizioni
-                path = self.tree_model.filePath(idx)
-                if path.endswith(".nii") or path.endswith(".nii.gz"):
-                    selected_files.append(path)
+            path = self.tree_model.filePath(idx)
+            selected_files.append(path)
 
-        # Passa i file alla pagina corrente, se implementa set_selected_files()
-        if selected_files and hasattr(self.controller.current_page, "set_selected_files"):
-            self.controller.current_page.set_selected_files(selected_files)
+        # Save into context
+        self.controller.context["selected_files"] = selected_files
+
+        # Notify the current page
+        self.controller.current_page.update_selected_files(selected_files)
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)

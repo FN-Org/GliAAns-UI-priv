@@ -1,5 +1,6 @@
 from ui.ui_import_frame import ImportFrame
 
+
 class WizardController:
     def __init__(self, next_button, back_button, main_window):
         self.next_button = next_button
@@ -9,15 +10,13 @@ class WizardController:
         self.context = {
             "workspace_path": self.main_window.workspace_path,
             "update_main_buttons": self.update_buttons_state,
+            "selected_files": []
         }
 
         self.current_page = ImportFrame(self.context)
         self.history = []
 
         self._show_current_page()
-
-    def start(self):
-        pass
 
     def _show_current_page(self):
         self.main_window.set_right_widget(self.current_page)
@@ -31,7 +30,7 @@ class WizardController:
         return self.current_page
 
     def go_to_previous_page(self):
-        previous_page = self.current_page.back(self.context)
+        previous_page = self.current_page.back()
         if previous_page:
             self.current_page = previous_page
             self._show_current_page()

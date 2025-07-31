@@ -5,8 +5,11 @@ from wizard_state import WizardPage
 
 
 class WorkInProgressPage(WizardPage):
-    def __init__(self):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
+        self.context = context
+        self.previous_page = previous_page
+
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
@@ -15,12 +18,15 @@ class WorkInProgressPage(WizardPage):
         label.setStyleSheet("font-size: 18px; font-weight: bold; padding: 40px;")
         layout.addWidget(label)
 
-    def on_enter(self, controller):
-        print("Entered WorkInProgressPage")
-
     def is_ready_to_advance(self):
-        # Always allow to proceed from this page
-        return True
+        return False
 
     def is_ready_to_go_back(self):
         return True
+
+    def back(self):
+        if self.previous_page:
+            self.on_exit()
+            return self.previous_page
+
+        return None

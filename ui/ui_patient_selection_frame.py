@@ -51,11 +51,6 @@ class PatientSelectionPage(WizardPage):
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
-    def on_enter(self):
-        """Hook chiamato quando si entra nella pagina."""
-        self._load_patients()
-        pass
-
     def on_exit(self):
         self.selected_patients.clear()
 
@@ -92,6 +87,7 @@ class PatientSelectionPage(WizardPage):
             for patient_path in to_delete:
                 try:
                     shutil.rmtree(patient_path)
+                    self._load_patients()
                     print(f"Deleted: {patient_path}")
                 except Exception as e:
                     print(f"Failed to delete {patient_path}: {e}")
@@ -100,10 +96,9 @@ class PatientSelectionPage(WizardPage):
             self.next_page = ToolChoicePage(context, self)
 
         self.on_exit()
-        self.next_page.on_enter()
         return self.next_page
 
-    def back(self, context):
+    def back(self):
         to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
 
         if to_delete:
@@ -118,13 +113,13 @@ class PatientSelectionPage(WizardPage):
             for patient_path in to_delete:
                 try:
                     shutil.rmtree(patient_path)
+                    self._load_patients()
                     print(f"Deleted: {patient_path}")
                 except Exception as e:
                     print(f"Failed to delete {patient_path}: {e}")
 
         if self.previous_page:
             self.on_exit()
-            self.previous_page.on_enter()
             return self.previous_page
 
         return None

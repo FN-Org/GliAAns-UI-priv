@@ -15,7 +15,10 @@ class ToolChoicePage(WizardPage):
         super().__init__()
         self.context = context
         self.previous_page = previous_page
-        self.next_page = None
+        self.next_skull_stripping = None
+        self.next_manual_draw = None
+        self.next_deep_learning = None
+        self.next_pipeline = None
 
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
@@ -51,13 +54,6 @@ class ToolChoicePage(WizardPage):
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
-    def on_enter(self):
-        self.radio_group.setExclusive(False)
-        for btn in self.radio_group.buttons():
-            btn.setChecked(False)
-        self.radio_group.setExclusive(True)
-        self.selected_option = None
-
     def is_ready_to_advance(self):
         selected_id = self.radio_group.checkedId()
         if selected_id != -1:
@@ -68,25 +64,30 @@ class ToolChoicePage(WizardPage):
         return True
 
     def next(self, context):
-        if self.selected_option == 0:
-            self.next_page = SkullStrippingPage(context, self)
-        elif self.selected_option == 1:
-            self.next_page = NiftiSelectionPage(context, self)
-        elif self.selected_option == 2:
-            self.next_page = WorkInProgressPage()
-        elif self.selected_option == 3:
-            self.next_page = WorkInProgressPage()
-        else:
+        page_classes = {
+            0: ("next_skull_stripping", SkullStrippingPage),
+            1: ("next_manual_draw", NiftiSelectionPage),
+            2: ("next_deep_learning", WorkInProgressPage),
+            3: ("next_pipeline", WorkInProgressPage),
+        }
+
+        if self.selected_option not in page_classes:
             return None
 
-        self.on_exit()
-        self.next_page.on_enter()
-        return self.next_page
+        attr_name, page_class = page_classes[self.selected_option]
 
-    def back(self, context):
+        next_page = getattr(self, attr_name, None)
+
+        if not next_page:
+            next_page = page_class(context, self)
+            setattr(self, attr_name, next_page)
+
+        self.on_exit()
+        return next_page
+
+    def back(self):
         if self.previous_page:
             self.on_exit()
-            self.previous_page.on_enter()
             return self.previous_page
 
         return None
