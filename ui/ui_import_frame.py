@@ -14,7 +14,7 @@ import pydicom
 from wizard_controller import WizardPage
 
 class ImportThread(QThread):
-    finished = pyqtSignal()  # img_data, dims, affine, is_4d
+    finished = pyqtSignal()  
     error = pyqtSignal(str)
     progress = pyqtSignal(int)
 
