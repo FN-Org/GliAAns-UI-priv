@@ -16,7 +16,7 @@ try:
                                  QLabel, QSlider, QPushButton, QFileDialog, QSpinBox,
                                  QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
-                                 QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox)
+                                 QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent)
@@ -299,9 +299,6 @@ class NiftiViewer(QMainWindow):
         self.init_ui()
         self.setup_connections()
 
-
-
-
     def init_ui(self):
         """Initialize the user interface"""
         # Central widget with splitter for responsive design
@@ -329,38 +326,50 @@ class NiftiViewer(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        # Coordinate display in status bar
-        self.coord_label = QLabel(_t("NIfTIViewer","Coordinates: (-, -, -)"))
-        self.value_label = QLabel(_t("NIfTIViewer","Value: -"))
-        self.slice_info_label = QLabel(_t("NIfTIViewer","Slice: -/-"))
+        # Status bar (solo messaggio iniziale)
+        self.coord_label = QLabel(_t("NIfTIViewer", "Coordinates: (-, -, -)"))
+        self.value_label = QLabel(_t("NIfTIViewer", "Value: -"))
+        self.slice_info_label = QLabel(_t("NIfTIViewer", "Slice: -/-"))
 
-        self.status_bar.addWidget(self.coord_label)
-        self.status_bar.addPermanentWidget(self.slice_info_label)
-        self.status_bar.addPermanentWidget(self.value_label)
-
+        # Aggiungi solo il messaggio iniziale
         self.status_bar.showMessage(_t("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
 
     def create_control_panel(self, parent):
         """Create the left control panel"""
-        control_widget = QFrame()
-        control_widget.setFrameStyle(QFrame.Shape.StyledPanel)
-        control_widget.setMaximumWidth(350)
-        control_widget.setMinimumWidth(250)
+        # 🌟 Scroll area wrapper
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        layout = QVBoxLayout(control_widget)
-        layout.setSpacing(10)
+        # 🌟 Control panel content widget
+        control_content = QWidget()
+        # Imposta la larghezza massima per prevenire scroll orizzontale
+        control_content.setMaximumWidth(340)
+        layout = QVBoxLayout(control_content)
+        layout.setSpacing(8)
+        layout.setContentsMargins(8, 8, 8, 8)  # Margini ridotti
 
         # File operations
         file_group = QFrame()
         file_layout = QVBoxLayout(file_group)
+        file_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.open_btn = QPushButton(_t("NIfTIViewer", "📁 Open NIfTI File"))
-        self.open_btn.setMinimumHeight(40)
+        self.open_btn = QPushButton(_t("NIfTIViewer", "📁 Open NIfTI"))
+        self.open_btn.setMinimumHeight(35)
+        self.open_btn.setMaximumHeight(40)
+        self.open_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        # Imposta tooltip per testo completo
+        self.open_btn.setToolTip(_t("NIfTIViewer", "Open NIfTI File"))
         file_layout.addWidget(self.open_btn)
 
-        self.file_info_label = QLabel(_t("NIfTIViewer","No file loaded"))
+        self.file_info_label = QLabel(_t("NIfTIViewer", "No file loaded"))
         self.file_info_label.setWordWrap(True)
-        self.file_info_label.setStyleSheet("font-size: 11px;")
+        self.file_info_label.setStyleSheet("font-size: 10px;")
+        self.file_info_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
+        # Imposta larghezza massima per prevenire espansione
+        self.file_info_label.setMaximumWidth(320)
+        self.file_info_label.setMinimumHeight(40)
         file_layout.addWidget(self.file_info_label)
 
         layout.addWidget(file_group)
@@ -368,10 +377,16 @@ class NiftiViewer(QMainWindow):
         # Slice controls
         slice_group = QFrame()
         slice_layout = QVBoxLayout(slice_group)
-        self.slice_navigation_label = QLabel(_t("NIfTIViewer","Slice Navigation:"))
+        slice_layout.setContentsMargins(5, 5, 5, 5)
+
+        self.slice_navigation_label = QLabel(_t("NIfTIViewer", "Slice Navigation:"))
+        self.slice_navigation_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.slice_navigation_label.setMaximumWidth(320)
+        self.slice_navigation_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         slice_layout.addWidget(self.slice_navigation_label)
 
-        plane_names = [_t("NIfTIViewer","Axial (Z)"), _t("NIfTIViewer","Coronal (Y)"), _t("NIfTIViewer","Sagittal (X)")]
+        plane_names = [_t("NIfTIViewer", "Axial (Z)"), _t("NIfTIViewer", "Coronal (Y)"),
+                       _t("NIfTIViewer", "Sagittal (X)")]
 
         self.plane_labels = []
 
@@ -380,6 +395,7 @@ class NiftiViewer(QMainWindow):
             label = QLabel(plane_name)
             self.plane_labels.append(label)
             label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+            label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             slice_layout.addWidget(label)
             self.slice_labels.append(label)
 
@@ -387,13 +403,15 @@ class NiftiViewer(QMainWindow):
             controls_widget = QWidget()
             controls_layout = QHBoxLayout(controls_widget)
             controls_layout.setContentsMargins(0, 0, 0, 0)
+            controls_layout.setSpacing(5)
 
             # Slider
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(0)
             slider.setMaximum(100)
             slider.setValue(50)
-            controls_layout.addWidget(slider, stretch=2)
+            slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            controls_layout.addWidget(slider, stretch=3)
 
             # Spinbox
             spinbox = QSpinBox()
@@ -401,14 +419,19 @@ class NiftiViewer(QMainWindow):
             spinbox.setMaximum(100)
             spinbox.setValue(50)
             spinbox.setMaximumWidth(60)
-            controls_layout.addWidget(spinbox, stretch=1)
+            spinbox.setMinimumWidth(50)
+            spinbox.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            controls_layout.addWidget(spinbox, stretch=0)
 
             # Coordinate display
             coord_label = QLabel("(-, -)")
             coord_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 10px;")
-            coord_label.setMinimumWidth(50)
-            controls_layout.addWidget(coord_label)
+            coord_label.setMinimumWidth(45)
+            coord_label.setMaximumWidth(60)
+            coord_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            controls_layout.addWidget(coord_label, stretch=0)
 
+            controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             slice_layout.addWidget(controls_widget)
 
             self.slice_sliders.append(slider)
@@ -420,20 +443,24 @@ class NiftiViewer(QMainWindow):
         # 4D Time controls
         self.time_group = QFrame()
         time_layout = QVBoxLayout(self.time_group)
+        time_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.time_checkbox = QCheckBox(_t("NIfTIViewer","Enable 4D Time Navigation"))
+        self.time_checkbox = QCheckBox(_t("NIfTIViewer", "Enable 4D Time Navigation"))
         self.time_checkbox.setChecked(False)
+        self.time_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         time_layout.addWidget(self.time_checkbox)
 
         time_controls_widget = QWidget()
         time_controls_layout = QHBoxLayout(time_controls_widget)
         time_controls_layout.setContentsMargins(0, 0, 0, 0)
+        time_controls_layout.setSpacing(5)
 
         self.time_slider = QSlider(Qt.Orientation.Horizontal)
         self.time_slider.setMinimum(0)
         self.time_slider.setMaximum(0)
         self.time_slider.setValue(0)
         self.time_slider.setEnabled(False)
+        self.time_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         time_controls_layout.addWidget(self.time_slider, stretch=3)
 
         self.time_spin = QSpinBox()
@@ -442,55 +469,92 @@ class NiftiViewer(QMainWindow):
         self.time_spin.setValue(0)
         self.time_spin.setEnabled(False)
         self.time_spin.setMaximumWidth(80)
-        time_controls_layout.addWidget(self.time_spin, stretch=1)
+        self.time_spin.setMinimumWidth(60)
+        self.time_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        time_controls_layout.addWidget(self.time_spin, stretch=0)
 
-        self.time_point_label = QLabel(_t("NIfTIViewer","Time Point:"))
+        self.time_point_label = QLabel(_t("NIfTIViewer", "Time Point:"))
+        self.time_point_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.time_point_label.setMaximumWidth(320)
+        self.time_point_label.setStyleSheet("font-size: 11px;")
         time_layout.addWidget(self.time_point_label)
+
+        time_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         time_layout.addWidget(time_controls_widget)
 
         self.time_group.setVisible(False)
-
         layout.addWidget(self.time_group)
 
         # Display options
         display_group = QFrame()
         display_layout = QVBoxLayout(display_group)
-        self.display_options_label = QLabel(_t("NIfTIViewer","Display Options:"))
+        display_layout.setContentsMargins(5, 5, 5, 5)
+
+        self.display_options_label = QLabel(_t("NIfTIViewer", "Display Options:"))
+        self.display_options_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.display_options_label.setMaximumWidth(320)
+        self.display_options_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         display_layout.addWidget(self.display_options_label)
 
-        # Colormap selection
-        colormap_layout = QHBoxLayout()
-        self.colormap_label = QLabel(_t("NIfTIViewer","Colormap:"))
+        # Colormap selection - Layout compatto
+        colormap_widget = QWidget()
+        colormap_layout = QVBoxLayout(colormap_widget)  # Cambiato a verticale
+        colormap_layout.setContentsMargins(0, 0, 0, 0)
+        colormap_layout.setSpacing(3)
+
+        self.colormap_label = QLabel(_t("NIfTIViewer", "Colormap:"))
+        self.colormap_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.colormap_label.setStyleSheet("font-size: 10px; font-weight: bold;")
         colormap_layout.addWidget(self.colormap_label)
+
         self.colormap_combo = QComboBox()
-        self.colormap_combo.addItems([_t("NIfTIViewer",'gray'), _t("NIfTIViewer",'viridis'),_t("NIfTIViewer",'plasma'),_t("NIfTIViewer",'inferno'),_t("NIfTIViewer",'magma'),_t("NIfTIViewer",'hot'),_t("NIfTIViewer",'cool'),_t("NIfTIViewer",'bone')])
+        self.colormap_combo.addItems(
+            [_t("NIfTIViewer", 'gray'), _t("NIfTIViewer", 'viridis'), _t("NIfTIViewer", 'plasma'),
+             _t("NIfTIViewer", 'inferno'), _t("NIfTIViewer", 'magma'), _t("NIfTIViewer", 'hot'),
+             _t("NIfTIViewer", 'cool'), _t("NIfTIViewer", 'bone')])
+        self.colormap_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.colormap_combo.setMaximumHeight(25)
         colormap_layout.addWidget(self.colormap_combo)
-        display_layout.addLayout(colormap_layout)
+
+        colormap_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        display_layout.addWidget(colormap_widget)
 
         layout.addWidget(display_group)
 
         # Automatic ROI
         self.automaticROI_group = QFrame()
-        automaticROI_layout = QVBoxLayout(automaticROI_group)
+        automaticROI_layout = QVBoxLayout(self.automaticROI_group)
+        automaticROI_layout.setContentsMargins(5, 5, 5, 5)
 
         automaticROIbtns_group = QFrame()
-        automaticROIbtns_layout = QHBoxLayout(automaticROIbtns_group)
+        automaticROIbtns_layout = QVBoxLayout(automaticROIbtns_group)  # Cambiato a verticale
+        automaticROIbtns_layout.setContentsMargins(0, 0, 0, 0)
+        automaticROIbtns_layout.setSpacing(3)
 
-        self.automaticROIbtn = QPushButton(_t("NIfTIViewer","Automatic ROI Drawing"))
+        self.automaticROIbtn = QPushButton(_t("NIfTIViewer", "Auto ROI"))
         self.automaticROIbtn.setEnabled(False)
-        automaticROIbtns_layout.addWidget(self.automaticROIbtn,1)
+        self.automaticROIbtn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.automaticROIbtn.setMaximumHeight(30)
+        self.automaticROIbtn.setToolTip(_t("NIfTIViewer", "Automatic ROI Drawing"))
+        automaticROIbtns_layout.addWidget(self.automaticROIbtn)
 
-        self.automaticROI_save_btn = QPushButton(_t("NIfTIViewer","Save ROI Drawing"))
+        self.automaticROI_save_btn = QPushButton(_t("NIfTIViewer", "Save ROI"))
         self.automaticROI_save_btn.setEnabled(False)
-        automaticROIbtns_layout.addWidget(self.automaticROI_save_btn,1)
+        self.automaticROI_save_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.automaticROI_save_btn.setMaximumHeight(30)
+        self.automaticROI_save_btn.setToolTip(_t("NIfTIViewer", "Save ROI Drawing"))
+        automaticROIbtns_layout.addWidget(self.automaticROI_save_btn)
 
-
+        automaticROIbtns_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_layout.addWidget(automaticROIbtns_group)
 
         self.automaticROI_sliders_group = QFrame()
         automaticROI_sliders_layout = QVBoxLayout(self.automaticROI_sliders_group)
+        automaticROI_sliders_layout.setContentsMargins(0, 0, 0, 0)
+
         self.automaticROI_radius_label = QLabel(_t("NIfTIViewer", "Radius:"))
         self.automaticROI_radius_label.setStyleSheet("font-size: 10px;")
+        self.automaticROI_radius_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_radius_label)
 
         self.automaticROI_radius_slider = QSlider(Qt.Orientation.Horizontal)
@@ -498,10 +562,12 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_radius_slider.setMaximum(100)
         self.automaticROI_radius_slider.setValue(50)
         self.automaticROI_radius_slider.setEnabled(True)
+        self.automaticROI_radius_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_radius_slider)
 
         self.automaticROI_diff_label = QLabel(_t("NIfTIViewer", "Difference:"))
         self.automaticROI_diff_label.setStyleSheet("font-size: 10px;")
+        self.automaticROI_diff_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_diff_label)
 
         self.automaticROI_diff_slider = QSlider(Qt.Orientation.Horizontal)
@@ -509,36 +575,45 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_diff_slider.setMaximum(100)
         self.automaticROI_diff_slider.setValue(50)
         self.automaticROI_diff_slider.setEnabled(True)
+        self.automaticROI_diff_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_diff_slider)
 
-
         self.automaticROI_sliders_group.setVisible(False)
+        self.automaticROI_sliders_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         automaticROI_layout.addWidget(self.automaticROI_sliders_group)
 
-        layout.addWidget(automaticROI_group)
-
-
+        layout.addWidget(self.automaticROI_group)
 
         # Overlay controls
         overlay_group = QFrame()
         overlay_layout = QVBoxLayout(overlay_group)
-        self.overlay_control_label = QLabel(_t("NIfTIViewer","Overlay Controls:"))
+        overlay_layout.setContentsMargins(5, 5, 5, 5)
+
+        self.overlay_control_label = QLabel(_t("NIfTIViewer", "Overlay Controls:"))
+        self.overlay_control_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.overlay_control_label.setMaximumWidth(320)
+        self.overlay_control_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         overlay_layout.addWidget(self.overlay_control_label)
 
         # Overlay file button
-        self.overlay_btn = QPushButton(_t("NIfTIViewer","Load NIfTI Overlay"))
-        self.overlay_btn.setMinimumHeight(35)
+        self.overlay_btn = QPushButton(_t("NIfTIViewer", "Load Overlay"))
+        self.overlay_btn.setMinimumHeight(30)
+        self.overlay_btn.setMaximumHeight(35)
         self.overlay_btn.setEnabled(False)  # Enable only when base image is loaded
+        self.overlay_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.overlay_btn.setToolTip(_t("NIfTIViewer", "Load NIfTI Overlay"))
         overlay_layout.addWidget(self.overlay_btn)
 
         # Overlay enable/disable checkbox
-        self.overlay_checkbox = QCheckBox(_t("NIfTIViewer","Show Overlay"))
+        self.overlay_checkbox = QCheckBox(_t("NIfTIViewer", "Show Overlay"))
         self.overlay_checkbox.setEnabled(False)
+        self.overlay_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_checkbox)
 
         # Overlay alpha slider
-        self.alpha_overlay_label = QLabel(_t("NIfTIViewer","Overlay Transparency:"))
+        self.alpha_overlay_label = QLabel(_t("NIfTIViewer", "Overlay Transparency:"))
         self.alpha_overlay_label.setStyleSheet("font-size: 10px;")
+        self.alpha_overlay_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.alpha_overlay_label)
 
         self.overlay_alpha_slider = QSlider(Qt.Orientation.Horizontal)
@@ -546,11 +621,13 @@ class NiftiViewer(QMainWindow):
         self.overlay_alpha_slider.setMaximum(100)
         self.overlay_alpha_slider.setValue(70)
         self.overlay_alpha_slider.setEnabled(False)
+        self.overlay_alpha_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_alpha_slider)
 
         # Overlay threshold slider
-        self.overlay_threshold_label = QLabel(_t("NIfTIViewer","Overlay Threshold:"))
+        self.overlay_threshold_label = QLabel(_t("NIfTIViewer", "Overlay Threshold:"))
         self.overlay_threshold_label.setStyleSheet("font-size: 10px;")
+        self.overlay_threshold_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_threshold_label)
 
         self.overlay_threshold_slider = QSlider(Qt.Orientation.Horizontal)
@@ -558,12 +635,17 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_slider.setMaximum(100)
         self.overlay_threshold_slider.setValue(10)
         self.overlay_threshold_slider.setEnabled(False)
+        self.overlay_threshold_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_threshold_slider)
 
         # Overlay info
-        self.overlay_info_label = QLabel(_t("NIfTIViewer","No overlay loaded"))
+        self.overlay_info_label = QLabel(_t("NIfTIViewer", "No overlay loaded"))
         self.overlay_info_label.setWordWrap(True)
         self.overlay_info_label.setStyleSheet("font-size: 10px;")
+        self.overlay_info_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
+        # Imposta larghezza massima per prevenire espansione
+        self.overlay_info_label.setMaximumWidth(320)
+        self.overlay_info_label.setMinimumHeight(20)
         overlay_layout.addWidget(self.overlay_info_label)
 
         layout.addWidget(overlay_group)
@@ -571,7 +653,53 @@ class NiftiViewer(QMainWindow):
         # Add stretch to push everything to top
         layout.addStretch()
 
-        parent.addWidget(control_widget)
+        # 🔁 Imposta il contenuto nel QScrollArea
+        scroll_area.setWidget(control_content)
+
+        # 🔁 Imposta dimensioni per eliminare scroll orizzontale
+        scroll_area.setMinimumWidth(240)
+        scroll_area.setMaximumWidth(340)
+
+        # ✅ Aggiungi lo scroll area al parent
+        parent.addWidget(scroll_area)
+
+    # 🎯 Funzione helper per formattare il testo senza causare scroll orizzontale
+    def format_info_text(self, text, max_line_length=35):
+        """
+        Formatta il testo per prevenire scroll orizzontale nel control panel
+
+        Args:
+            text (str): Testo da formattare
+            max_line_length (int): Lunghezza massima per riga
+
+        Returns:
+            str: Testo formattato con a-capo appropriati
+        """
+        import textwrap
+
+        lines = text.split('\n')
+        formatted_lines = []
+
+        for line in lines:
+            if len(line) <= max_line_length:
+                formatted_lines.append(line)
+            else:
+                # Cerca di spezzare in punti logici (dopo :, spazi, ecc.)
+                if ':' in line:
+                    parts = line.split(':', 1)
+                    if len(parts[0]) <= max_line_length:
+                        formatted_lines.append(parts[0] + ':')
+                        # Wrap la seconda parte
+                        wrapped = textwrap.fill(parts[1].strip(), width=max_line_length - 2)
+                        formatted_lines.append('  ' + wrapped.replace('\n', '\n  '))
+                    else:
+                        wrapped = textwrap.fill(line, width=max_line_length)
+                        formatted_lines.append(wrapped)
+                else:
+                    wrapped = textwrap.fill(line, width=max_line_length)
+                    formatted_lines.append(wrapped)
+
+        return '\n'.join(formatted_lines)
 
     def create_image_display(self, parent):
         """Create the main image display area with three anatomical views"""
@@ -736,6 +864,11 @@ class NiftiViewer(QMainWindow):
             self.time_checkbox.setChecked(False)
             self.time_checkbox.setEnabled(False)
             self.hide_time_series_plot()
+
+        self.status_bar.clearMessage()
+        self.status_bar.addWidget(self.coord_label)
+        self.status_bar.addPermanentWidget(self.slice_info_label)
+        self.status_bar.addPermanentWidget(self.value_label)
 
         self.automaticROIbtn.setEnabled(True)
 
@@ -1329,8 +1462,6 @@ class NiftiViewer(QMainWindow):
         self.overlay_checkbox.setEnabled(True)
 
         self.update_all_displays()
-
-
 
     def automaticROI_drawing(self):
         radius = self.automaticROI_radius_slider.value()
