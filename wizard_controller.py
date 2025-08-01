@@ -8,6 +8,7 @@ class WizardController:
         self.main_window = main_window
 
         self.context = {
+            "main_window": self.main_window,
             "workspace_path": self.main_window.workspace_path,
             "update_main_buttons": self.update_buttons_state,
             "selected_files": []

@@ -82,7 +82,7 @@ class ImportFrame(WizardPage):
             self.open_folder_dialog()
 
     def open_folder_dialog(self):
-        dialog = QFileDialog(self.context, "Select Folder")
+        dialog = QFileDialog(self.context["main_window"], "Select Folder")
         dialog.setFileMode(QFileDialog.FileMode.Directory)
         dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setOption(QFileDialog.Option.ReadOnly, True)
@@ -150,7 +150,8 @@ class ImportFrame(WizardPage):
             shutil.copytree(folder_path, dest, dirs_exist_ok=True)
 
             print(f"BIDS folder copied as {new_sub_id}.")
-            self.controller.update_buttons_state()
+            if self.context and "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
             return
 
         # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
@@ -203,7 +204,8 @@ class ImportFrame(WizardPage):
         # Dopo conversione, cancella cartella temporanea
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-        self.controller.update_buttons_state()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
         print("Import completed.")
 
     def _is_bids_folder(self, folder_path):
