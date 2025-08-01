@@ -9,6 +9,8 @@ import numpy as np
 import nibabel as nib
 from PyQt6 import QtCore
 from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
+
+
 try:
     from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                  QLabel, QSlider, QPushButton, QFileDialog, QSpinBox,
@@ -30,6 +32,24 @@ import matplotlib.cm as cm
 
 _t = QtCore.QCoreApplication.translate
 
+from numba import njit, prange
+
+
+@njit(parallel=True)
+def compute_mask_numba(img, x0, y0, z0, radius_vox, seed_intensity, diff,
+                       x_min, x_max, y_min, y_max, z_min, z_max):
+    mask = np.zeros(img.shape, dtype=np.uint8)
+    r2 = radius_vox * radius_vox
+    for x in prange(x_min, x_max):
+        for y in range(y_min, y_max):
+            for z in range(z_min, z_max):
+                dx = x - x0
+                dy = y - y0
+                dz = z - z0
+                if dx * dx + dy * dy + dz * dz <= r2:  # dentro al raggio
+                    if abs(img[x, y, z] - seed_intensity) <= diff:
+                        mask[x, y, z] = 1
+    return mask
 
 
 class ImageLoadThread(QThread):
@@ -193,9 +213,10 @@ class CrosshairGraphicsView(QGraphicsView):
     def leaveEvent(self, event):
         """Hide crosshairs when mouse leaves the view"""
         if self.crosshair_h and self.crosshair_v:
-            self.crosshair_h.setVisible(False)
-            self.crosshair_v.setVisible(False)
-            self.crosshair_visible = False
+            #self.crosshair_h.setVisible(False)
+            #self.crosshair_v.setVisible(False)
+            #self.crosshair_visible = False
+            self.parent_viewer.update_cross_view_lines()
         super().leaveEvent(event)
 
 
@@ -204,7 +225,6 @@ class NiftiViewer(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
 
         self.setWindowTitle(_t("NIfTIViewer","NIfTI Image Viewer"))
         self.setMinimumSize(1000, 700)
@@ -254,7 +274,6 @@ class NiftiViewer(QMainWindow):
         self.time_checkbox = None
 
         # Other
-        self.open_btn = None
         self.file_info_label = None
         self.slice_navigation_label = None
         self.time_point_label = None
@@ -263,6 +282,18 @@ class NiftiViewer(QMainWindow):
         self.display_options_label = None
         self.overlay_alpha_slider = None
         self.overlay_info_label = None
+
+        # Automatic Drawing
+        self.automaticROIbtn = None
+        self.automaticROI = None
+        self.automaticROI_radius_slider = None
+        self.automaticROI_radius_label = None
+        self.automaticROI_diff_label = None
+        self.AutomaticROI_diff_slider = None
+        self.automaticROI_sliders_group = None
+        self.automaticROI_seed_coordinates = None
+        self.automaticROI_save_btn = None
+        self.automaticROI_overlay = None
 
         # Initialize UI
         self.init_ui()
@@ -323,7 +354,7 @@ class NiftiViewer(QMainWindow):
         file_group = QFrame()
         file_layout = QVBoxLayout(file_group)
 
-        self.open_btn = QPushButton(_t("NIfTIViewer","📁 Open NIfTI File"))
+        self.open_btn = QPushButton(_t("NIfTIViewer", "📁 Open NIfTI File"))
         self.open_btn.setMinimumHeight(40)
         file_layout.addWidget(self.open_btn)
 
@@ -387,8 +418,8 @@ class NiftiViewer(QMainWindow):
         layout.addWidget(slice_group)
 
         # 4D Time controls
-        time_group = QFrame()
-        time_layout = QVBoxLayout(time_group)
+        self.time_group = QFrame()
+        time_layout = QVBoxLayout(self.time_group)
 
         self.time_checkbox = QCheckBox(_t("NIfTIViewer","Enable 4D Time Navigation"))
         self.time_checkbox.setChecked(False)
@@ -417,7 +448,9 @@ class NiftiViewer(QMainWindow):
         time_layout.addWidget(self.time_point_label)
         time_layout.addWidget(time_controls_widget)
 
-        layout.addWidget(time_group)
+        self.time_group.setVisible(False)
+
+        layout.addWidget(self.time_group)
 
         # Display options
         display_group = QFrame()
@@ -435,6 +468,56 @@ class NiftiViewer(QMainWindow):
         display_layout.addLayout(colormap_layout)
 
         layout.addWidget(display_group)
+
+        # Automatic ROI
+        self.automaticROI_group = QFrame()
+        automaticROI_layout = QVBoxLayout(automaticROI_group)
+
+        automaticROIbtns_group = QFrame()
+        automaticROIbtns_layout = QHBoxLayout(automaticROIbtns_group)
+
+        self.automaticROIbtn = QPushButton(_t("NIfTIViewer","Automatic ROI Drawing"))
+        self.automaticROIbtn.setEnabled(False)
+        automaticROIbtns_layout.addWidget(self.automaticROIbtn,1)
+
+        self.automaticROI_save_btn = QPushButton(_t("NIfTIViewer","Save ROI Drawing"))
+        self.automaticROI_save_btn.setEnabled(False)
+        automaticROIbtns_layout.addWidget(self.automaticROI_save_btn,1)
+
+
+        automaticROI_layout.addWidget(automaticROIbtns_group)
+
+        self.automaticROI_sliders_group = QFrame()
+        automaticROI_sliders_layout = QVBoxLayout(self.automaticROI_sliders_group)
+        self.automaticROI_radius_label = QLabel(_t("NIfTIViewer", "Radius:"))
+        self.automaticROI_radius_label.setStyleSheet("font-size: 10px;")
+        automaticROI_sliders_layout.addWidget(self.automaticROI_radius_label)
+
+        self.automaticROI_radius_slider = QSlider(Qt.Orientation.Horizontal)
+        self.automaticROI_radius_slider.setMinimum(0)
+        self.automaticROI_radius_slider.setMaximum(100)
+        self.automaticROI_radius_slider.setValue(50)
+        self.automaticROI_radius_slider.setEnabled(True)
+        automaticROI_sliders_layout.addWidget(self.automaticROI_radius_slider)
+
+        self.automaticROI_diff_label = QLabel(_t("NIfTIViewer", "Difference:"))
+        self.automaticROI_diff_label.setStyleSheet("font-size: 10px;")
+        automaticROI_sliders_layout.addWidget(self.automaticROI_diff_label)
+
+        self.automaticROI_diff_slider = QSlider(Qt.Orientation.Horizontal)
+        self.automaticROI_diff_slider.setMinimum(0)
+        self.automaticROI_diff_slider.setMaximum(100)
+        self.automaticROI_diff_slider.setValue(50)
+        self.automaticROI_diff_slider.setEnabled(True)
+        automaticROI_sliders_layout.addWidget(self.automaticROI_diff_slider)
+
+
+        self.automaticROI_sliders_group.setVisible(False)
+        automaticROI_layout.addWidget(self.automaticROI_sliders_group)
+
+        layout.addWidget(automaticROI_group)
+
+
 
         # Overlay controls
         overlay_group = QFrame()
@@ -591,6 +674,11 @@ class NiftiViewer(QMainWindow):
             slider.valueChanged.connect(lambda value, idx=i: self.slice_changed(idx, value))
             spinbox.valueChanged.connect(lambda value, idx=i: self.slice_changed(idx, value))
 
+        # Automatic ROI Drawing
+        self.automaticROIbtn.clicked.connect(self.automaticROI_clicked)
+        self.automaticROI_diff_slider.valueChanged.connect(self.update_automaticROI)
+        self.automaticROI_radius_slider.valueChanged.connect(self.update_automaticROI)
+        self.automaticROI_save_btn.clicked.connect(self.automaticROI_save)
         # Time controls
         self.time_checkbox.toggled.connect(self.toggle_time_controls)
         self.time_slider.valueChanged.connect(self.time_changed)
@@ -638,14 +726,18 @@ class NiftiViewer(QMainWindow):
         filename = os.path.basename(self.file_path)
         if is_4d:
             info_text = _t("NIfTIViewer","File")+ f":{filename}\n"+_t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t("NIfTIViewer","4D Time Series")
+            self.time_group.setVisible(True)
             self.time_checkbox.setChecked(True)
             self.time_checkbox.setEnabled(True)
             self.setup_time_series_plot()
         else:
             info_text = _t("NIfTIViewer","File")+ f":{filename}\n" + _t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n"+ _t("NIfTIViewer","3D Volume")
+            self.time_group.setVisible(False)
             self.time_checkbox.setChecked(False)
             self.time_checkbox.setEnabled(False)
             self.hide_time_series_plot()
+
+        self.automaticROIbtn.setEnabled(True)
 
         self.file_info_label.setText(info_text)
         self.info_text.setText(info_text)
@@ -721,6 +813,7 @@ class NiftiViewer(QMainWindow):
                 if overlay_dims_3d != base_dims:
                     QMessageBox.warning(self, _t("NIfTIViewer","Dimension Mismatch"),
                                         _t("NIfTIViewer","Overlay dimensions") +  f"{overlay_dims_3d}" + _t("NIfTIViewer","don't match base image dimensions")+f"{base_dims}") # the overlay will be padded")
+                    return
 
                     # TODO : check for padding necessity
                     #diff_dim = np.array(base_dims) - np.array(overlay_dims_3d)
@@ -735,20 +828,22 @@ class NiftiViewer(QMainWindow):
                 else:
                     self.overlay_data = overlay_data
 
+                # Disable Automatic ROI overlay things
+                self.automaticROI_overlay = False
+                self.automaticROI_save_btn.setEnabled(False)
+                self.automaticROI_sliders_group.setEnabled(False)
+                self.automaticROI_sliders_group.setVisible(False)
+
+
                 self.overlay_dims = self.overlay_data.shape
 
                 # Update overlay info
                 filename = os.path.basename(file_path)
                 self.overlay_info_label.setText(f"Overlay: {filename}\n"+_t("NIfTIViewer","Dimensions") + f":{self.overlay_dims}")
 
-                # Enable overlay controls
-                self.overlay_checkbox.setEnabled(True)
-                self.overlay_alpha_slider.setEnabled(True)
-                self.overlay_threshold_slider.setEnabled(True)
-
-                # Auto-enable overlay display
+                self.toggle_overlay(True)
                 self.overlay_checkbox.setChecked(True)
-                self.overlay_enabled = True
+                self.overlay_checkbox.setEnabled(True)
 
                 # Update displays
                 self.update_overlay_settings()
@@ -762,8 +857,11 @@ class NiftiViewer(QMainWindow):
     def toggle_overlay(self, enabled):
         """Toggle overlay display on/off"""
         self.overlay_enabled = enabled
+        self.overlay_alpha_slider.setEnabled(enabled)
+        self.overlay_threshold_slider.setEnabled(enabled)
         if self.overlay_data is not None:
             self.update_all_displays()
+
 
     def update_overlay_alpha(self, value):
         """Update overlay transparency"""
@@ -811,8 +909,12 @@ class NiftiViewer(QMainWindow):
 
     def toggle_time_controls(self, enabled):
         """Enable/disable time controls"""
-        self.time_slider.setEnabled(enabled and self.is_4d)
-        self.time_spin.setEnabled(enabled and self.is_4d)
+        value = enabled and self.is_4d
+        self.time_slider.setVisible(value)
+        self.time_slider.setEnabled(value)
+        self.time_spin.setVisible(value)
+        self.time_spin.setEnabled(value)
+        self.time_point_label.setVisible(value)
 
     def colormap_changed(self, colormap_name):
         """Handle colormap changes"""
@@ -1077,16 +1179,16 @@ class NiftiViewer(QMainWindow):
             self.time_plot_axes.set_facecolor('black')
 
             # Plot time series
-            self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=_t('Concentration'))
+            self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=_t("NIfTIViewer",'Concentration'))
 
             # Add current time indicator
             self.time_indicator_line = self.time_plot_axes.axvline(
-                x=self.current_time, color='yellow', linewidth=2, alpha=0.8, label=_t('Current Time')
+                x=self.current_time, color='yellow', linewidth=2, alpha=0.8, label=_t("NIfTIViewer",'Current Time')
             )
 
             # Styling
-            self.time_plot_axes.set_xlabel(_t("NIfTIViewer",'Time Point'), color='white')
-            self.time_plot_axes.set_ylabel(_t("NIfTIViewer",'Signal Intensity'), color='white')
+            self.time_plot_axes.set_xlabel(_t("NIfTIViewer","Time Point"), color='white')
+            self.time_plot_axes.set_ylabel(_t("NIfTIViewer","Signal Intensity"), color='white')
             self.time_plot_axes.set_title(f'Voxel ({coords[0]}, {coords[1]}, {coords[2]})', color='white')
             self.time_plot_axes.tick_params(colors='white')
             self.time_plot_axes.legend()
@@ -1200,6 +1302,84 @@ class NiftiViewer(QMainWindow):
             if view.scene():
                 view.fitInView(view.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+    def update_automaticROI(self):
+        if self.overlay_enabled and self.automaticROI_overlay:
+            self.automaticROI_drawing()
+            self.update_all_displays()
+
+
+    def automaticROI_clicked(self):
+        self.automaticROI_overlay = True
+        self.automaticROI_save_btn.setEnabled(True)
+        self.automaticROI_seed_coordinates = self.current_coordinates
+        self.automaticROI_radius_slider.setMaximum(int(min(self.dims)/2))
+        self.automaticROI_radius_slider.setValue(32)
+        max_diff = int((self.img_data.max()-self.img_data.min())/2)
+        self.automaticROI_diff_slider.setMaximum(max_diff)
+        self.automaticROI_diff_slider.setValue(int(max_diff*(16/100)))
+        self.automaticROI_sliders_group.setVisible(True)
+        self.automaticROI_sliders_group.setEnabled(True)
+        self.automaticROI_drawing()
+
+        self.overlay_info_label.setText(
+            f"Overlay:"+ _t("NIfTIViewer", "Automatic ROI Drawing"))
+
+        self.toggle_overlay(True)
+        self.overlay_checkbox.setChecked(True)
+        self.overlay_checkbox.setEnabled(True)
+
+        self.update_all_displays()
+
+
+
+    def automaticROI_drawing(self):
+        radius = self.automaticROI_radius_slider.value()
+        difference = self.automaticROI_diff_slider.value()
+        x0, y0, z0 = self.automaticROI_seed_coordinates
+
+        # Usa immagine corretta (3D o 4D)
+        img_data = self.img_data[..., self.current_time] if self.is_4d else self.img_data
+
+        # Conversione raggio da mm a voxel
+        voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))
+        radius_vox = radius / np.mean(voxel_sizes)
+
+        # Intensità al punto di origine
+        seed_intensity = img_data[x0, y0, z0]
+
+        # Bounding box attorno al raggio
+        r = int(np.ceil(radius_vox))
+        x_min, x_max = max(0, x0 - r), min(img_data.shape[0], x0 + r + 1)
+        y_min, y_max = max(0, y0 - r), min(img_data.shape[1], y0 + r + 1)
+        z_min, z_max = max(0, z0 - r), min(img_data.shape[2], z0 + r + 1)
+
+        # Calcolo parallelo con numba
+        mask = compute_mask_numba(img_data, x0, y0, z0, radius_vox, seed_intensity, difference,
+                                  x_min, x_max, y_min, y_max, z_min, z_max)
+
+        # Salva il risultato
+        self.overlay_data = mask
+
+    def automaticROI_save(self):
+        if not self.automaticROI_overlay or self.overlay_data is None:
+            return
+        save_dir = "./.workspace"
+        os.makedirs(save_dir, exist_ok=True)
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            caption="Save ROI",
+            directory=save_dir,
+            filter="NIfTI (*.nii.gz)"
+        )
+
+        if not file_path:
+            return
+
+        nib.save(nib.Nifti1Image(self.overlay_data, self.affine), file_path)
+
+        print("File saved in " + file_path)
+
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads
@@ -1275,10 +1455,7 @@ class NiftiViewer(QMainWindow):
         self.file_info_label.setText(info_text)
         self.info_text.setText(info_text)
 
-        if self.overlay_data is not None:
-            self.overlay_info_label.setText(
-                f"Overlay: {filename}\n" + _t("NIfTIViewer", "Dimensions") + f":{self.overlay_dims}")
+        #if self.overlay_data is not None
 
-        coords = self.current_coordinates
 
 
