@@ -19,9 +19,9 @@ class ImportThread(QThread):
     progress = pyqtSignal(int)
 
 
-    def __init__(self, folder_path,workspace_path):
+    def __init__(self, folders_path,workspace_path):
         super().__init__()
-        self.folder_path = folder_path
+        self.folders_path = folders_path
         self.workspace_path = workspace_path
         self.current_progress = 0
 
@@ -30,97 +30,109 @@ class ImportThread(QThread):
             self.current_progress = 10
             self.progress.emit(self.current_progress)
 
-            # Se è una cartella normale (singolo paziente o BIDS), continua come prima
-            if self._is_bids_folder(self.folder_path):
-                print(f"BIDS structure detected in: {self.folder_path}")
+            if len(self.folders_path) == 1:
+                if not os.path.isdir(self.folders_path):
+                    raise Exception("Invalid folders path")
+                folder_path = self.folders_path[0]
+                # Se è una cartella normale (singolo paziente o BIDS), continua come prima
+                if self._is_bids_folder(folder_path):
+                    print(f"BIDS structure detected in: {folder_path}")
 
-                self.current_progress = 50
-                self.progress.emit(self.current_progress)
-
-                new_sub_id = self._get_next_sub_id()  # es: "sub-03"
-                dest = os.path.join(self.workspace_path, new_sub_id)
-                shutil.copytree(self.folder_path, dest, dirs_exist_ok=True)
-
-                self.current_progress = 100
-                self.progress.emit(self.current_progress)
-
-                print(f"BIDS folder copied as {new_sub_id}.")
-                self.finished.emit()
-                return
-
-            # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
-            subfolders = [os.path.join(self.folder_path, d) for d in os.listdir(self.folder_path) if
-                          os.path.isdir(os.path.join(self.folder_path, d))]
-            if subfolders and not any(
-                    self._is_nifti_file(f) or self._is_dicom_file(os.path.join(self.folder_path, f)) for f in
-                    os.listdir(self.folder_path)):
-                print(f"Multiple patient folders detected in: {self.folder_path}")
-
-                folders_num = len(subfolders)
-                progress_for_folder = 90/folders_num
-                self.current_progress = 10
-
-                for subfolder in subfolders:
-                    self._handle_import(subfolder)
-                    self.current_progress +=progress_for_folder
+                    self.current_progress = 50
                     self.progress.emit(self.current_progress)
 
-                self.progress.emit(100)
-                self.finished.emit()
-                return
+                    new_sub_id = self._get_next_sub_id()  # es: "sub-03"
+                    dest = os.path.join(self.workspace_path, new_sub_id)
+                    shutil.copytree(folder_path, dest, dirs_exist_ok=True)
 
-            nifti_files = []
-            dicom_files = []
+                    self.current_progress = 100
+                    self.progress.emit(self.current_progress)
 
-            base_folder_name = os.path.basename(os.path.normpath(self.folder_path))
+                    print(f"BIDS folder copied as {new_sub_id}.")
+                    self.finished.emit()
+                    return
 
-            # Creiamo una cartella temporanea per la conversione
-            temp_dir = tempfile.mkdtemp()
-            temp_base_dir = os.path.join(temp_dir, base_folder_name)
+                # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
+                subfolders = [os.path.join(folder_path, d) for d in os.listdir(folder_path) if
+                              os.path.isdir(os.path.join(folder_path, d))]
+                if subfolders and not any(
+                        self._is_nifti_file(f) or self._is_dicom_file(os.path.join(folder_path, f)) for f in
+                        os.listdir(folder_path)):
+                    print(f"Multiple patient folders detected in: {folder_path}")
 
-            for root, _, files in os.walk(self.folder_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
+                    folders_num = len(subfolders)
+                    progress_for_folder = 90/folders_num
+                    self.current_progress = 10
 
-                    relative_path = os.path.relpath(root, self.folder_path)
-                    dest_dir = os.path.join(temp_base_dir, relative_path)
-                    os.makedirs(dest_dir, exist_ok=True)
+                    for subfolder in subfolders:
+                        self._handle_import(subfolder)
+                        self.current_progress +=progress_for_folder
+                        self.progress.emit(self.current_progress)
 
-                    if self._is_nifti_file(file):
-                        nifti_files.append((file_path, os.path.join(dest_dir, file)))
+                    self.progress.emit(100)
+                    self.finished.emit()
+                    return
 
-                    elif self._is_dicom_file(file_path):
-                        dicom_files.append(file_path)
+                nifti_files = []
+                dicom_files = []
 
-                    else:
-                        shutil.copy2(file_path, os.path.join(dest_dir, file))
-                        print(f"Imported other file: {os.path.join(relative_path, file)}")
+                base_folder_name = os.path.basename(os.path.normpath(self.folders_path))
 
-            self.current_progress = 20
-            self.progress.emit(self.current_progress)
+                # Creiamo una cartella temporanea per la conversione
+                temp_dir = tempfile.mkdtemp()
+                temp_base_dir = os.path.join(temp_dir, base_folder_name)
 
-            nifti_num = len(nifti_files)
-            progress_per_nifti = 40/nifti_num
-            for src, dest in nifti_files:
-                shutil.copy2(src, dest)
-                self.current_progress += progress_per_nifti
+                for root, _, files in os.walk(self.folders_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+
+                        relative_path = os.path.relpath(root, self.folders_path)
+                        dest_dir = os.path.join(temp_base_dir, relative_path)
+                        os.makedirs(dest_dir, exist_ok=True)
+
+                        if self._is_nifti_file(file):
+                            nifti_files.append((file_path, os.path.join(dest_dir, file)))
+
+                        elif self._is_dicom_file(file_path):
+                            dicom_files.append(file_path)
+
+                        else:
+                            shutil.copy2(file_path, os.path.join(dest_dir, file))
+                            print(f"Imported other file: {os.path.join(relative_path, file)}")
+
+                self.current_progress = 20
                 self.progress.emit(self.current_progress)
-                print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
 
-            self.current_progress = 60
-            self.progress.emit(self.current_progress)
+                nifti_num = len(nifti_files)
+                progress_per_nifti = int(40/nifti_num)
+                for src, dest in nifti_files:
+                    shutil.copy2(src, dest)
+                    self.current_progress += progress_per_nifti
+                    self.progress.emit(self.current_progress)
+                    print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
 
-            if dicom_files:
-                self._convert_dicom_folder_to_nifti(self.folder_path, temp_base_dir)
+                self.current_progress = 60
+                self.progress.emit(self.current_progress)
 
-            self.current_progress += 10
-            self.progress.emit(self.current_progress)
-            # Ora la conversione è fatta su cartella temporanea, ma scrive nel workspace
-            self._convert_to_bids_structure(temp_base_dir)
+                if dicom_files:
+                    self._convert_dicom_folder_to_nifti(self.folders_path, temp_base_dir)
 
-            # Dopo conversione, cancella cartella temporanea
-            shutil.rmtree(temp_dir, ignore_errors=True)
+                self.current_progress += 10
+                self.progress.emit(self.current_progress)
+                # Ora la conversione è fatta su cartella temporanea, ma scrive nel workspace
+                self._convert_to_bids_structure(temp_base_dir)
 
+                # Dopo conversione, cancella cartella temporanea
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            elif len(self.folders_path) == 0:
+                raise Exception("Invalid folders path")
+            elif len(self.folders_path) > 1:
+                progress_for_folder = int(90 / len(self.folders_path))
+                for path in self.folders_path:
+                    self._handle_import(path)
+                    self.current_progress += progress_for_folder
+                    self.progress.emit(self.current_progress)
+            else: raise Exception("Invalid folders path")
 
             self.current_progress = 100
             self.progress.emit(self.current_progress)
@@ -395,7 +407,7 @@ class ImportFrame(WizardPage):
             for url in urls:
                 file_path = url.toLocalFile()
                 if os.path.exists(file_path) and os.path.isdir(file_path):
-                    self._handle_import(file_path)
+                    self._handle_import([file_path])
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -414,13 +426,10 @@ class ImportFrame(WizardPage):
         if dialog.exec():
             folders = [os.path.abspath(path) for path in dialog.selectedFiles() if os.path.isdir(path)]
             unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
-            for folder in unique_folders:
-                self._handle_import(folder)
+            self._handle_import(unique_folders)
 
 
-    def _handle_import(self, folder_path):
-        if not os.path.isdir(folder_path):
-            return
+    def _handle_import(self, folders_path):
 
         self.progress_dialog = QProgressDialog("Loading NIfTI file...","Cancel",
                                                0, 100, self.context)
@@ -428,7 +437,7 @@ class ImportFrame(WizardPage):
         self.progress_dialog.setMinimumDuration(0)
 
         # Start importing thread
-        self.load_thread = ImportThread(folder_path, self.workspace_path)
+        self.load_thread = ImportThread(folders_path, self.workspace_path)
         self.load_thread.finished.connect(self.on_file_loaded)
         self.load_thread.error.connect(self.on_load_error)
         self.load_thread.progress.connect(self.progress_dialog.setValue)
