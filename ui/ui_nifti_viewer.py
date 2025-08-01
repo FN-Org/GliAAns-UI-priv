@@ -845,6 +845,9 @@ class NiftiViewer(QMainWindow):
         """Handle successful file loading"""
         self.progress_dialog.close()
 
+        # Automatic ROI and Overlay resetting
+        self.reset_overlay()
+
         self.img_data = img_data
         self.dims = dims
         self.affine = affine
@@ -1523,6 +1526,16 @@ class NiftiViewer(QMainWindow):
         gc.collect()
 
         event.accept()
+
+    def reset_overlay(self):
+        self.automaticROI_overlay = False
+        self.automaticROI_save_btn.setEnabled(False)
+        self.overlay_data = None
+        self.automaticROI_sliders_group.setVisible(False)
+        self.automaticROI_sliders_group.setEnabled(False)
+        self.toggle_overlay(False)
+        self.overlay_checkbox.setChecked(False)
+        self.overlay_checkbox.setEnabled(False)
 
     def _retranslate_ui(self):
         self.setWindowTitle(_t("NIfTIViewer", "NIfTI Image Viewer"))
