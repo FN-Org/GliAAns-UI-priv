@@ -19,7 +19,7 @@ try:
                                  QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
-                             QBrush, QResizeEvent, QMouseEvent)
+                             QBrush, QResizeEvent, QMouseEvent, QTransform)
     from matplotlib.figure import Figure
 
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -257,6 +257,7 @@ class NiftiViewer(QMainWindow):
         self.current_time = 0
         self.current_coordinates = [0, 0, 0]  # x, y, z in image space
         self.file_path = None
+        self.stretch_factors = {}
 
         # Overlay data
         self.overlay_data = None
@@ -1118,6 +1119,12 @@ class NiftiViewer(QMainWindow):
         if self.img_data is None:
             return None
 
+        stretch_x, stretch_y = self.stretch_factors.get(view_idx, (1.0, 1.0))
+
+        # Streching compensation
+        x = x / stretch_x
+        y = y / stretch_y
+
         # Get current data shape
         if self.is_4d:
             shape = self.img_data.shape[:3]
@@ -1270,13 +1277,57 @@ class NiftiViewer(QMainWindow):
             qimage = QImage(rgba_data_uint8.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
 
             if qimage is not None:
+
+                # Ottieni dimensione immagine
+                img_w = qimage.width()
+                img_h = qimage.height()
+
                 # Update display
                 self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage))
-                self.scenes[plane_idx].setSceneRect(0, 0, qimage.width(), qimage.height())
+                self.scenes[plane_idx].setSceneRect(0, 0, img_w, img_h)
 
-                # Fit view
-                self.views[plane_idx].fitInView(self.scenes[plane_idx].sceneRect(),
-                                                Qt.AspectRatioMode.KeepAspectRatio)
+
+                view_w = self.views[plane_idx].viewport().width()
+                view_h = self.views[plane_idx].viewport().height()
+
+                # Calcola fattori di scala base per adattare l'immagine
+                scale_x = view_w / img_w
+                scale_y = view_h / img_h
+
+                # Mantieni il rapporto minimo per adattare l'immagine completamente
+                base_scale = min(scale_x, scale_y)
+
+                # Calcola rapporto immagine
+                aspect_ratio = img_w / img_h if img_h > 0 else 1.0
+                inv_aspect_ratio = img_h / img_w if img_w > 0 else 1.0
+
+                # Stretch per immagini molto "piatte" (larghezza >> altezza)
+                if aspect_ratio > 3.0:
+                    # logaritmo per scalare in maniera dolce
+                    stretch_factor_y = min(2.5, 1.0 + 0.5 * np.log10(aspect_ratio / 3.0 + 1))
+                    stretch_factor_x = 1.0
+
+                # Stretch per immagini molto "strette" (altezza >> larghezza)
+                elif inv_aspect_ratio > 3.0:
+                    stretch_factor_x = min(2.5, 1.0 + 0.5 * np.log10(inv_aspect_ratio / 3.0 + 1))
+                    stretch_factor_y = 1.0
+
+                else:
+                    # Nessun stretch se il rapporto è vicino a 1
+                    stretch_factor_x = 1.0
+                    stretch_factor_y = 1.0
+
+                # Salva fattori di scala per questo piano
+                self.stretch_factors[plane_idx] = (stretch_factor_x, stretch_factor_y)
+
+
+                # Crea trasformazione
+                transform = QTransform()
+                transform.scale(base_scale * stretch_factor_x, base_scale * stretch_factor_y)
+
+                # Applica trasformazione alla view
+                self.views[plane_idx].setTransform(transform)
+
 
         except Exception as e:
             print(f"Error updating display {plane_idx}: {e}")
@@ -1312,7 +1363,7 @@ class NiftiViewer(QMainWindow):
         self.info_text.hide()
 
 
-        self.time_plot_figure = Figure(figsize=(3, 4), facecolor='black')
+        self.time_plot_figure = Figure(figsize=(3.5, 3.5), facecolor='white')
         self.time_plot_canvas = FigureCanvas(self.time_plot_figure)
         self.time_plot_axes = self.time_plot_figure.add_subplot(111)
         self.time_plot_axes.set_facecolor('black')
