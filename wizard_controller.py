@@ -11,11 +11,12 @@ class WizardController:
             "main_window": self.main_window,
             "workspace_path": self.main_window.workspace_path,
             "update_main_buttons": self.update_buttons_state,
+            "return_to_import": self.return_to_import,
             "selected_files": []
         }
 
-        self.current_page = ImportFrame(self.context)
-        self.history = []
+        self.start_page = ImportFrame(self.context)
+        self.current_page = self.start_page
 
         self._show_current_page()
 
@@ -34,6 +35,12 @@ class WizardController:
         previous_page = self.current_page.back()
         if previous_page:
             self.current_page = previous_page
+            self._show_current_page()
+        return self.current_page
+
+    def return_to_import(self):
+        if self.start_page:
+            self.current_page = self.start_page
             self._show_current_page()
         return self.current_page
 

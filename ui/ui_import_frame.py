@@ -14,14 +14,15 @@ import pydicom
 from ui.ui_patient_selection_frame import PatientSelectionPage
 from wizard_state import WizardPage
 
+
 class ImportThread(QThread):
     finished = pyqtSignal()
     error = pyqtSignal(str)
     progress = pyqtSignal(int)
 
-
-    def __init__(self, folders_path,workspace_path):
+    def __init__(self, context, folders_path, workspace_path):
         super().__init__()
+        self.context = context
         self.folders_path = folders_path
         self.workspace_path = workspace_path
         self.current_progress = 0
@@ -32,9 +33,10 @@ class ImportThread(QThread):
             self.progress.emit(self.current_progress)
 
             if len(self.folders_path) == 1:
-                if not os.path.isdir(self.folders_path):
+                folder_path = self.folders_path[0]  # CORREZIONE: prendi il primo elemento della lista
+                if not os.path.isdir(folder_path):  # CORREZIONE: usa folder_path invece di self.folders_path
                     raise Exception("Invalid folders path")
-                folder_path = self.folders_path[0]
+
                 # Se è una cartella normale (singolo paziente o BIDS), continua come prima
                 if self._is_bids_folder(folder_path):
                     print(f"BIDS structure detected in: {folder_path}")
@@ -62,12 +64,12 @@ class ImportThread(QThread):
                     print(f"Multiple patient folders detected in: {folder_path}")
 
                     folders_num = len(subfolders)
-                    progress_for_folder = 90/folders_num
+                    progress_for_folder = 90 / folders_num
                     self.current_progress = 10
 
                     for subfolder in subfolders:
                         self._handle_import(subfolder)
-                        self.current_progress +=progress_for_folder
+                        self.current_progress += progress_for_folder
                         self.progress.emit(self.current_progress)
 
                     self.progress.emit(100)
@@ -77,17 +79,17 @@ class ImportThread(QThread):
                 nifti_files = []
                 dicom_files = []
 
-                base_folder_name = os.path.basename(os.path.normpath(self.folders_path))
+                base_folder_name = os.path.basename(os.path.normpath(folder_path))  # CORREZIONE: usa folder_path
 
                 # Creiamo una cartella temporanea per la conversione
                 temp_dir = tempfile.mkdtemp()
                 temp_base_dir = os.path.join(temp_dir, base_folder_name)
 
-                for root, _, files in os.walk(self.folders_path):
+                for root, _, files in os.walk(folder_path):  # CORREZIONE: usa folder_path
                     for file in files:
                         file_path = os.path.join(root, file)
 
-                        relative_path = os.path.relpath(root, self.folders_path)
+                        relative_path = os.path.relpath(root, folder_path)  # CORREZIONE: usa folder_path
                         dest_dir = os.path.join(temp_base_dir, relative_path)
                         os.makedirs(dest_dir, exist_ok=True)
 
@@ -105,18 +107,19 @@ class ImportThread(QThread):
                 self.progress.emit(self.current_progress)
 
                 nifti_num = len(nifti_files)
-                progress_per_nifti = int(40/nifti_num)
-                for src, dest in nifti_files:
-                    shutil.copy2(src, dest)
-                    self.current_progress += progress_per_nifti
-                    self.progress.emit(self.current_progress)
-                    print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
+                if nifti_num > 0:  # CORREZIONE: evita divisione per zero
+                    progress_per_nifti = int(40 / nifti_num)
+                    for src, dest in nifti_files:
+                        shutil.copy2(src, dest)
+                        self.current_progress += progress_per_nifti
+                        self.progress.emit(self.current_progress)
+                        print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
 
                 self.current_progress = 60
                 self.progress.emit(self.current_progress)
 
                 if dicom_files:
-                    self._convert_dicom_folder_to_nifti(self.folders_path, temp_base_dir)
+                    self._convert_dicom_folder_to_nifti(folder_path, temp_base_dir)  # CORREZIONE: usa folder_path
 
                 self.current_progress += 10
                 self.progress.emit(self.current_progress)
@@ -133,7 +136,8 @@ class ImportThread(QThread):
                     self._handle_import(path)
                     self.current_progress += progress_for_folder
                     self.progress.emit(self.current_progress)
-            else: raise Exception("Invalid folders path")
+            else:
+                raise Exception("Invalid folders path")
 
             self.current_progress = 100
             self.progress.emit(self.current_progress)
@@ -233,7 +237,7 @@ class ImportThread(QThread):
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)
                 except Exception as e:
-                    print(f"⚠️ Errore durante la rimozione di {file_path}: {e}")
+                    print(f"Errore durante la rimozione di {file_path}: {e}")
         else:
             os.makedirs(output_folder, exist_ok=True)
         self.current_progress += 10
@@ -355,12 +359,13 @@ class ImportFrame(WizardPage):
 
     def __init__(self, context=None):
         super().__init__()
+        self.context = context
+        self.next_page = None
+        self.workspace_path = context["workspace_path"]
 
         self.setAcceptDrops(True)
-
         self.setEnabled(True)
         self.setStyleSheet("border: 2px dashed gray;")
-        # self.setFrameShape(QFrame.Shape.StyledPanel)
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
@@ -368,20 +373,9 @@ class ImportFrame(WizardPage):
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
 
-        self.context = context
-        self.workspace_path = context.workspace_path
-
         self._retranslate_ui()
         if context and hasattr(context, "language_changed"):
             context.language_changed.connect(self._retranslate_ui)
-
-    def on_enter(self, controller):
-        """Hook chiamato quando si entra nella pagina."""
-        self.controller = controller
-        self.controller.next_page_index = 1
-        self.controller.previous_page_index = 0
-        self.controller.update_buttons_state()
-        pass
 
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
@@ -401,6 +395,16 @@ class ImportFrame(WizardPage):
         """Restituisce True se si può tornare indietro alla pagina precedente."""
         return False
 
+    def next(self, context):
+        if self.next_page:
+            return self.next_page
+        else:
+            self.next_page = PatientSelectionPage(context, self)
+            return self.next_page
+
+    def back(self):
+        return False
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -418,7 +422,7 @@ class ImportFrame(WizardPage):
             self.open_folder_dialog()
 
     def open_folder_dialog(self):
-        dialog = QFileDialog(self.context, "Select Folder")
+        dialog = QFileDialog(self.context["main_window"], "Select Folder")
         dialog.setFileMode(QFileDialog.FileMode.Directory)
         dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setOption(QFileDialog.Option.ReadOnly, True)
@@ -432,16 +436,15 @@ class ImportFrame(WizardPage):
             unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
             self._handle_import(unique_folders)
 
-
     def _handle_import(self, folders_path):
 
         self.progress_dialog = QProgressDialog("Loading NIfTI file...","Cancel",
-                                               0, 100, self.context)
+                                               0, 100, self.context["main_window"])
         self.progress_dialog.setWindowModality(Qt.WindowModality.NonModal)
         self.progress_dialog.setMinimumDuration(0)
 
         # Start importing thread
-        self.load_thread = ImportThread(folders_path, self.workspace_path)
+        self.load_thread = ImportThread(self.context, folders_path, self.workspace_path)
         self.load_thread.finished.connect(self.on_file_loaded)
         self.load_thread.error.connect(self.on_load_error)
         self.load_thread.progress.connect(self.progress_dialog.setValue)
@@ -455,17 +458,10 @@ class ImportFrame(WizardPage):
 
     def on_file_loaded(self):
         self.progress_dialog.close()
-        self.controller.update_buttons_state()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
         print("Import completed.")
 
     def _retranslate_ui(self):
         _ = QCoreApplication.translate
         self.drop_label.setText(_("MainWindow", "Import or select patients' data"))
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    frame = ImportFrame()
-    frame.show()
-    sys.exit(app.exec())

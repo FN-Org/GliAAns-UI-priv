@@ -218,10 +218,8 @@ class MainWindow(QMainWindow):
                     QMessageBox.warning(self, "Errore", f"Errore durante la rimozione di {item}:\n{str(e)}")
 
             print("Workspace svuotato.")
-            self.controller.current_page_index = 0
-            self.controller.current_page = self.controller.pages[0]
-            self.controller._show_current_page()
-            self.controller.update_buttons_state()
+            if self.context and "return_to_import" in self.context:
+                self.context["return_to_import"]()
 
     def set_right_widget(self, new_widget):
         if self.splitter.count() > 1:
