@@ -52,8 +52,10 @@ class PatientSelectionPage(WizardPage):
         self.layout.addWidget(self.scroll_area)
 
     def on_exit(self):
-        self.selected_patients.clear()
+        # NON cancellare più selected_patients qui
+        # self.selected_patients.clear()  # RIMOSSO
 
+        # Cancella solo i widget, ma mantieni le selezioni
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
@@ -61,7 +63,10 @@ class PatientSelectionPage(WizardPage):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        self.patient_buttons.clear()
+        # Ricarica i pazienti mantenendo le selezioni
+        self._load_patients()
+        # NON cancellare patient_buttons qui
+        # self.patient_buttons.clear()  # RIMOSSO
 
     def is_ready_to_advance(self):
         if self.selected_patients:
@@ -87,7 +92,9 @@ class PatientSelectionPage(WizardPage):
             for patient_path in to_delete:
                 try:
                     shutil.rmtree(patient_path)
-                    self._load_patients()
+                    # Rimuovi anche dalle selezioni se presente
+                    patient_id = os.path.basename(patient_path)
+                    self.selected_patients.discard(patient_id)
                     print(f"Deleted: {patient_path}")
                 except Exception as e:
                     print(f"Failed to delete {patient_path}: {e}")
@@ -99,25 +106,6 @@ class PatientSelectionPage(WizardPage):
         return self.next_page
 
     def back(self):
-        to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
-
-        if to_delete:
-            reply = QMessageBox.question(self, "Confirm Cleanup",
-                                         f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
-                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-
-            if reply == QMessageBox.StandardButton.No:
-                return None
-
-            # If reply == Yes
-            for patient_path in to_delete:
-                try:
-                    shutil.rmtree(patient_path)
-                    self._load_patients()
-                    print(f"Deleted: {patient_path}")
-                except Exception as e:
-                    print(f"Failed to delete {patient_path}: {e}")
-
         if self.previous_page:
             self.on_exit()
             return self.previous_page
@@ -127,6 +115,9 @@ class PatientSelectionPage(WizardPage):
     def _load_patients(self):
         patient_dirs = self._find_patient_dirs()
         patient_dirs.sort()
+
+        # Pulisci i riferimenti ai bottoni precedenti
+        self.patient_buttons.clear()
 
         for i, patient_path in enumerate(patient_dirs):
             patient_id = os.path.basename(patient_path)
@@ -161,7 +152,12 @@ class PatientSelectionPage(WizardPage):
                     color: white;
                 }
             """)
-            button.setChecked(False)
+
+            # CORREZIONE: Ripristina lo stato del bottone basato sulle selezioni esistenti
+            is_selected = patient_id in self.selected_patients
+            button.setChecked(is_selected)
+            button.setText("Selected" if is_selected else "Select")
+
             button.clicked.connect(lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
 
             # Layout
