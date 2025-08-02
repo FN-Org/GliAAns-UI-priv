@@ -32,6 +32,9 @@ import matplotlib.cm as cm
 
 _t = QtCore.QCoreApplication.translate
 
+
+
+# Numba
 from numba import njit, prange
 
 
@@ -50,6 +53,21 @@ def compute_mask_numba(img, x0, y0, z0, radius_vox, seed_intensity, diff,
                     if abs(img[x, y, z] - seed_intensity) <= diff:
                         mask[x, y, z] = 1
     return mask
+
+
+@njit(parallel=True)
+def apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color):
+    h, w, c = rgba_image.shape
+    for y in prange(h):
+        for x in range(w):
+            if overlay_mask[y, x]:
+                for ch in range(3):
+                    # solo RGB
+                    if overlay_color[ch] != 0:
+                        rgba_image[y, x, ch] = min(1.0, rgba_image[y, x, ch] + overlay_intensity[y, x] * overlay_color[ch])
+                    else:
+                        rgba_image[y, x, ch] *= (1.0 - overlay_intensity[y, x])
+    return rgba_image
 
 
 class ImageLoadThread(QThread):
@@ -258,6 +276,16 @@ class NiftiViewer(QMainWindow):
 
         # Color mapping
         self.colormap ='gray'
+        self.overlay_colors = {
+            "gray": np.array([1.0, 0.0, 0.0]),
+            "viridis": np.array([1.0, 0.0, 0.0]),
+            "plasma": np.array([0.0, 1.0, 0.0]),
+            "inferno": np.array([0.0, 1.0, 1.0]),
+            "magma": np.array([0.0, 1.0, 1.0]),
+            "hot": np.array([0.0, 1.0, 1.0]),
+            "cool": np.array([1.0, 1.0, 0.0]),
+            "bone": np.array([1.0, 0.0, 0.0])
+        }
 
         # UI components
         self.views = []
@@ -1231,13 +1259,15 @@ class NiftiViewer(QMainWindow):
                     overlay_slice = np.flipud(overlay_slice)
 
             # Create composite image with overlay if enabled
+            height, width = slice_data.shape
+            normalized_data = self.normalize_data_matplotlib_style(slice_data)
+            rgba_image = self.apply_colormap_matplotlib(normalized_data, self.colormap)
             if self.overlay_enabled and overlay_slice is not None:
-                # Normalization done in the function
-                qimage = self.create_overlay_composite(slice_data, overlay_slice)
-            else:
-                # Standard display without overlay
-                normalized_data = self.normalize_data_matplotlib_style(slice_data)
-                qimage = self.apply_colormap_matplotlib(normalized_data, self.colormap)
+                rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
+
+            rgba_data_uint8 = (rgba_image * 255).astype(np.uint8)
+
+            qimage = QImage(rgba_data_uint8.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
 
             if qimage is not None:
                 # Update display
@@ -1346,15 +1376,7 @@ class NiftiViewer(QMainWindow):
             # Apply colormap
             colored_data = cmap(data)
 
-            # Convert to 8-bit RGBA
-            rgba_data = (colored_data * 255).astype(np.uint8)
-
-            height, width = data.shape
-
-            # Create QImage
-            qimage = QImage(rgba_data.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
-
-            return qimage
+            return colored_data
 
         except Exception as e:
             print(f"Error applying colormap: {e}")
@@ -1377,54 +1399,33 @@ class NiftiViewer(QMainWindow):
                 slice_info += f" | "+_t("NIfTIViewer","Time")+f": {self.current_time + 1}/{self.dims[3]}"
             self.slice_info_label.setText(slice_info)
 
-    def create_overlay_composite(self, base_data, overlay_slice):
-        """Create a composite image with grayscale base and red overlay"""
+    def create_overlay_composite(self, rgba_image, overlay_slice, colormap):
+        """Create a composite image with colormap base and red overlay."""
         try:
-            # Normalize base image to grayscale
-            base_normalized = self.normalize_data_matplotlib_style(base_data)
 
-            # Create RGB image from grayscale base
-            height, width = base_data.shape
-            rgb_image = np.zeros((height, width, 3), dtype=np.float32)
+            rgba_image_float = rgba_image.astype(np.float64)  # (H,W,4)
 
-            # Set all channels to grayscale values
-            rgb_image[:, :, 0] = base_normalized  # Red channel
-            rgb_image[:, :, 1] = base_normalized  # Green channel
-            rgb_image[:, :, 2] = base_normalized  # Blue channel
-
-            # Apply overlay if available
             if overlay_slice.size > 0:
                 overlay_normalized = self.normalize_data_matplotlib_style(overlay_slice)
 
-                # Apply threshold - only show overlay values above threshold
                 overlay_max = np.max(overlay_normalized) if np.max(overlay_normalized) > 0 else 1
                 threshold_value = self.overlay_threshold * overlay_max
                 overlay_mask = overlay_normalized > threshold_value
 
-                # Create red overlay where mask is True
                 if np.any(overlay_mask):
-                    # Apply red color to overlay regions
                     overlay_intensity = overlay_normalized * self.overlay_alpha
 
-                    # Blend overlay with base: keep base grayscale but add red tint
-                    rgb_image[overlay_mask, 0] = np.minimum(1.0,
-                                                            base_normalized[overlay_mask] + overlay_intensity[
-                                                                overlay_mask])  # Enhanced red
-                    rgb_image[overlay_mask, 1] = base_normalized[overlay_mask] * (
-                                1 - overlay_intensity[overlay_mask])  # Reduced green
-                    rgb_image[overlay_mask, 2] = base_normalized[overlay_mask] * (
-                                1 - overlay_intensity[overlay_mask])  # Reduced blue
+                    overlay_color = self.overlay_colors.get(self.colormap,np.array([0.0, 1.0, 0.0]))
+                    rgba_image_float = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
 
-            # Convert to 8-bit and create QImage
-            rgb_data = (np.clip(rgb_image, 0, 1) * 255).astype(np.uint8)
+            rgba_image_overlay = np.clip(rgba_image_float, 0, 1)
 
-            # Create QImage from RGB data
-            return QImage(rgb_data.data, width, height, width * 3, QImage.Format.Format_RGB888)
+            return rgba_image_overlay
 
         except Exception as e:
             print(f"Error creating overlay composite: {e}")
             # Fallback to regular colormap
-            return self.apply_colormap_matplotlib(base_data, self.colormap)
+            return rgba_image
 
     def resizeEvent(self, event: QResizeEvent):
         """Handle window resize to maintain aspect ratios"""
@@ -1561,9 +1562,7 @@ class NiftiViewer(QMainWindow):
 
         self.display_options_label.setText(_t("NIfTIViewer", "Display Options:"))
 
-        colormap_names = [_t("NIfTIViewer", 'gray'), _t("NIfTIViewer", 'viridis'), _t("NIfTIViewer", 'plasma'),
-             _t("NIfTIViewer", 'inferno'), _t("NIfTIViewer", 'magma'), _t("NIfTIViewer", 'hot'),
-             _t("NIfTIViewer", 'cool'), _t("NIfTIViewer", 'bone')]
+        colormap_names = ['gray', 'viridis','plasma', 'inferno','magma','hot','cool','bone']
 
         for i,name in enumerate(colormap_names):
             self.colormap_combo.setItemText(i, name)
