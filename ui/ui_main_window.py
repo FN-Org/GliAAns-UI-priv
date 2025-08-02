@@ -11,12 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
-from ui.tool_selection_frame import ToolChoicePage
 from ui.ui_button import UiButton
-from ui.ui_fsl_frame import SkullStrippingPage
-from ui.ui_import_frame import ImportFrame
-from ui.ui_patient_selection_frame import PatientSelectionPage
-from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
@@ -42,16 +37,22 @@ class MainWindow(QMainWindow):
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
 
+    # --------------------------
+    # UI SETUP
+    # --------------------------
     def _setup_ui(self):
         self.setObjectName("MainWindow")
         self.resize(840, 441)
 
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
-
         self.main_layout = QVBoxLayout(central_widget)
 
-        # Splitter with TreeView and ImportFrame
+        self._setup_splitter()
+        self._setup_footer()
+
+    def _setup_splitter(self):
+        # Splitter
         self.splitter = QSplitter(QtCore.Qt.Orientation.Horizontal)
 
         # TreeView
@@ -62,8 +63,6 @@ class MainWindow(QMainWindow):
         self.tree_view.setRootIndex(self.tree_model.index(self.workspace_path))
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
-
-        # Tree view già esistente nella tua UI
         self.tree_view.clicked.connect(self.handle_workspace_click)
         self.tree_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
 
@@ -71,11 +70,11 @@ class MainWindow(QMainWindow):
         self.splitter.setSizes([200, 600])
         self.splitter.splitterMoved.connect(self.adjust_tree_columns)
 
+    def _setup_footer(self):
         self.footer = QtWidgets.QWidget()
         self.footer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.footer_layout = QHBoxLayout(self.footer)
         self.footer_layout.setContentsMargins(0, 0, 0, 0)
-        # self._update_footer_visibility()
 
         self.back_button = UiButton(text="Back", context=self)
         self.back_button.clicked.connect(lambda: self.controller.go_to_previous_page())
@@ -86,20 +85,6 @@ class MainWindow(QMainWindow):
         self.footer_layout.addWidget(self.next_button, 0, Qt.AlignmentFlag.AlignRight)
 
         self.main_layout.addWidget(self.footer)
-
-    def handle_workspace_click(self, index):
-        selected_indexes = self.tree_view.selectionModel().selectedIndexes()
-
-        selected_files = []
-        for idx in selected_indexes:
-            if idx.column() == 0:  # Solo la colonna principale (file name), evita ripetizioni
-                path = self.tree_model.filePath(idx)
-                if path.endswith(".nii") or path.endswith(".nii.gz"):
-                    selected_files.append(path)
-
-        # Passa i file alla pagina corrente, se implementa set_selected_files()
-        if selected_files and hasattr(self.controller.current_page, "set_selected_files"):
-            self.controller.current_page.set_selected_files(selected_files)
 
     def _setup_menus(self):
         self.menu_bar = QMenuBar()
@@ -120,10 +105,6 @@ class MainWindow(QMainWindow):
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
-
-        self.help_menu = self.menu_bar.addMenu("Help")
-
-        # Language menu
         self.language_menu = self.settings_menu.addMenu("Language")
         self.language_action_group = QActionGroup(self)
         self.language_action_group.setExclusive(True)
@@ -131,31 +112,36 @@ class MainWindow(QMainWindow):
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
 
+        self.help_menu = self.menu_bar.addMenu("Help")
+
+    # --------------------------
+    # WIZARD CONTROLLER SETUP
+    # --------------------------
     def _setup_controller(self):
-        self.controller = WizardController(self.next_button, self.back_button, self)
+        self.controller = WizardController(
+            next_button=self.next_button,
+            back_button=self.back_button,
+            main_window=self
+        )
 
-        import_page = ImportFrame(self)
-        self.controller.add_page(import_page)
+        self.context = self.controller.context
 
-        patient_selection_page = PatientSelectionPage(self)
-        self.controller.add_page(patient_selection_page)
+    # --------------------------
+    # WORKSPACE & TREEVIEW
+    # --------------------------
+    def handle_workspace_click(self, index):
+        selected_indexes = self.tree_view.selectionModel().selectedRows()
 
-        tool_page = ToolChoicePage(self)
-        self.controller.add_page(tool_page)
+        selected_files = []
+        for idx in selected_indexes:
+            path = self.tree_model.filePath(idx)
+            selected_files.append(path)
 
-        fsl_page = SkullStrippingPage(self)
-        self.controller.add_page(fsl_page)
+        # Save into context
+        self.controller.context["selected_files"] = selected_files
 
-        work = WorkInProgressPage()
-        self.controller.add_page(work)
-
-        work2 = WorkInProgressPage()
-        self.controller.add_page(work2)
-
-        work3 = WorkInProgressPage()
-        self.controller.add_page(work3)
-
-        self.controller.start()
+        # Notify the current page
+        self.controller.current_page.update_selected_files(selected_files)
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)

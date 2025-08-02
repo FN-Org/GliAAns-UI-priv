@@ -11,7 +11,8 @@ from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QFileDial
 
 import pydicom
 
-from wizard_controller import WizardPage
+from ui.ui_patient_selection_frame import PatientSelectionPage
+from wizard_state import WizardPage
 
 class ImportThread(QThread):
     finished = pyqtSignal()
@@ -154,7 +155,8 @@ class ImportThread(QThread):
             shutil.copytree(folder_path, dest, dirs_exist_ok=True)
 
             print(f"BIDS folder copied as {new_sub_id}.")
-            self.controller.update_buttons_state()
+            if self.context and "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
             return
 
         # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
@@ -207,6 +209,9 @@ class ImportThread(QThread):
         # Dopo conversione, cancella cartella temporanea
         shutil.rmtree(temp_dir, ignore_errors=True)
 
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
+        print("Import completed.")
 
     def _is_nifti_file(self, file_path):
         return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
@@ -250,7 +255,6 @@ class ImportThread(QThread):
             raise RuntimeError(f"Conversion error: {e}") from e
         except Exception as e:
             raise RuntimeError(f"Failed to convert DICOM: {e}") from e
-
 
     def _is_bids_folder(self, folder_path):
         """

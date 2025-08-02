@@ -2,20 +2,27 @@ from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
     QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView, QHBoxLayout,
-    QListView, QTextEdit, QListWidget, QListWidgetItem
+    QListView, QTextEdit, QListWidget, QListWidgetItem, QWidget
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
 import subprocess
 
-from wizard_controller import WizardPage
+from wizard_state import WizardPage
+
 
 class SkullStrippingPage(WizardPage):
-    def __init__(self, context=None):
+    def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
+        self.previous_page = previous_page
+        self.next_page = None
+
         self.selected_file = None
 
+        self._setup_ui()
+
+    def _setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
@@ -23,7 +30,6 @@ class SkullStrippingPage(WizardPage):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.label)
 
-        # Layout orizzontale per bottone + campo percorso
         file_selector_layout = QHBoxLayout()
 
         self.file_list_widget = QListWidget()
@@ -32,9 +38,23 @@ class SkullStrippingPage(WizardPage):
         self.file_list_widget.setMaximumHeight(100)
         file_selector_layout.addWidget(self.file_list_widget, stretch=1)
 
-        self.file_button = QPushButton("Choose NIfTI File")
+        button_container = QWidget()
+        button_layout = QVBoxLayout(button_container)
+
+        button_layout.addStretch()
+
+        self.file_button = QPushButton("Choose NIfTI File(s)")
         self.file_button.clicked.connect(self.open_tree_dialog)
-        file_selector_layout.addWidget(self.file_button)
+        button_layout.addWidget(self.file_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.clear_button = QPushButton("Clear Selection")
+        self.clear_button.setEnabled(False)
+        self.clear_button.clicked.connect(self.clear_selected_files)
+        button_layout.addWidget(self.clear_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        button_layout.addStretch()
+
+        file_selector_layout.addWidget(button_container)
 
         self.layout.addLayout(file_selector_layout)
 
@@ -97,6 +117,7 @@ class SkullStrippingPage(WizardPage):
 
         # Bottone RUN
         self.run_button = QPushButton("Run Skull Stripping (FSL BET)")
+        self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
         self.layout.addWidget(self.run_button)
 
@@ -117,9 +138,9 @@ class SkullStrippingPage(WizardPage):
         layout.addWidget(QLabel("Search:"))
         layout.addWidget(search_bar)
 
-        # 🔍 Scansione ricorsiva di tutti i file .nii / .nii.gz nel workspace
+        # Scansione ricorsiva di tutti i file .nii / .nii.gz nel workspace
         nii_files = []
-        for root, dirs, files in os.walk(self.context.workspace_path):
+        for root, dirs, files in os.walk(self.context["workspace_path"]):
             for f in files:
                 if f.endswith((".nii", ".nii.gz")):
                     full_path = os.path.join(root, f)
@@ -170,13 +191,45 @@ class SkullStrippingPage(WizardPage):
             item.setToolTip(path)
             self.file_list_widget.addItem(item)
 
-        self.file_button.setText("Choose NIfTI File(s)")
-        self.context.controller.update_buttons_state()
+        self.clear_button.setEnabled(bool(file_paths))
+        self.run_button.setEnabled(bool(file_paths))
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
+
+    def clear_selected_files(self):
+        self.selected_files = []
+        self.file_list_widget.clear()
+        self.clear_button.setEnabled(False)
+        self.run_button.setEnabled(False)
+
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def toggle_advanced(self):
         is_checked = self.advanced_btn.isChecked()
         self.advanced_box.setVisible(is_checked)
         self.advanced_btn.setText("Hide Advanced Options" if is_checked else "Show Advanced Options")
+
+    def update_selected_files(self, files):
+        self.selected_file = None
+        self.file_list_widget.clear()
+
+        # Cerca il primo file valido nella lista
+        for path in files:
+            if path.endswith(".nii") or path.endswith(".nii.gz"):
+                item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
+                item.setToolTip(path)
+                self.file_list_widget.addItem(item)
+                self.selected_file = path
+                self.clear_button.setEnabled(True)
+                self.run_button.setEnabled(True)
+
+        if not self.selected_file:
+            self.clear_button.setEnabled(False)
+            self.run_button.setEnabled(False)
+
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def run_bet(self):
         if not self.selected_files:
@@ -238,45 +291,15 @@ class SkullStrippingPage(WizardPage):
 
         self.status_label.setText(summary)
 
-    def reset_page(self):
-        # Resetta file selezionati
-        self.selected_files = []
-        self.file_list_widget.clear()
-        self.file_button.setText("Choose NIfTI File")
+    def back(self):
+        if self.previous_page:
+            self.on_exit()
+            return self.previous_page
 
-        # Resetta i parametri principali
-        self.f_input.clear()
-
-        # Nasconde e resetta le opzioni avanzate
-        self.advanced_btn.setChecked(False)
-        self.advanced_box.setVisible(False)
-        self.advanced_btn.setText("Show Advanced Options")
-
-        for checkbox in [
-            self.opt_o, self.opt_m, self.opt_s, self.opt_n,
-            self.opt_t, self.opt_e, self.opt_R, self.opt_S,
-            self.opt_B, self.opt_Z, self.opt_F, self.opt_A,
-            self.opt_v
-        ]:
-            checkbox.setChecked(False)
-
-        for field in [
-            self.g_input, self.r_input, self.c_input, self.A2_input
-        ]:
-            field.clear()
-
-        # Pulisce lo stato
-        self.status_label.clear()
-
-    def on_enter(self, controller):
-        self.status_label.setText("")  # Reset
-
-        self.controller = controller
-        self.controller.update_buttons_state()
-        controller.previous_page_index = 2
+        return None
 
     def is_ready_to_advance(self):
-        return False  # Ultima pagina
+        return False # You can't advance from here
 
     def is_ready_to_go_back(self):
         return True

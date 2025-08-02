@@ -243,7 +243,6 @@ class NiftiViewer(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle(_t("NIfTIViewer","NIfTI Image Viewer"))
         self.setMinimumSize(1000, 700)
         self.resize(1400, 1000)
