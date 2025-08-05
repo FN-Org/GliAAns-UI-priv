@@ -83,11 +83,13 @@ class ToolChoicePage(WizardPage):
             setattr(self, attr_name, next_page)
 
         self.on_exit()
+        next_page.on_enter()
         return next_page
 
     def back(self):
         if self.previous_page:
             self.on_exit()
+            self.previous_page.on_enter()
             return self.previous_page
 
         return None

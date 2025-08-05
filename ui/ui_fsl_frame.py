@@ -18,7 +18,7 @@ class SkullStrippingPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
-        self.selected_file = None
+        self.selected_files = None
 
         self._setup_ui()
 
@@ -26,9 +26,10 @@ class SkullStrippingPage(WizardPage):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        self.label = QLabel("Select a NIfTI file for Skull Stripping")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(self.label)
+        self.title = QLabel("Select a NIfTI file for Skull Stripping")
+        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.title)
 
         file_selector_layout = QHBoxLayout()
 
@@ -211,7 +212,7 @@ class SkullStrippingPage(WizardPage):
             return False
 
         # Costruisci il percorso dove dovrebbe essere lo skull strip
-        skull_strip_dir = os.path.join(workspace_path, 'derivatives', 'fsl_skullstrip', subject_id, 'anat')
+        skull_strip_dir = os.path.join(workspace_path, 'derivatives', 'fsl_skullstrips', subject_id, 'anat')
 
         # Controlla se la directory esiste
         if not os.path.exists(skull_strip_dir):
@@ -553,7 +554,7 @@ class SkullStrippingPage(WizardPage):
                     continue
 
                 # Crea la directory di output
-                output_dir = os.path.join(self.context["workspace_path"], 'derivatives', 'fsl_skullstrip', subject_id,
+                output_dir = os.path.join(self.context["workspace_path"], 'derivatives', 'fsl_skullstrips', subject_id,
                                           'anat')
                 os.makedirs(output_dir, exist_ok=True)
 
@@ -686,9 +687,13 @@ class SkullStrippingPage(WizardPage):
     def back(self):
         if self.previous_page:
             self.on_exit()
+            self.previous_page.on_enter()
             return self.previous_page
 
         return None
+
+    def on_exit(self):
+        self.status_label.setText("")
 
     def is_ready_to_advance(self):
         return False # You can't advance from here

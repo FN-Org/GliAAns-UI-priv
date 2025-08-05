@@ -479,6 +479,7 @@ class ImportFrame(WizardPage):
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
+        self.drop_label.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.drop_label.setFont(QFont("", 14))
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
@@ -507,9 +508,12 @@ class ImportFrame(WizardPage):
 
     def next(self, context):
         if self.next_page:
+            self.on_exit()
+            self.next_page.on_enter()
             return self.next_page
         else:
             self.next_page = PatientSelectionPage(context, self)
+            self.on_exit()
             return self.next_page
 
     def back(self):
