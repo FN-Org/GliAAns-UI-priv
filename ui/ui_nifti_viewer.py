@@ -5,6 +5,7 @@ NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D 
 import sys
 import os
 import gc
+import json
 import numpy as np
 import nibabel as nib
 from PyQt6 import QtCore
@@ -16,7 +17,8 @@ try:
                                  QLabel, QSlider, QPushButton, QFileDialog, QSpinBox,
                                  QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
-                                 QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea)
+                                 QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea, QDialog, QLineEdit,
+                                 QListWidget, QDialogButtonBox, QListWidgetItem)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent, QTransform)
@@ -241,9 +243,11 @@ class CrosshairGraphicsView(QGraphicsView):
 class NiftiViewer(QMainWindow):
     """Enhanced NIfTI viewer application with triplanar display and 4D support"""
 
-    def __init__(self):
+    def __init__(self, context=None):
         super().__init__()
+        self.context = context
 
+        self.progress_dialog = None
         self.setWindowTitle(_t("NIfTIViewer","NIfTI Image Viewer"))
         self.setMinimumSize(1000, 700)
         self.resize(1400, 1000)
@@ -820,7 +824,7 @@ class NiftiViewer(QMainWindow):
     def setup_connections(self):
         """Setup signal-slot connections"""
         # File operations
-        self.open_btn.clicked.connect(self.open_file)
+        self.open_btn.clicked.connect(lambda: self.open_file())
         self.overlay_btn.clicked.connect(self.open_overlay_file)
         self.overlay_checkbox.toggled.connect(self.toggle_overlay)
         self.overlay_alpha_slider.valueChanged.connect(self.update_overlay_alpha)
@@ -848,16 +852,86 @@ class NiftiViewer(QMainWindow):
         for view in self.views:
             view.coordinate_changed.connect(self.update_coordinates)
 
-    def open_file(self):
-        """Open a NIfTI file with progress dialog"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, _t("NIfTIViewer","Open NIfTI File"), "",
-            "NIfTI Files (*.nii *.nii.gz);;All Files (*)"
-        )
+    def show_workspace_nii_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select a NIfTI file from workspace")
+        dialog.resize(600, 500)
 
+        layout = QVBoxLayout(dialog)
+
+        search_bar = QLineEdit()
+        search_bar.setPlaceholderText("Search (e.g., T1, FLAIR, etc.)")
+        layout.addWidget(QLabel("Search:"))
+        layout.addWidget(search_bar)
+
+        file_list_widget = QListWidget()
+        layout.addWidget(file_list_widget)
+
+        # Bottone OK/Cancel
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(buttons)
+
+        # Raccoglie tutti i file .nii/.nii.gz (escludendo derivatives)
+        all_nii_files = []
+        relative_to_absolute = {}
+
+        for root, dirs, files in os.walk(self.context["workspace_path"]):
+            dirs[:] = [d for d in dirs if d != "derivatives"]
+            for f in files:
+                if f.endswith((".nii", ".nii.gz")):
+                    full_path = os.path.join(root, f)
+                    relative_path = os.path.relpath(full_path, self.context["workspace_path"])
+                    all_nii_files.append(relative_path)
+                    relative_to_absolute[relative_path] = full_path
+                    item = QListWidgetItem(relative_path)
+                    file_list_widget.addItem(item)
+
+        # Filtro in tempo reale con la search bar
+        def filter_files(text):
+            file_list_widget.clear()
+            for path in all_nii_files:
+                if text.lower() in path.lower():
+                    file_list_widget.addItem(QListWidgetItem(path))
+
+        search_bar.textChanged.connect(filter_files)
+
+        selected_file = None
+
+        def accept():
+            nonlocal selected_file
+            current_item = file_list_widget.currentItem()
+            if current_item:
+                selected_file = relative_to_absolute[current_item.text()]
+                dialog.accept()
+
+        def reject():
+            dialog.reject()
+
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(reject)
+
+        if dialog.exec():
+            return selected_file
+        return None
+
+    def open_file(self, file_path=None):
+        """Open a NIfTI file with progress dialog
+        Args:
+            file_path (str, optional): Path to the file to open. If None, shows file dialog.
+        """
+        # If no file path provided, show file dialog
+        if file_path is None:
+            file_path = self.show_workspace_nii_dialog()
+            if not file_path:  # User canceled the dialog
+                return
+
+        # Proceed with file loading
         if file_path:
             # Show progress dialog
-            self.progress_dialog = QProgressDialog(_t("NIfTIViewer","Loading NIfTI file..."), _t("NIfTIViewer","Cancel"), 0, 100, self)
+            self.progress_dialog = QProgressDialog(
+                _t("NIfTIViewer", "Loading NIfTI file..."),
+                _t("NIfTIViewer", "Cancel"), 0, 100, self
+            )
             self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             self.progress_dialog.setMinimumDuration(0)
 
@@ -903,6 +977,7 @@ class NiftiViewer(QMainWindow):
         self.status_bar.addPermanentWidget(self.value_label)
 
         self.automaticROIbtn.setEnabled(True)
+        self.automaticROIbtn.setText("Automatic ROI")
 
         self.file_info_label.setText(info_text)
         self.info_text.setText(info_text)
@@ -1495,8 +1570,8 @@ class NiftiViewer(QMainWindow):
             self.automaticROI_drawing()
             self.update_all_displays()
 
-
     def automaticROI_clicked(self):
+        self.automaticROIbtn.setText("Reset Origin")
         self.automaticROI_overlay = True
         self.automaticROI_save_btn.setEnabled(True)
         self.automaticROI_seed_coordinates = self.current_coordinates
@@ -1549,22 +1624,76 @@ class NiftiViewer(QMainWindow):
     def automaticROI_save(self):
         if not self.automaticROI_overlay or self.overlay_data is None:
             return
-        save_dir = "./.workspace"
-        os.makedirs(save_dir, exist_ok=True)
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            caption="Save ROI",
-            directory=save_dir,
-            filter="NIfTI (*.nii.gz)"
-        )
+        radius = self.automaticROI_radius_slider.value()
+        difference = self.automaticROI_diff_slider.value()
 
-        if not file_path:
+        original_path = self.file_path
+        if not original_path:
+            QMessageBox.critical(self, "Error", "No file loaded.")
             return
 
-        nib.save(nib.Nifti1Image(self.overlay_data, self.affine), file_path)
+        workspace_path = self.context.get("workspace_path")
+        if not workspace_path:
+            QMessageBox.critical(self, "Error", "Workspace path is not set.")
+            return
 
-        print("File saved in " + file_path)
+        relative_path = os.path.relpath(original_path, workspace_path)
+        parts = relative_path.split(os.sep)
+        try:
+            subject = next(part for part in parts if part.startswith("sub-"))
+        except StopIteration:
+            QMessageBox.critical(self, "Error", "Could not determine subject from path.")
+            return
+
+        filename = os.path.basename(original_path)
+        base_name = filename.replace(".nii.gz", "").replace(".nii", "")
+        new_base = f"{base_name}_r{radius:02d}_d{difference:02d}_mask"
+        new_name = f"{new_base}.nii.gz"
+
+        save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
+        full_save_path = os.path.join(save_dir, new_name)
+        json_save_path = os.path.join(save_dir, f"{new_base}.json")
+
+        # Mostra dialog di conferma
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("Confirm Save")
+        msg.setText("Do you want to save the automatic ROI?")
+        msg.setInformativeText(
+            f"File will be saved as:\n\n{new_name}\n\n"
+            f"Location:\n{save_dir}\n\n"
+            f"Radius: {radius}\nDifference: {difference}"
+        )
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+        response = msg.exec()
+        if response != QMessageBox.StandardButton.Yes:
+            return  # Annullato
+
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Salva la NIfTI
+        nib.save(nib.Nifti1Image(self.overlay_data.astype(np.uint8), self.affine), full_save_path)
+
+        # Costruisci il JSON BIDS-like
+        json_dict = {
+            "Type": "ROI",
+            "Sources": [f"bids:{relative_path}"],
+            "Description": "Automatic ROI using intensity threshold-based region growing.",
+            "AutomaticRoiParameters": {
+                "radius": radius,
+                "difference": difference
+            }
+        }
+
+        with open(json_save_path, "w") as json_file:
+            json.dump(json_dict, json_file, indent=4)
+
+        QMessageBox.information(self, "ROI Saved", "ROI and metadata saved successfully!")
+        print(f"Automatic ROI saved to: {full_save_path}")
+        print(f"Metadata JSON saved to: {json_save_path}")
 
     def closeEvent(self, event):
         """Clean up on application exit"""
