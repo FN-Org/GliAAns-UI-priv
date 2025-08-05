@@ -59,80 +59,58 @@ class NiftiSelectionPage(WizardPage):
         # Bottone open NIfTI viewer
         self.viewer_button = QPushButton("Open NIfTI file")
         self.viewer_button.setEnabled(False)
-        self.viewer_button.clicked.connect(self.open_nifti_viewer)
         selector_layout.addWidget(self.viewer_button)
 
         self.layout.addLayout(selector_layout)
 
-        # Sezione VOI (inizialmente nascosta)
-        self.voi_section = self.create_voi_section()
-        self.voi_section.setVisible(False)
-        self.layout.addWidget(self.voi_section)
-
         # Aggiungi uno stretch solo alla fine se vuoi che tutto sia in alto
         self.layout.addStretch()
 
-    def open_nifti_viewer(self):
-        self.voi_section.setVisible(not self.voi_section.isVisible())
+    def has_existing_mask(self, nifti_file_path, workspace_path):
+        """
+        Controlla se per il paziente di questo file NIfTI esiste già una mask.
 
+        Args:
+            nifti_file_path (str): Percorso completo al file NIfTI
+            workspace_path (str): Percorso del workspace
 
-    def create_voi_section(self):
-        group_box = QGroupBox("Create ROI")
-        layout = QVBoxLayout()
+        Returns:
+            bool: True se esiste già una mask, False altrimenti
+        """
+        # Estrai l'ID del paziente dal percorso del file
+        # Assumo una struttura tipo: .../sub-XX/anat/sub-XX_modality.nii.gz
+        path_parts = nifti_file_path.replace(workspace_path, '').strip(os.sep).split(os.sep)
 
-        # Reset origin
-        reset_button = QPushButton("Reset origin")
-        layout.addWidget(reset_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        # Cerca la parte che inizia con 'sub-'
+        subject_id = None
+        for part in path_parts:
+            if part.startswith('sub-'):
+                subject_id = part
+                break
 
-        # Difference from origin
-        diff_layout = QHBoxLayout()
-        diff_layout.addWidget(QLabel("Difference from origin"))
-        self.diff_spinbox = QSpinBox()
-        self.diff_spinbox.setRange(0, 999)
-        self.diff_spinbox.setValue(16)
-        diff_layout.addWidget(self.diff_spinbox)
-        layout.addLayout(diff_layout)
+        if not subject_id:
+            # Se non riesco a identificare il subject ID, assumo che non ci sia mask
+            return False
 
-        # Radius
-        radius_layout = QHBoxLayout()
-        radius_layout.addWidget(QLabel("Radius (mm)"))
-        self.radius_spinbox = QSpinBox()
-        self.radius_spinbox.setRange(0, 999)
-        self.radius_spinbox.setValue(32)
-        radius_layout.addWidget(self.radius_spinbox)
-        layout.addLayout(radius_layout)
+        # Costruisci il percorso dove dovrebbe essere la mask
+        mask_dir = os.path.join(workspace_path, 'derivatives', 'manual_masks', subject_id, 'anat')
 
-        # Combo box
-        self.voi_mode_combo = QComboBox()
-        self.voi_mode_combo.addItems([
-            "Append to current VOI",
-            "Delete from current VOI",
-            "Constrain with current VOI"
-        ])
-        layout.addWidget(self.voi_mode_combo)
+        # Controlla se la directory esiste
+        if not os.path.exists(mask_dir):
+            return False
 
-        # Cancel / Apply buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Apply)
-        button_box.rejected.connect(self.cancel_voi)
-        button_box.accepted.connect(self.apply_voi)
-        layout.addWidget(button_box)
+        # Controlla se esistono file .nii.gz e .json nella directory
+        has_nii = False
+        has_json = False
 
-        group_box.setLayout(layout)
-        return group_box
+        for file in os.listdir(mask_dir):
+            if file.endswith('.nii.gz'):
+                has_nii = True
+            elif file.endswith('.json'):
+                has_json = True
 
-    def cancel_voi(self):
-        self.voi_section.setVisible(False)
-
-    def apply_voi(self):
-        radius = self.radius_spinbox.value()
-        diff = self.diff_spinbox.value()
-        mode = self.voi_mode_combo.currentText()
-
-        QMessageBox.information(
-            self,
-            "ROI Created",
-            f"Radius: {radius} mm\nDiff: {diff}\nMode: {mode}"
-        )
+        # Ritorna True solo se esistono entrambi i tipi di file
+        return has_nii and has_json
 
     def open_tree_dialog(self):
         dialog = QDialog(self)
@@ -146,35 +124,115 @@ class NiftiSelectionPage(WizardPage):
         layout.addWidget(QLabel("Search:"))
         layout.addWidget(search_bar)
 
-        nii_files = []
+        # Lista di file e dizionario di mappatura
+        all_nii_files = []
+        relative_to_absolute = {}
+        files_with_masks = set()
+
         for root, dirs, files in os.walk(self.context["workspace_path"]):
+            # Ignora la cartella 'derivatives' e tutte le sue sottocartelle
+            dirs[:] = [d for d in dirs if d != "derivatives"]
+
             for f in files:
                 if f.endswith((".nii", ".nii.gz")):
-                    nii_files.append(os.path.join(root, f))
+                    full_path = os.path.join(root, f)
+                    relative_path = os.path.relpath(full_path, self.context["workspace_path"])
+                    all_nii_files.append(relative_path)
+                    relative_to_absolute[relative_path] = full_path
 
-        model = QStringListModel(nii_files)
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+                    # Segna i file che hanno già una mask
+                    if self.has_existing_mask(full_path, self.context["workspace_path"]):
+                        files_with_masks.add(relative_path)
 
-        view = QListView()
-        view.setModel(proxy)
-        view.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
-        view.setSelectionMode(QListView.SelectionMode.SingleSelection)
-        layout.addWidget(view)
+        # Info label con legenda colori
+        info_text = f"Showing {len(all_nii_files)} files"
+        if files_with_masks:
+            info_text += f" ({len(files_with_masks)} with existing masks shown in orange)"
 
-        search_bar.textChanged.connect(proxy.setFilterFixedString)
+        info_label = QLabel(info_text)
+        info_label.setStyleSheet("color: gray; font-size: 10px;")
+        layout.addWidget(info_label)
+
+        # Usa QListWidget invece di QListView per avere più controllo sui colori
+        from PyQt6.QtWidgets import QListWidget
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QBrush, QColor
+
+        file_list = QListWidget()
+        file_list.setEditTriggers(QListWidget.EditTrigger.NoEditTriggers)
+        file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+
+        # Aggiungi tutti i file con colori differenziati
+        for relative_path in sorted(all_nii_files):
+            item = QListWidgetItem(relative_path)
+
+            # Se il file ha già una mask, coloralo in arancione
+            if relative_path in files_with_masks:
+                item.setForeground(QBrush(QColor(255, 193, 7)))  # Giallo (Bootstrap warning color)
+                item.setToolTip(f"{relative_to_absolute[relative_path]}\nThis patient already has a mask")
+            else:
+                item.setToolTip(relative_to_absolute[relative_path])
+
+            file_list.addItem(item)
+
+        layout.addWidget(file_list)
+
+        # Aggiungi filtro di ricerca
+        def filter_items():
+            search_text = search_bar.text().lower()
+            for i in range(file_list.count()):
+                item = file_list.item(i)
+                item.setHidden(search_text not in item.text().lower())
+
+        search_bar.textChanged.connect(filter_items)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         layout.addWidget(buttons)
 
         def accept():
-            indexes = view.selectionModel().selectedIndexes()
-            if not indexes:
+            current_item = file_list.currentItem()
+            if not current_item:
                 QMessageBox.warning(dialog, "No selection", "Please select a NIfTI file.")
                 return
-            selected_path = proxy.data(indexes[0])
-            self.set_selected_file(selected_path)
+
+            selected_relative_path = current_item.text()
+            selected_absolute_path = relative_to_absolute[selected_relative_path]
+
+            # Se il file selezionato ha già una mask, mostra il warning
+            if selected_relative_path in files_with_masks:
+                # Estrai l'ID del paziente per il messaggio
+                path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(os.sep).split(
+                    os.sep)
+                subject_id = None
+                for part in path_parts:
+                    if part.startswith('sub-'):
+                        subject_id = part
+                        break
+
+                if subject_id:
+                    subject_display = subject_id
+                else:
+                    subject_display = "this patient"
+
+                # Mostra il warning
+                msg = QMessageBox(dialog)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("Existing Mask Detected")
+                msg.setText(f"A mask already exists for {subject_display}.")
+                msg.setInformativeText(
+                    f"File: {os.path.basename(selected_absolute_path)}\n\n"
+                    "You can still proceed to create additional masks for this patient.\n"
+                    "Do you want to continue with this selection?"
+                )
+                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                # Se l'utente sceglie No, non procedere
+                if msg.exec() == QMessageBox.StandardButton.No:
+                    return
+
+            # Procedi con la selezione
+            self.set_selected_file(selected_absolute_path)
             dialog.accept()
 
         buttons.accepted.connect(accept)
@@ -183,6 +241,9 @@ class NiftiSelectionPage(WizardPage):
         dialog.exec()
 
     def set_selected_file(self, file_path):
+        """
+        Imposta il file selezionato (il warning è ora gestito nel dialog di selezione).
+        """
         self.selected_file = file_path
         self.file_list_widget.clear()
         item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(file_path))
@@ -205,11 +266,47 @@ class NiftiSelectionPage(WizardPage):
             self.context["update_main_buttons"]()
 
     def update_selected_files(self, files):
+        """
+        Aggiorna i file selezionati e mostra warning se esistono mask per i pazienti.
+        """
         self.selected_file = None
         self.file_list_widget.clear()
 
         for path in files:
             if path.endswith(".nii") or path.endswith(".nii.gz"):
+                # Controlla se esiste già una mask per questo paziente
+                if self.has_existing_mask(path, self.context["workspace_path"]):
+                    # Estrai l'ID del paziente per il messaggio
+                    path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
+                    subject_id = None
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subject_id = part
+                            break
+
+                    if subject_id:
+                        subject_display = subject_id
+                    else:
+                        subject_display = "this patient"
+
+                    # Mostra il warning
+                    msg = QMessageBox(self)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("Existing Mask Detected")
+                    msg.setText(f"A mask already exists for {subject_display}.")
+                    msg.setInformativeText(
+                        f"File: {os.path.basename(path)}\n\n"
+                        "You can still proceed to create additional masks for this patient.\n"
+                        "Do you want to continue with this selection?"
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                    # Se l'utente sceglie No, salta questo file
+                    if msg.exec() == QMessageBox.StandardButton.No:
+                        continue
+
+                # Procedi con la selezione
                 item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
                 item.setToolTip(path)
                 self.file_list_widget.addItem(item)

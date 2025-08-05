@@ -78,7 +78,10 @@ class PatientSelectionPage(WizardPage):
         return True
 
     def next(self, context):
-        to_delete = [p for p in self._find_patient_dirs() if os.path.basename(p) not in self.selected_patients]
+        to_delete = [
+            p for p in self._find_patient_dirs()
+            if os.path.basename(p) not in self.selected_patients and os.path.basename(p) != "derivatives"
+        ]
 
         if to_delete:
             reply = QMessageBox.question(self, "Confirm Cleanup",
@@ -192,6 +195,10 @@ class PatientSelectionPage(WizardPage):
         patient_dirs = []
 
         for root, dirs, files in os.walk(self.workspace_path):
+            # Salta la cartella 'derivatives'
+            if "derivatives" in dirs:
+                dirs.remove("derivatives")
+
             for dir_name in dirs:
                 if dir_name.startswith("sub-"):
                     full_path = os.path.join(root, dir_name)

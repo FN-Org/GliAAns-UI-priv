@@ -251,7 +251,7 @@ class ImportThread(QThread):
             else:
                 print(f"    No DICOM files found in: {os.path.basename(subfolder)}")
 
-        print(f"  Found {dicom_folders_count} folders with DICOM, {len(patient_ids)} unique patient IDs: {patient_ids}")
+        print(f"Found {dicom_folders_count} folders with DICOM, {len(patient_ids)} unique patient IDs: {patient_ids}")
 
         # È un singolo paziente se:
         # 1. Almeno una cartella ha DICOM
