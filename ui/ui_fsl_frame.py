@@ -686,13 +686,12 @@ class SkullStrippingPage(WizardPage):
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
             self.previous_page.on_enter()
             return self.previous_page
 
         return None
 
-    def on_exit(self):
+    def on_enter(self):
         self.status_label.setText("")
 
     def is_ready_to_advance(self):
@@ -700,3 +699,37 @@ class SkullStrippingPage(WizardPage):
 
     def is_ready_to_go_back(self):
         return True
+
+    def reset_page(self):
+        """Resets the page to its initial state, clearing all selections and parameters"""
+        # Clear selected files
+        self.selected_files = []
+        self.file_list_widget.clear()
+
+        # Reset buttons state
+        self.clear_button.setEnabled(False)
+        self.run_button.setEnabled(False)
+
+        # Reset main parameter
+        self.f_spinbox.setValue(0.50)
+
+        # Reset advanced options
+        self.advanced_btn.setChecked(False)
+        self.advanced_box.setVisible(False)
+        self.advanced_btn.setText("Show Advanced Options")
+
+        # Reset advanced checkboxes
+        self.opt_brain_extracted.setChecked(True)
+        self.opt_m.setChecked(False)
+        self.opt_t.setChecked(False)
+        self.opt_s.setChecked(False)
+        self.opt_o.setChecked(False)
+
+        # Reset advanced parameters
+        self.g_spinbox.setValue(0.0)
+        self.c_x_spinbox.setValue(0)
+        self.c_y_spinbox.setValue(0)
+        self.c_z_spinbox.setValue(0)
+
+        # Clear status message
+        self.status_label.setText("")

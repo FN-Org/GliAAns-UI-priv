@@ -86,27 +86,7 @@ class PatientSelectionPage(WizardPage):
         self._load_patients()
         self.selected_patients = selected
 
-    # def on_exit(self):
-    #     # NON cancellare più selected_patients qui
-    #     # self.selected_patients.clear()  # RIMOSSO
-    #
-    #     # Cancella solo i widget, ma mantieni le selezioni
-    #     while self.grid_layout.count():
-    #         item = self.grid_layout.takeAt(0)
-    #         widget = item.widget()
-    #         if widget is not None:
-    #             widget.setParent(None)
-    #             widget.deleteLater()
-    #
-    #     # Ricarica i pazienti mantenendo le selezioni
-    #     self._load_patients()
-    #     # NON cancellare patient_buttons qui
-    #     # self.patient_buttons.clear()  # RIMOSSO
-
     def on_enter(self):
-        # NON cancellare più selected_patients qui
-        # self.selected_patients.clear()  # RIMOSSO
-
         # Cancella solo i widget, ma mantieni le selezioni
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
@@ -170,14 +150,13 @@ class PatientSelectionPage(WizardPage):
 
         if not self.next_page:
             self.next_page = ToolChoicePage(context, self)
+            self.context["history"].append(self.next_page)
 
-        self.on_exit()
         self.next_page.on_enter()
         return self.next_page
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
             self.previous_page.on_enter()
             return self.previous_page
 
@@ -306,3 +285,19 @@ class PatientSelectionPage(WizardPage):
 
     def get_selected_patients(self):
         return list(self.selected_patients)
+
+    def reset_page(self):
+        # Pulisce la griglia
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        # Resetta selezioni e bottoni
+        self.selected_patients.clear()
+        self.patient_buttons.clear()
+
+        # Ricarica i pazienti da zero
+        self._load_patients()

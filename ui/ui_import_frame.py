@@ -508,12 +508,11 @@ class ImportFrame(WizardPage):
 
     def next(self, context):
         if self.next_page:
-            self.on_exit()
             self.next_page.on_enter()
             return self.next_page
         else:
             self.next_page = PatientSelectionPage(context, self)
-            self.on_exit()
+            self.context["history"].append(self.next_page)
             return self.next_page
 
     def back(self):
@@ -563,7 +562,6 @@ class ImportFrame(WizardPage):
         self.load_thread.error.connect(self.on_load_error)
         self.load_thread.progress.connect(self.progress_dialog.setValue)
         self.load_thread.start()
-
 
     def on_load_error(self, error):
         """Handle file loading errors"""

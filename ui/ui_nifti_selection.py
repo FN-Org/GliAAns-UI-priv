@@ -324,9 +324,6 @@ class NiftiSelectionPage(WizardPage):
     def on_enter(self):
         pass
 
-    def on_exit(self):
-        pass
-
     def open_nifti_viewer(self):
         if "nifti_viewer" in self.context and self.context["nifti_viewer"]:
             self.context["nifti_viewer"].open_file(self.selected_file)
@@ -340,8 +337,17 @@ class NiftiSelectionPage(WizardPage):
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
             self.previous_page.on_enter()
             return self.previous_page
 
         return None
+
+    def reset_page(self):
+        """Resets the page to its initial state, clearing all selections"""
+        # Clear selected file
+        self.selected_file = None
+        self.file_list_widget.clear()
+
+        # Reset buttons state
+        self.clear_button.setEnabled(False)
+        self.viewer_button.setEnabled(False)
