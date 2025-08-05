@@ -161,16 +161,14 @@ class SkullStrippingPage(WizardPage):
 
         # Controlla se esistono file .nii.gz e .json nella directory
         has_nii = False
-        has_json = False
 
         for file in os.listdir(skull_strip_dir):
             if file.endswith('.nii.gz'):
                 has_nii = True
-            elif file.endswith('.json'):
-                has_json = True
+                break
 
         # Ritorna True solo se esistono entrambi i tipi di file
-        return has_nii and has_json
+        return has_nii
 
     def open_tree_dialog(self):
         dialog = QDialog(self)
@@ -519,7 +517,7 @@ class SkullStrippingPage(WizardPage):
                 f_formatted = f"f{f_val.replace('.', '').zfill(2)}"
 
                 # Fallback se non riusciamo a parsare il nome
-                output_filename = f"{base_name}_desc-skullstripped_{f_formatted}.nii.gz"
+                output_filename = f"{base_name}_{f_formatted}_brain.nii.gz"
 
                 output_file = os.path.join(output_dir, output_filename)
 
