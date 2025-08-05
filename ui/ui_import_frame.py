@@ -150,28 +150,136 @@ class ImportThread(QThread):
         if not os.path.isdir(folder_path):
             return
 
-        # Se è una cartella normale (singolo paziente o BIDS), continua come prima
+        print(f"Processing folder: {folder_path}")
+
+        # Se è una cartella BIDS, copiala direttamente
         if self._is_bids_folder(folder_path):
             print(f"BIDS structure detected in: {folder_path}")
-
-            new_sub_id = self._get_next_sub_id()  # es: "sub-03"
+            new_sub_id = self._get_next_sub_id()
             dest = os.path.join(self.workspace_path, new_sub_id)
             shutil.copytree(folder_path, dest, dirs_exist_ok=True)
-
             print(f"BIDS folder copied as {new_sub_id}.")
             if self.context and "update_main_buttons" in self.context:
                 self.context["update_main_buttons"]()
             return
 
-        # Se contiene solo sottocartelle, assumiamo siano pazienti diversi → importa ognuna separatamente
+        # Prima verifica: ci sono file DICOM o NIfTI direttamente nella cartella?
+        has_direct_medical_files = False
+        for file in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, file)
+            if os.path.isfile(file_path):
+                if self._is_nifti_file(file) or self._is_dicom_file(file_path):
+                    has_direct_medical_files = True
+                    break
+
+        # Se ha file medici diretti, processala come singolo paziente
+        if has_direct_medical_files:
+            print(f"Direct medical files found, processing as single patient: {folder_path}")
+            self._process_single_patient_folder(folder_path)
+            return
+
+        # Ottieni le sottocartelle
         subfolders = [os.path.join(folder_path, d) for d in os.listdir(folder_path) if
                       os.path.isdir(os.path.join(folder_path, d))]
-        if subfolders and not any(self._is_nifti_file(f) or self._is_dicom_file(os.path.join(folder_path, f)) for f in
-                                  os.listdir(folder_path)):
-            print(f"Multiple patient folders detected in: {folder_path}")
+
+        if not subfolders:
+            print(f"No subfolders found in: {folder_path}")
+            return
+
+        # Verifica se le sottocartelle sono serie DICOM dello stesso paziente
+        if self._are_dicom_series_of_same_patient(subfolders):
+            print(f"DICOM series of same patient detected: {folder_path}")
+            self._process_single_patient_folder(folder_path)
+            return
+
+        # Verifica se sono pazienti diversi basandosi sui nomi delle cartelle
+        if self._subfolders_look_like_different_patients(subfolders):
+            print(f"Multiple patients detected by folder names: {folder_path}")
             for subfolder in subfolders:
                 self._handle_import(subfolder)
             return
+
+        # Default: tratta come singolo paziente
+        print(f"Default: treating as single patient: {folder_path}")
+        self._process_single_patient_folder(folder_path)
+
+    def _are_dicom_series_of_same_patient(self, subfolders):
+        """
+        Verifica se le sottocartelle sono serie DICOM dello stesso paziente.
+        """
+        print(f"Checking if {len(subfolders)} subfolders are DICOM series of same patient...")
+
+        patient_ids = set()
+        dicom_folders_count = 0
+
+        for subfolder in subfolders:
+            print(f"  Checking subfolder: {os.path.basename(subfolder)}")
+
+            # Controlla se la sottocartella contiene DICOM
+            has_dicom_in_subfolder = False
+            first_dicom_file = None
+
+            for root, _, files in os.walk(subfolder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if self._is_dicom_file(file_path):
+                        has_dicom_in_subfolder = True
+                        first_dicom_file = file_path
+                        break
+                if has_dicom_in_subfolder:
+                    break
+
+            if has_dicom_in_subfolder:
+                dicom_folders_count += 1
+                print(f"    Found DICOM files in: {os.path.basename(subfolder)}")
+
+                # Prova a leggere il Patient ID
+                try:
+                    dcm = pydicom.dcmread(first_dicom_file, stop_before_pixels=True)
+                    patient_id = getattr(dcm, 'PatientID', None)
+                    patient_name = getattr(dcm, 'PatientName', None)
+
+                    print(f"    Patient ID: {patient_id}, Patient Name: {patient_name}")
+
+                    if patient_id:
+                        patient_ids.add(patient_id)
+                    elif patient_name:
+                        patient_ids.add(str(patient_name))
+
+                except Exception as e:
+                    print(f"    Could not read DICOM metadata: {e}")
+            else:
+                print(f"    No DICOM files found in: {os.path.basename(subfolder)}")
+
+        print(f"Found {dicom_folders_count} folders with DICOM, {len(patient_ids)} unique patient IDs: {patient_ids}")
+
+        # È un singolo paziente se:
+        # 1. Almeno una cartella ha DICOM
+        # 2. Al massimo un Patient ID unico (o nessuno se non riusciamo a leggere i metadati)
+        is_same_patient = dicom_folders_count > 0 and len(patient_ids) <= 1
+        print(f"  Result: is_same_patient = {is_same_patient}")
+
+        return is_same_patient
+
+    def _subfolders_look_like_different_patients(self, subfolders):
+        """
+        Verifica se i nomi delle sottocartelle suggeriscono che siano pazienti diversi.
+        """
+        patient_like_prefixes = ['sub-', 'patient', 'subj', 'p_', 'subject']
+
+        for subfolder in subfolders:
+            folder_name = os.path.basename(subfolder).lower()
+            if any(folder_name.startswith(prefix) for prefix in patient_like_prefixes):
+                print(f"Folder name '{folder_name}' suggests different patients")
+                return True
+
+        return False
+
+    def _process_single_patient_folder(self, folder_path):
+        """
+        Processa una cartella di un singolo paziente (può avere multiple serie DICOM).
+        """
+        print(f"Processing single patient folder: {folder_path}")
 
         nifti_files = []
         dicom_files = []
@@ -192,30 +300,32 @@ class ImportThread(QThread):
 
                 if self._is_nifti_file(file):
                     nifti_files.append((file_path, os.path.join(dest_dir, file)))
-
                 elif self._is_dicom_file(file_path):
                     dicom_files.append(file_path)
-
                 else:
                     shutil.copy2(file_path, os.path.join(dest_dir, file))
                     print(f"Imported other file: {os.path.join(relative_path, file)}")
 
+        # Copia i file NIfTI
         for src, dest in nifti_files:
             shutil.copy2(src, dest)
             print(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
 
+        # Converti i DICOM se presenti
         if dicom_files:
+            print(f"Converting {len(dicom_files)} DICOM files to NIfTI...")
             self._convert_dicom_folder_to_nifti(folder_path, temp_base_dir)
 
-        # Ora la conversione è fatta su cartella temporanea, ma scrive nel workspace
+        # Converti in struttura BIDS
+        print(f"Converting to BIDS structure...")
         self._convert_to_bids_structure(temp_base_dir)
 
-        # Dopo conversione, cancella cartella temporanea
+        # Pulisci la cartella temporanea
         shutil.rmtree(temp_dir, ignore_errors=True)
 
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
-        print("Import completed.")
+        print("Import completed for single patient.")
 
     def _is_nifti_file(self, file_path):
         return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
