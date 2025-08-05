@@ -2,7 +2,7 @@ from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
     QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView, QHBoxLayout,
-    QListView, QTextEdit, QListWidget, QListWidgetItem, QWidget
+    QListView, QTextEdit, QListWidget, QListWidgetItem, QWidget, QDoubleSpinBox, QSpinBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
@@ -59,9 +59,30 @@ class SkullStrippingPage(WizardPage):
         self.layout.addLayout(file_selector_layout)
 
         # Parametro principale
-        self.f_input = QLineEdit()
-        self.f_input.setPlaceholderText("Fractional intensity (-f), default 0.5")
-        self.layout.addWidget(self.f_input)
+        # self.f_input = QLineEdit()
+        # self.f_input.setPlaceholderText("Fractional intensity (-f), default 0.5")
+        # self.layout.addWidget(self.f_input)
+
+        self.f_box = QGroupBox()
+
+        f_layout = QHBoxLayout()
+        f_label = QLabel(
+            "Fractional intensity threshold, smaller values give larger brain outline estimates")
+        f_layout.addWidget(f_label)
+
+        self.f_spinbox = QDoubleSpinBox()
+        self.f_spinbox.setRange(0.0, 1.0)
+        self.f_spinbox.setSingleStep(0.05)
+        self.f_spinbox.setValue(0.50)
+        self.f_spinbox.setDecimals(2)
+        self.f_spinbox.setMinimumWidth(60)
+        self.f_spinbox.setMaximumWidth(80)
+        f_layout.addWidget(self.f_spinbox)
+
+        f_layout.addStretch()
+
+        self.f_box.setLayout(f_layout)
+        self.layout.addWidget(self.f_box)
 
         # Toggle opzioni avanzate
         self.advanced_btn = QPushButton("Show Advanced Options")
@@ -70,46 +91,83 @@ class SkullStrippingPage(WizardPage):
         self.layout.addWidget(self.advanced_btn)
 
         # Opzioni avanzate nascoste in un QGroupBox
-        self.advanced_box = QGroupBox("Advanced Options")
-        self.advanced_layout = QFormLayout()
+        self.advanced_box = QGroupBox()
+        self.advanced_layout = QVBoxLayout()
 
-        # Opzioni a checkbox
-        self.opt_o = QCheckBox("Generate brain surface outline (-o)")
-        self.opt_m = QCheckBox("Generate binary brain mask (-m)")
-        self.opt_s = QCheckBox("Generate approximate skull image (-s)")
-        self.opt_n = QCheckBox("Don't output brain image (-n)")
-        self.opt_t = QCheckBox("Apply thresholding (-t)")
-        self.opt_e = QCheckBox("Generate surface mesh (.vtk) (-e)")
-        self.opt_R = QCheckBox("Robust center estimation (-R)")
-        self.opt_S = QCheckBox("Eye & optic nerve cleanup (-S)")
-        self.opt_B = QCheckBox("Bias field & neck cleanup (-B)")
-        self.opt_Z = QCheckBox("FOV padding in Z (-Z)")
-        self.opt_F = QCheckBox("FMRI mode (-F)")
-        self.opt_A = QCheckBox("Betsurf with skull/scalp surfaces (-A)")
-        self.opt_v = QCheckBox("Verbose mode (-v)")
+        # Sezione 1: Output options (checkboxes)
+        output_label = QLabel("Advanced options:")
+        output_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+        self.advanced_layout.addWidget(output_label)
 
-        # Opzioni con parametri
-        self.g_input = QLineEdit()
-        self.g_input.setPlaceholderText("Vertical gradient (-g), default 0")
+        self.opt_brain_extracted = QCheckBox("Output brain-extracted image")
+        self.opt_brain_extracted.setChecked(True)  # Checked by default come in FSL
+        self.advanced_layout.addWidget(self.opt_brain_extracted)
 
-        self.r_input = QLineEdit()
-        self.r_input.setPlaceholderText("Head radius (-r) in mm")
+        self.opt_m = QCheckBox("Output binary brain mask image")
+        self.advanced_layout.addWidget(self.opt_m)
 
-        self.c_input = QLineEdit()
-        self.c_input.setPlaceholderText("Centre of gravity (-c) x y z")
+        self.opt_t = QCheckBox("Apply thresholding to brain and mask image")
+        self.advanced_layout.addWidget(self.opt_t)
 
-        self.A2_input = QLineEdit()
-        self.A2_input.setPlaceholderText("T2 image path for -A2")
+        self.opt_s = QCheckBox("Output exterior skull surface image")
+        self.advanced_layout.addWidget(self.opt_s)
 
-        # Aggiungi tutto
-        for widget in [
-            self.opt_o, self.opt_m, self.opt_s, self.opt_n,
-            self.opt_t, self.opt_e, self.opt_R, self.opt_S,
-            self.opt_B, self.opt_Z, self.opt_F, self.opt_A,
-            self.opt_v,
-            self.g_input, self.r_input, self.c_input, self.A2_input
-        ]:
-            self.advanced_layout.addRow(widget)
+        self.opt_o = QCheckBox("Output brain surface overlaid onto original image")
+        self.advanced_layout.addWidget(self.opt_o)
+
+        # Sezione 2: Threshold gradient
+        threshold_layout = QHBoxLayout()
+        threshold_label = QLabel(
+            "Threshold gradient; positive values give larger brain outline at bottom, smaller at top")
+        threshold_layout.addWidget(threshold_label)
+
+        self.g_spinbox = QDoubleSpinBox()
+        self.g_spinbox.setRange(-1.0, 1.0)
+        self.g_spinbox.setSingleStep(0.1)
+        self.g_spinbox.setValue(0.0)
+        self.g_spinbox.setDecimals(1)
+        self.g_spinbox.setMinimumWidth(60)
+        self.g_spinbox.setMaximumWidth(80)
+        threshold_layout.addWidget(self.g_spinbox)
+
+        threshold_layout.addStretch()
+        self.advanced_layout.addLayout(threshold_layout)
+
+        # Sezione 3: Coordinates
+        coords_layout = QHBoxLayout()
+        coords_label = QLabel("Coordinates (voxels) for centre of initial brain surface sphere")
+        coords_layout.addWidget(coords_label)
+
+        # X coordinate
+        self.c_x_spinbox = QSpinBox()
+        self.c_x_spinbox.setRange(0, 9999)
+        self.c_x_spinbox.setValue(0)
+        self.c_x_spinbox.setMinimumWidth(50)
+        self.c_x_spinbox.setMaximumWidth(70)
+        coords_layout.addWidget(self.c_x_spinbox)
+
+        coords_layout.addWidget(QLabel("Y"))
+
+        # Y coordinate
+        self.c_y_spinbox = QSpinBox()
+        self.c_y_spinbox.setRange(0, 9999)
+        self.c_y_spinbox.setValue(0)
+        self.c_y_spinbox.setMinimumWidth(50)
+        self.c_y_spinbox.setMaximumWidth(70)
+        coords_layout.addWidget(self.c_y_spinbox)
+
+        coords_layout.addWidget(QLabel("Z"))
+
+        # Z coordinate
+        self.c_z_spinbox = QSpinBox()
+        self.c_z_spinbox.setRange(0, 9999)
+        self.c_z_spinbox.setValue(0)
+        self.c_z_spinbox.setMinimumWidth(50)
+        self.c_z_spinbox.setMaximumWidth(70)
+        coords_layout.addWidget(self.c_z_spinbox)
+
+        coords_layout.addStretch()
+        self.advanced_layout.addLayout(coords_layout)
 
         self.advanced_box.setLayout(self.advanced_layout)
         self.advanced_box.setVisible(False)
@@ -472,7 +530,7 @@ class SkullStrippingPage(WizardPage):
             self.context["update_main_buttons"]()
 
     def run_bet(self):
-        if not self.selected_files:
+        if not hasattr(self, 'selected_files') or not self.selected_files:
             QMessageBox.warning(self, "No files", "Please select at least one NIfTI file first.")
             return
 
@@ -509,95 +567,84 @@ class SkullStrippingPage(WizardPage):
                     base_name = filename
 
                 # Estrai il parametro f per il naming
-                f_val = self.f_input.text().strip()
-                if not f_val:
-                    f_val = "0.5"  # default
+                f_val = self.f_spinbox.value()
+                f_str = f"{f_val:.2f}"  # Formatta con 2 decimali
+                f_formatted = f"f{f_str.replace('.', '')}"  # Rimuovi il punto per il nome file
 
-                # Rimuovi il punto e zeri iniziali
-                f_formatted = f"f{f_val.replace('.', '').zfill(2)}"
-
-                # Fallback se non riusciamo a parsare il nome
+                # Nome del file di output
                 output_filename = f"{base_name}_{f_formatted}_brain.nii.gz"
-
                 output_file = os.path.join(output_dir, output_filename)
 
                 # Costruisci il comando BET
                 cmd = ["bet", nifti_file, output_file]
 
+                # Aggiungi il parametro fractional intensity
                 if f_val:
-                    cmd += ["-f", f_val]
+                    cmd += ["-f", str(f_val)]
 
-                if self.opt_o.isChecked(): cmd.append("-o")
-                if self.opt_m.isChecked(): cmd.append("-m")
-                if self.opt_s.isChecked(): cmd.append("-s")
-                if self.opt_n.isChecked(): cmd.append("-n")
-                if self.opt_t.isChecked(): cmd.append("-t")
-                if self.opt_e.isChecked(): cmd.append("-e")
-                if self.opt_R.isChecked(): cmd.append("-R")
-                if self.opt_S.isChecked(): cmd.append("-S")
-                if self.opt_B.isChecked(): cmd.append("-B")
-                if self.opt_Z.isChecked(): cmd.append("-Z")
-                if self.opt_F.isChecked(): cmd.append("-F")
-                if self.opt_A.isChecked(): cmd.append("-A")
-                if self.opt_v.isChecked(): cmd.append("-v")
+                # Aggiungi opzioni avanzate se selezionate
+                if self.opt_m.isChecked():
+                    cmd.append("-m")
+                if self.opt_t.isChecked():
+                    cmd.append("-t")
+                if self.opt_s.isChecked():
+                    cmd.append("-s")
+                if self.opt_o.isChecked():
+                    cmd.append("-o")
 
-                if self.g_input.text():
-                    cmd += ["-g", self.g_input.text()]
-                if self.r_input.text():
-                    cmd += ["-r", self.r_input.text()]
-                if self.c_input.text():
-                    coords = self.c_input.text().strip().split()
-                    if len(coords) == 3:
-                        cmd += ["-c"] + coords
-                    else:
-                        QMessageBox.warning(self, "Invalid center",
-                                            f"Invalid center for {nifti_file}: use format x y z")
-                        failed_files.append(nifti_file)
-                        continue
-                if self.A2_input.text():
-                    cmd += ["-A2", self.A2_input.text()]
+                # Aggiungi parametro gradient se impostato
+                g_val = self.g_spinbox.value()
+                if g_val != 0.0:
+                    cmd += ["-g", str(g_val)]
+
+                # Aggiungi coordinate del centro se impostate (diverse da 0,0,0)
+                c_x = self.c_x_spinbox.value()
+                c_y = self.c_y_spinbox.value()
+                c_z = self.c_z_spinbox.value()
+                if c_x != 0 or c_y != 0 or c_z != 0:
+                    cmd += ["-c", str(c_x), str(c_y), str(c_z)]
+
+                # Se non è selezionata l'opzione "Output brain-extracted image", aggiungi -n
+                if not self.opt_brain_extracted.isChecked():
+                    cmd.append("-n")
 
                 # Esegui il comando
-                subprocess.run(cmd, check=True)
+                self.status_label.setText(f"Running skull stripping on {os.path.basename(nifti_file)}...")
+                self.status_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+
+                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
 
                 # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
                 json_file = output_file.replace('.nii.gz', '.json')
                 import json
                 metadata = {
+                    "SkullStripped": True,
                     "Description": "Skull-stripped brain image",
                     "Sources": [os.path.basename(nifti_file)],
                     "SkullStrippingMethod": "FSL BET",
-                    "SkullStrippingVersion": "FSL BET",
                     "SkullStrippingParameters": {
-                        "fractional_intensity": float(f_val) if f_val else 0.5
+                        "fractional_intensity": f_val
                     }
                 }
 
                 # Aggiungi parametri utilizzati ai metadati
-                if self.g_input.text():
-                    metadata["SkullStrippingParameters"]["vertical_gradient"] = float(self.g_input.text())
-                if self.r_input.text():
-                    metadata["SkullStrippingParameters"]["head_radius"] = float(self.r_input.text())
-                if self.c_input.text():
-                    coords = self.c_input.text().strip().split()
-                    if len(coords) == 3:
-                        metadata["SkullStrippingParameters"]["center_of_gravity"] = [float(c) for c in coords]
+                if g_val != 0.0:
+                    metadata["SkullStrippingParameters"]["vertical_gradient"] = g_val
+                if c_x != 0 or c_y != 0 or c_z != 0:
+                    metadata["SkullStrippingParameters"]["center_of_gravity"] = [c_x, c_y, c_z]
 
                 # Aggiungi flags utilizzati
                 flags_used = []
-                if self.opt_o.isChecked(): flags_used.append("-o (brain surface outline)")
-                if self.opt_m.isChecked(): flags_used.append("-m (binary brain mask)")
-                if self.opt_s.isChecked(): flags_used.append("-s (skull image)")
-                if self.opt_n.isChecked(): flags_used.append("-n (no brain image)")
-                if self.opt_t.isChecked(): flags_used.append("-t (thresholding)")
-                if self.opt_e.isChecked(): flags_used.append("-e (surface mesh)")
-                if self.opt_R.isChecked(): flags_used.append("-R (robust center estimation)")
-                if self.opt_S.isChecked(): flags_used.append("-S (eye & optic nerve cleanup)")
-                if self.opt_B.isChecked(): flags_used.append("-B (bias field & neck cleanup)")
-                if self.opt_Z.isChecked(): flags_used.append("-Z (FOV padding in Z)")
-                if self.opt_F.isChecked(): flags_used.append("-F (FMRI mode)")
-                if self.opt_A.isChecked(): flags_used.append("-A (betsurf with skull/scalp surfaces)")
-                if self.opt_v.isChecked(): flags_used.append("-v (verbose mode)")
+                if not self.opt_brain_extracted.isChecked():
+                    flags_used.append("-n (no brain image output)")
+                if self.opt_m.isChecked():
+                    flags_used.append("-m (binary brain mask)")
+                if self.opt_t.isChecked():
+                    flags_used.append("-t (thresholding)")
+                if self.opt_s.isChecked():
+                    flags_used.append("-s (exterior skull surface)")
+                if self.opt_o.isChecked():
+                    flags_used.append("-o (brain surface overlay)")
 
                 if flags_used:
                     metadata["SkullStrippingParameters"]["flags_used"] = flags_used
@@ -608,30 +655,26 @@ class SkullStrippingPage(WizardPage):
                 success_count += 1
 
             except subprocess.CalledProcessError as e:
+                error_msg = f"BET command failed for {os.path.basename(nifti_file)}"
+                if e.stderr:
+                    error_msg += f": {e.stderr}"
+                QMessageBox.warning(self, "BET Error", error_msg)
                 failed_files.append(nifti_file)
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Error processing {nifti_file}: {str(e)}")
                 failed_files.append(nifti_file)
 
         # Aggiorna il messaggio di stato
-        summary = f"Skull Stripping completed: {success_count} succeeded"
-
-        if failed_files:
-            self.status_label.setStyleSheet("""
-                            color: #FF0000;
-                            font-weight: bold;
-                            font-size: 12pt;
-                            padding: 5px;
-                        """)
-            summary += f"\nFailed files ({len(failed_files)}):\n" + "\n".join(
-                [os.path.basename(f) for f in failed_files])
+        if success_count > 0:
+            summary = f"Skull Stripping completed successfully for {success_count} file(s)"
+            if failed_files:
+                summary += f"\n{len(failed_files)} file(s) failed: {', '.join([os.path.basename(f) for f in failed_files])}"
+                self.status_label.setStyleSheet("color: #FF9800; font-weight: bold; font-size: 12pt; padding: 5px;")
+            else:
+                self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12pt; padding: 5px;")
         else:
-            self.status_label.setStyleSheet("""
-                color: #4CAF50;
-                font-weight: bold;
-                font-size: 12pt;
-                padding: 5px;
-            """)
+            summary = f"All {len(failed_files)} file(s) failed to process"
+            self.status_label.setStyleSheet("color: #FF0000; font-weight: bold; font-size: 12pt; padding: 5px;")
 
         self.status_label.setText(summary)
 

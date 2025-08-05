@@ -27,10 +27,6 @@ class NiftiSelectionPage(WizardPage):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.label)
 
-        selector_layout = QVBoxLayout()
-
-        self.layout.addLayout(selector_layout)
-
         # Layout orizzontale per lista + bottoni
         list_button_layout = QHBoxLayout()
 
@@ -56,15 +52,13 @@ class NiftiSelectionPage(WizardPage):
 
         button_layout.addStretch()
         list_button_layout.addWidget(button_container)
-        selector_layout.addLayout(list_button_layout)
+        self.layout.addLayout(list_button_layout)
 
         # Bottone open NIfTI viewer
         self.viewer_button = QPushButton("Open NIfTI file")
         self.viewer_button.setEnabled(False)
         self.viewer_button.clicked.connect(self.open_nifti_viewer)
-        selector_layout.addWidget(self.viewer_button)
-
-        self.layout.addLayout(selector_layout)
+        self.layout.addWidget(self.viewer_button)
 
         # Aggiungi uno stretch solo alla fine se vuoi che tutto sia in alto
         self.layout.addStretch()
