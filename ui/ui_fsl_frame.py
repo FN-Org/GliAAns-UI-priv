@@ -3,8 +3,8 @@ import json
 from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
-    QLineEdit, QMessageBox, QCheckBox, QGroupBox, QFormLayout, QDialogButtonBox, QDialog, QTreeView, QHBoxLayout,
-    QListView, QTextEdit, QListWidget, QListWidgetItem, QWidget, QDoubleSpinBox, QSpinBox, QGridLayout
+    QLineEdit, QMessageBox, QCheckBox, QDialogButtonBox, QDialog, QHBoxLayout,
+    QListWidget, QListWidgetItem, QWidget, QDoubleSpinBox, QSpinBox, QGridLayout, QGroupBox
 )
 from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel
 import os
@@ -233,8 +233,8 @@ class SkullStrippingPage(WizardPage):
 
     def open_tree_dialog(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(700, 600)  # Leggermente più grande per i nuovi controlli
+        dialog.setWindowTitle("Select NIfTI files for skull stripping")
+        dialog.resize(700, 650)  # Aumentato per i nuovi controlli
 
         layout = QVBoxLayout(dialog)
 
@@ -244,13 +244,13 @@ class SkullStrippingPage(WizardPage):
 
         # Ricerca testuale (migliorata)
         search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search files (T1, FLAIR, dwi, func, etc.)")
+        search_bar.setPlaceholderText("Search files (FLAIR, T1, T2, etc.)")
         search_bar.setClearButtonEnabled(True)  # Pulsante X per cancellare
         filter_layout.addWidget(QLabel("Search:"), 0, 0)
         filter_layout.addWidget(search_bar, 0, 1, 1, 3)
 
         # Filtro per soggetto/paziente
-        from PyQt6.QtWidgets import QComboBox
+        from PyQt6.QtWidgets import QComboBox, QCheckBox, QPushButton
         subject_combo = QComboBox()
         subject_combo.setEditable(True)  # Permette digitazione custom
         subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
@@ -277,21 +277,20 @@ class SkullStrippingPage(WizardPage):
         filter_layout.addWidget(QLabel("Data type:"), 2, 2)
         filter_layout.addWidget(datatype_combo, 2, 3)
 
-        # Checkbox per mostrare solo file senza mask
-        from PyQt6.QtWidgets import QCheckBox
-        no_mask_checkbox = QCheckBox("Show only files without existing masks")
-        filter_layout.addWidget(no_mask_checkbox, 3, 0, 1, 2)
+        # Checkbox per mostrare solo file senza skull strip
+        no_strip_checkbox = QCheckBox("Show only files without existing skull strips")
+        filter_layout.addWidget(no_strip_checkbox, 3, 0, 1, 2)
 
-        # Checkbox per mostrare solo file con mask
-        with_mask_checkbox = QCheckBox("Show only files with existing masks")
-        filter_layout.addWidget(with_mask_checkbox, 3, 2, 1, 2)
+        # Checkbox per mostrare solo file con skull strip
+        with_strip_checkbox = QCheckBox("Show only files with existing skull strips")
+        filter_layout.addWidget(with_strip_checkbox, 3, 2, 1, 2)
 
         layout.addWidget(filter_group)
 
         # === RACCOLTA E PARSING DEI FILE ===
         all_nii_files = []
         relative_to_absolute = {}
-        files_with_masks = set()
+        files_with_skull_strips = set()
         subjects_set = set()
         sessions_set = set()
         modalities_set = set()
@@ -322,10 +321,10 @@ class SkullStrippingPage(WizardPage):
                             sessions_set.add(part)
                             break
 
+                    # Estrai modalità dal nome file
                     filename = os.path.basename(f)
                     json_path = full_path.replace(".nii.gz", ".json").replace(".nii", ".json")
 
-                    # Estrai modality
                     modality = None
                     if os.path.exists(json_path):
                         try:
@@ -333,26 +332,16 @@ class SkullStrippingPage(WizardPage):
                                 metadata = json.load(jf)
                                 protocol_name = metadata.get("ProtocolName", "")
                                 if protocol_name:
-                                    # Pulizia: sostituisci caratteri strani con spazi e rimuovi spazi multipli
                                     modality = re.sub(r'[^A-Za-z0-9 ]+', ' ', protocol_name)
                                     modality = re.sub(r'\s+', '_', modality).strip()
-                        except Exception as e:
-                            print(f"Errore nella lettura del JSON {json_path}: {e}")
+                        except Exception:
+                            pass
 
-                    # Fallback se non c'è il json o non contiene ProtocolName
                     if not modality:
-                        # Prende una parte del filename tra l’ultimo "_" e un blocco numerico finale
                         match = re.search(r'_([^_]+(?:_[^_]+)+)_(?:\d{6,})', filename)
-                        if match:
-                            modality = match.group(1)
-                        else:
-                            modality = "Unknown"
+                        modality = match.group(1) if match else "Unknown"
 
                     modalities_set.add(modality)
-
-                    # Segna i file che hanno già una mask
-                    if self.has_existing_skull_strip(full_path, self.context["workspace_path"]):
-                        files_with_masks.add(relative_path)
 
         # === POPOLA I DROPDOWN ===
         subject_combo.addItem("All subjects")
@@ -369,8 +358,8 @@ class SkullStrippingPage(WizardPage):
 
         def update_info_label(visible_count):
             info_text = f"Showing {visible_count} of {len(all_nii_files)} files"
-            if files_with_masks:
-                info_text += f" ({len(files_with_masks)} total with existing masks)"
+            if files_with_skull_strips:
+                info_text += f" ({len(files_with_skull_strips)} total with existing skull strips)"
             info_label.setText(info_text)
             info_label.setStyleSheet("color: gray; font-size: 10px;")
 
@@ -384,7 +373,7 @@ class SkullStrippingPage(WizardPage):
 
         file_list = QListWidget()
         file_list.setEditTriggers(QListWidget.EditTrigger.NoEditTriggers)
-        file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        file_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)  # Permette selezione multipla
         file_list.setAlternatingRowColors(True)  # Righe alternate colorate
 
         # Aggiungi tutti i file con colori differenziati
@@ -393,12 +382,12 @@ class SkullStrippingPage(WizardPage):
             for relative_path in sorted(all_nii_files):
                 item = QListWidgetItem(relative_path)
 
-                # Se il file ha già una mask, coloralo in arancione
-                if relative_path in files_with_masks:
-                    item.setForeground(QBrush(QColor(255, 140, 0)))  # Arancione più scuro
-                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n✓ This patient already has a mask")
+                # Se il file ha già uno skull strip, coloralo in giallo
+                if relative_path in files_with_skull_strips:
+                    item.setForeground(QBrush(QColor(255, 193, 7)))  # Giallo (Bootstrap warning color)
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n✓ This patient already has a skull strip")
                 else:
-                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n○ No existing mask")
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n○ No existing skull strip")
 
                 file_list.addItem(item)
 
@@ -413,8 +402,8 @@ class SkullStrippingPage(WizardPage):
             selected_modality = modality_combo.currentText()
             selected_datatype = datatype_combo.currentText()
 
-            show_only_no_mask = no_mask_checkbox.isChecked()
-            show_only_with_mask = with_mask_checkbox.isChecked()
+            show_only_no_strip = no_strip_checkbox.isChecked()
+            show_only_with_strip = with_strip_checkbox.isChecked()
 
             visible_count = 0
 
@@ -447,11 +436,11 @@ class SkullStrippingPage(WizardPage):
                     if f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
                         should_show = False
 
-                # Filtro per presenza/assenza mask
-                has_mask = relative_path in files_with_masks
-                if show_only_no_mask and has_mask:
+                # Filtro per presenza/assenza skull strip
+                has_strip = relative_path in files_with_skull_strips
+                if show_only_no_strip and has_strip:
                     should_show = False
-                if show_only_with_mask and not has_mask:
+                if show_only_with_strip and not has_strip:
                     should_show = False
 
                 item.setHidden(not should_show)
@@ -466,20 +455,20 @@ class SkullStrippingPage(WizardPage):
         session_combo.currentTextChanged.connect(apply_filters)
         modality_combo.currentTextChanged.connect(apply_filters)
         datatype_combo.currentTextChanged.connect(apply_filters)
-        no_mask_checkbox.toggled.connect(apply_filters)
-        with_mask_checkbox.toggled.connect(apply_filters)
+        no_strip_checkbox.toggled.connect(apply_filters)
+        with_strip_checkbox.toggled.connect(apply_filters)
 
         # Evita che entrambi i checkbox siano selezionati insieme
-        def on_no_mask_toggled(checked):
+        def on_no_strip_toggled(checked):
             if checked:
-                with_mask_checkbox.setChecked(False)
+                with_strip_checkbox.setChecked(False)
 
-        def on_with_mask_toggled(checked):
+        def on_with_strip_toggled(checked):
             if checked:
-                no_mask_checkbox.setChecked(False)
+                no_strip_checkbox.setChecked(False)
 
-        no_mask_checkbox.toggled.connect(on_no_mask_toggled)
-        with_mask_checkbox.toggled.connect(on_with_mask_toggled)
+        no_strip_checkbox.toggled.connect(on_no_strip_toggled)
+        with_strip_checkbox.toggled.connect(on_with_strip_toggled)
 
         # === PULSANTI ===
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -493,59 +482,123 @@ class SkullStrippingPage(WizardPage):
             session_combo.setCurrentIndex(0)
             modality_combo.setCurrentIndex(0)
             datatype_combo.setCurrentIndex(0)
-            no_mask_checkbox.setChecked(False)
-            with_mask_checkbox.setChecked(False)
+            no_strip_checkbox.setChecked(False)
+            with_strip_checkbox.setChecked(False)
 
         reset_button.clicked.connect(reset_filters)
         buttons.addButton(reset_button, QDialogButtonBox.ButtonRole.ResetRole)
+
+        # Pulsante per selezionare tutti i file visibili
+        select_all_button = QPushButton("Select All Visible")
+
+        def select_all_visible():
+            for i in range(file_list.count()):
+                item = file_list.item(i)
+                if not item.isHidden():
+                    item.setSelected(True)
+
+        select_all_button.clicked.connect(select_all_visible)
+        buttons.addButton(select_all_button, QDialogButtonBox.ButtonRole.ActionRole)
+
+        # Pulsante per deselezionare tutto
+        deselect_all_button = QPushButton("Deselect All")
+
+        def deselect_all():
+            file_list.clearSelection()
+
+        deselect_all_button.clicked.connect(deselect_all)
+        buttons.addButton(deselect_all_button, QDialogButtonBox.ButtonRole.ActionRole)
 
         layout.addWidget(buttons)
 
         # === LOGICA ACCETTAZIONE ===
         def accept():
-            current_item = file_list.currentItem()
-            if not current_item or current_item.isHidden():
-                QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
+            selected_items = file_list.selectedItems()
+            # Filtra solo gli elementi visibili (non nascosti)
+            visible_selected_items = [item for item in selected_items if not item.isHidden()]
+
+            if not visible_selected_items:
+                QMessageBox.warning(dialog, "No selection", "Please select at least one visible NIfTI file.")
                 return
 
-            selected_relative_path = current_item.text()
-            selected_absolute_path = relative_to_absolute[selected_relative_path]
+            selected_files = []
+            files_with_warnings = []
 
-            # Se il file selezionato ha già una mask, mostra il warning
-            if selected_relative_path in files_with_masks:
-                # Estrai l'ID del paziente per il messaggio
-                path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(os.sep).split(
-                    os.sep)
-                subject_id = None
-                for part in path_parts:
-                    if part.startswith('sub-'):
-                        subject_id = part
-                        break
+            # Processa ogni file selezionato
+            for item in visible_selected_items:
+                selected_relative_path = item.text()
+                selected_absolute_path = relative_to_absolute[selected_relative_path]
 
-                if subject_id:
-                    subject_display = subject_id
+                # Se il file selezionato ha già uno skull strip, aggiungilo alla lista dei warning
+                if selected_relative_path in files_with_skull_strips:
+                    files_with_warnings.append((selected_absolute_path, selected_relative_path))
+
+                selected_files.append(selected_absolute_path)
+
+            # Se ci sono file con warning, mostra il messaggio
+            if files_with_warnings:
+                if len(files_with_warnings) == 1:
+                    # Un solo file con warning
+                    selected_absolute_path, selected_relative_path = files_with_warnings[0]
+
+                    # Estrai l'ID del paziente
+                    path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(os.sep).split(
+                        os.sep)
+                    subject_id = None
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subject_id = part
+                            break
+
+                    if subject_id:
+                        subject_display = subject_id
+                    else:
+                        subject_display = "this patient"
+
+                    msg = QMessageBox(dialog)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("Existing Skull Strip Detected")
+                    msg.setText(f"A skull strip already exists for {subject_display}.")
+                    msg.setInformativeText(
+                        f"File: {os.path.basename(selected_absolute_path)}\n\n"
+                        "You can still proceed to create additional skull strips for this patient.\n"
+                        "Do you want to continue with this selection?"
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                    if msg.exec() == QMessageBox.StandardButton.No:
+                        return
                 else:
-                    subject_display = "this patient"
+                    # Multipli file con warning
+                    subjects_with_strips = set()
+                    for selected_absolute_path, _ in files_with_warnings:
+                        path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(
+                            os.sep).split(os.sep)
+                        for part in path_parts:
+                            if part.startswith('sub-'):
+                                subjects_with_strips.add(part)
+                                break
 
-                # Mostra il warning
-                msg = QMessageBox(dialog)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("Existing Mask Detected")
-                msg.setText(f"A mask already exists for {subject_display}.")
-                msg.setInformativeText(
-                    f"File: {os.path.basename(selected_absolute_path)}\n\n"
-                    "You can still proceed to create additional masks for this patient.\n"
-                    "Do you want to continue with this selection?"
-                )
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+                    msg = QMessageBox(dialog)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("Existing Skull Strips Detected")
+                    msg.setText(f"Skull strips already exist for {len(subjects_with_strips)} patients:")
 
-                # Se l'utente sceglie No, non procedere
-                if msg.exec() == QMessageBox.StandardButton.No:
-                    return
+                    subject_list = ", ".join(sorted(subjects_with_strips))
+                    msg.setInformativeText(
+                        f"Patients: {subject_list}\n\n"
+                        "You can still proceed to create additional skull strips for these patients.\n"
+                        "Do you want to continue with this selection?"
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                    if msg.exec() == QMessageBox.StandardButton.No:
+                        return
 
             # Procedi con la selezione
-            self.set_selected_file(selected_absolute_path)
+            self.set_selected_files(selected_files)
             dialog.accept()
 
         buttons.accepted.connect(accept)
