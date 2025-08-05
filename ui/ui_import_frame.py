@@ -479,6 +479,7 @@ class ImportFrame(WizardPage):
 
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
+        self.drop_label.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.drop_label.setFont(QFont("", 14))
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
@@ -507,9 +508,11 @@ class ImportFrame(WizardPage):
 
     def next(self, context):
         if self.next_page:
+            self.next_page.on_enter()
             return self.next_page
         else:
             self.next_page = PatientSelectionPage(context, self)
+            self.context["history"].append(self.next_page)
             return self.next_page
 
     def back(self):
@@ -559,7 +562,6 @@ class ImportFrame(WizardPage):
         self.load_thread.error.connect(self.on_load_error)
         self.load_thread.progress.connect(self.progress_dialog.setValue)
         self.load_thread.start()
-
 
     def on_load_error(self, error):
         """Handle file loading errors"""

@@ -81,13 +81,24 @@ class ToolChoicePage(WizardPage):
         if not next_page:
             next_page = page_class(context, self)
             setattr(self, attr_name, next_page)
+            self.context["history"].append(next_page)
 
-        self.on_exit()
+        next_page.on_enter()
         return next_page
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
+            self.previous_page.on_enter()
             return self.previous_page
 
         return None
+
+    def reset_page(self):
+        # Deseleziona tutti i radio button
+        self.radio_group.setExclusive(False)
+        for button in self.radio_group.buttons():
+            button.setChecked(False)
+        self.radio_group.setExclusive(True)
+
+        # Reset dello stato interno
+        self.selected_option = None

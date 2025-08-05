@@ -13,7 +13,10 @@ class WizardPage(QWidget):
         """Restituisce True se si può tornare indietro alla pagina precedente."""
         return True
 
-    def on_exit(self):
+    def reset_page(self):
+        pass
+
+    def on_enter(self):
         """Hook chiamato quando si lascia la pagina (es: clic su Next)."""
         pass
 

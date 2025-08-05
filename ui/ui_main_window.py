@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
 from ui.ui_button import UiButton
+from ui.ui_nifti_viewer import NiftiViewer
 from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
@@ -64,6 +65,7 @@ class MainWindow(QMainWindow):
         self.tree_view.setMinimumSize(QtCore.QSize(200, 0))
         self.splitter.addWidget(self.tree_view)
         self.tree_view.clicked.connect(self.handle_workspace_click)
+        self.tree_view.doubleClicked.connect(self.handle_double_click)
         self.tree_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
 
         self.main_layout.addWidget(self.splitter)
@@ -129,7 +131,7 @@ class MainWindow(QMainWindow):
     # --------------------------
     # WORKSPACE & TREEVIEW
     # --------------------------
-    def handle_workspace_click(self, index):
+    def handle_workspace_click(self):
         selected_indexes = self.tree_view.selectionModel().selectedRows()
 
         selected_files = []
@@ -142,6 +144,25 @@ class MainWindow(QMainWindow):
 
         # Notify the current page
         self.controller.current_page.update_selected_files(selected_files)
+
+    def handle_double_click(self, index):
+        file_path = self.tree_model.filePath(index)
+
+        # Verifica che sia un file NIfTI
+        if os.path.isfile(file_path) and (file_path.endswith(".nii") or file_path.endswith(".nii.gz")):
+            try:
+                if "nifti_viewer" in self.context and self.context["nifti_viewer"]:
+                    self.context["nifti_viewer"].open_file(file_path)
+                    self.context["nifti_viewer"].show()
+                    pass
+                else:
+                    self.context["nifti_viewer"] = NiftiViewer(self.context)
+                    self.context["nifti_viewer"].open_file(file_path)
+                    self.context["nifti_viewer"].show()
+                    pass
+                # viewer.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # Libera memoria alla chiusura
+            except Exception as e:
+                QMessageBox.critical(self, "Errore", f"Impossibile aprire il file NIfTI:\n{str(e)}")
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)

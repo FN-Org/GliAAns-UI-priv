@@ -23,9 +23,10 @@ class NiftiSelectionPage(WizardPage):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        self.label = QLabel("Select a NIfTI file for Manual/Automatic Drawing")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(self.label)
+        self.title = QLabel("Select a NIfTI file for Manual/Automatic Drawing")
+        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.title)
 
         # Layout orizzontale per lista + bottoni
         list_button_layout = QHBoxLayout()
@@ -314,16 +315,13 @@ class NiftiSelectionPage(WizardPage):
             self.clear_button.setEnabled(False)
             self.viewer_button.setEnabled(False)
 
-        # if self.context and "update_main_buttons" in self.context:
-        #     self.context["update_main_buttons"]()
-
     def is_ready_to_advance(self):
         return False
 
     def is_ready_to_go_back(self):
         return True
 
-    def on_exit(self):
+    def on_enter(self):
         pass
 
     def open_nifti_viewer(self):
@@ -339,7 +337,17 @@ class NiftiSelectionPage(WizardPage):
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
+            self.previous_page.on_enter()
             return self.previous_page
 
         return None
+
+    def reset_page(self):
+        """Resets the page to its initial state, clearing all selections"""
+        # Clear selected file
+        self.selected_file = None
+        self.file_list_widget.clear()
+
+        # Reset buttons state
+        self.clear_button.setEnabled(False)
+        self.viewer_button.setEnabled(False)

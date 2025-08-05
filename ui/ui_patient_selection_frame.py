@@ -1,7 +1,8 @@
 import shutil
 
+from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
-    QMessageBox
+    QMessageBox, QGroupBox
 from PyQt6.QtCore import Qt
 import os
 
@@ -23,9 +24,10 @@ class PatientSelectionPage(WizardPage):
         self.selected_patients = set()
 
         self.layout = QVBoxLayout(self)
-        self.label = QLabel("Select Patients to Analyze")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self.layout.addWidget(self.label)
+        self.title = QLabel("Select Patients to Analyze")
+        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.layout.addWidget(self.title)
 
         top_buttons_layout = QHBoxLayout()
 
@@ -46,15 +48,45 @@ class PatientSelectionPage(WizardPage):
         self.scroll_content = QWidget()
         self.grid_layout = QGridLayout(self.scroll_content)
 
+        self.column_count = 2  # default fallback
+
         self._load_patients()
 
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
-    def on_exit(self):
-        # NON cancellare più selected_patients qui
-        # self.selected_patients.clear()  # RIMOSSO
+    def _update_column_count(self):
+        # Margine di sicurezza per padding/bordi
+        available_width = self.scroll_area.viewport().width() - 40
+        min_card_width = 250  # Larghezza minima per un patient_frame
 
+        new_column_count = max(1, available_width // min_card_width)
+
+        if new_column_count != self.column_count:
+            self.column_count = new_column_count
+            self._reload_patient_grid()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_column_count()
+
+    def _reload_patient_grid(self):
+        # Salva la selezione
+        selected = self.selected_patients.copy()
+
+        # Pulisci la griglia
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        # Ricarica con lo stesso layout adattato
+        self._load_patients()
+        self.selected_patients = selected
+
+    def on_enter(self):
         # Cancella solo i widget, ma mantieni le selezioni
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
@@ -83,6 +115,8 @@ class PatientSelectionPage(WizardPage):
             if os.path.basename(p) not in self.selected_patients and os.path.basename(p) != "derivatives"
         ]
 
+        unselected_ids = [os.path.basename(p) for p in to_delete]
+
         if to_delete:
             reply = QMessageBox.question(self, "Confirm Cleanup",
                                          f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
@@ -95,22 +129,35 @@ class PatientSelectionPage(WizardPage):
             for patient_path in to_delete:
                 try:
                     shutil.rmtree(patient_path)
-                    # Rimuovi anche dalle selezioni se presente
                     patient_id = os.path.basename(patient_path)
                     self.selected_patients.discard(patient_id)
-                    print(f"Deleted: {patient_path}")
+                    print(f"Deleted patient directory: {patient_path}")
                 except Exception as e:
                     print(f"Failed to delete {patient_path}: {e}")
 
+            # Rimozione da 'derivatives'
+            derivatives_root = os.path.join(self.workspace_path, "derivatives")
+            if os.path.exists(derivatives_root):
+                for root, dirs, files in os.walk(derivatives_root, topdown=False):
+                    for dir_name in dirs:
+                        if dir_name in unselected_ids:
+                            full_path = os.path.join(root, dir_name)
+                            try:
+                                shutil.rmtree(full_path)
+                                print(f"Deleted from derivatives: {full_path}")
+                            except Exception as e:
+                                print(f"Failed to delete from derivatives: {full_path}: {e}")
+
         if not self.next_page:
             self.next_page = ToolChoicePage(context, self)
+            self.context["history"].append(self.next_page)
 
-        self.on_exit()
+        self.next_page.on_enter()
         return self.next_page
 
     def back(self):
         if self.previous_page:
-            self.on_exit()
+            self.previous_page.on_enter()
             return self.previous_page
 
         return None
@@ -119,29 +166,43 @@ class PatientSelectionPage(WizardPage):
         patient_dirs = self._find_patient_dirs()
         patient_dirs.sort()
 
-        # Pulisci i riferimenti ai bottoni precedenti
         self.patient_buttons.clear()
 
         for i, patient_path in enumerate(patient_dirs):
             patient_id = os.path.basename(patient_path)
 
-            # Container "card"
+            # Frame principale del paziente (il "card")
             patient_frame = QFrame()
+            patient_frame.setObjectName("patientCard")
             patient_frame.setStyleSheet("""
-                QFrame {
+                QFrame#patientCard {
                     border: 1px solid #CCCCCC;
                     border-radius: 10px;
-                    background-color: #F9F9F9;
-                    padding: 10px;
+                    background-color: #FFFFFF;
+                    padding: 6px;
                 }
             """)
-            patient_layout = QHBoxLayout(patient_frame)
 
-            # Etichetta con nome paziente
-            label = QLabel(f"Patient: {patient_id}")
+            # Usa QHBoxLayout invece di QVBoxLayout per allineare orizzontalmente
+            patient_layout = QHBoxLayout(patient_frame)
+            patient_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+            profile = QFrame()
+            profile.setObjectName("patientCard")
+            profile_layout = QVBoxLayout(profile)
+
+            # Immagine
+            image = QLabel()
+            pixmap = QtGui.QPixmap("./resources/user.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
+                                                                  Qt.TransformationMode.SmoothTransformation)
+            image.setPixmap(pixmap)
+            image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            # Etichetta
+            label = QLabel(f"{patient_id}")
             label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            # Pulsante selezione
+            # Pulsante di selezione
             button = QPushButton("Select")
             button.setCheckable(True)
             button.setStyleSheet("""
@@ -156,22 +217,25 @@ class PatientSelectionPage(WizardPage):
                 }
             """)
 
-            # CORREZIONE: Ripristina lo stato del bottone basato sulle selezioni esistenti
             is_selected = patient_id in self.selected_patients
             button.setChecked(is_selected)
             button.setText("Selected" if is_selected else "Select")
 
             button.clicked.connect(lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
 
-            # Layout
-            patient_layout.addWidget(label)
-            patient_layout.addStretch()
-            patient_layout.addWidget(button)
-
             self.patient_buttons[patient_id] = button
 
-            # Aggiungi alla griglia
-            self.grid_layout.addWidget(patient_frame, i // 2, i % 2)
+            # Aggiunta di tutti i widget nello stesso contenitore (stesso "card")
+            profile_layout.addWidget(image)
+            profile_layout.addWidget(label)
+            # patient_layout.addWidget(image)
+            # patient_layout.addWidget(label)
+            patient_layout.addWidget(profile)
+            patient_layout.addStretch()  # Aggiunge spazio tra label e pulsante
+            patient_layout.addWidget(button)
+
+            # Inserimento nella griglia
+            self.grid_layout.addWidget(patient_frame, i // self.column_count, i % self.column_count)
 
     def _select_all_patients(self):
         for patient_id, button in self.patient_buttons.items():
@@ -221,3 +285,19 @@ class PatientSelectionPage(WizardPage):
 
     def get_selected_patients(self):
         return list(self.selected_patients)
+
+    def reset_page(self):
+        # Pulisce la griglia
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        # Resetta selezioni e bottoni
+        self.selected_patients.clear()
+        self.patient_buttons.clear()
+
+        # Ricarica i pazienti da zero
+        self._load_patients()
