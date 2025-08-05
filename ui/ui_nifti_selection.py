@@ -1,7 +1,9 @@
+import re
+import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
     QFileDialog, QMessageBox, QListWidget, QListWidgetItem,
-    QHBoxLayout, QDialog, QLineEdit, QListView, QDialogButtonBox, QComboBox, QSpinBox, QGroupBox
+    QHBoxLayout, QDialog, QLineEdit, QListView, QDialogButtonBox, QComboBox, QSpinBox, QGroupBox, QGridLayout
 )
 from PyQt6.QtCore import Qt, QStringListModel, QSortFilterProxyModel
 from PyQt6.QtGui import QIcon
@@ -111,19 +113,67 @@ class NiftiSelectionPage(WizardPage):
     def open_tree_dialog(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(600, 500)
+        dialog.resize(700, 600)  # Leggermente più grande per i nuovi controlli
 
         layout = QVBoxLayout(dialog)
 
-        search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search (e.g., T1, FLAIR, etc.)")
-        layout.addWidget(QLabel("Search:"))
-        layout.addWidget(search_bar)
+        # === SEZIONE FILTRI MODERNA ===
+        filter_group = QGroupBox("Filters")
+        filter_layout = QGridLayout(filter_group)
 
-        # Lista di file e dizionario di mappatura
+        # Ricerca testuale (migliorata)
+        search_bar = QLineEdit()
+        search_bar.setPlaceholderText("Search files (T1, FLAIR, dwi, func, etc.)")
+        search_bar.setClearButtonEnabled(True)  # Pulsante X per cancellare
+        filter_layout.addWidget(QLabel("Search:"), 0, 0)
+        filter_layout.addWidget(search_bar, 0, 1, 1, 3)
+
+        # Filtro per soggetto/paziente
+        from PyQt6.QtWidgets import QComboBox
+        subject_combo = QComboBox()
+        subject_combo.setEditable(True)  # Permette digitazione custom
+        subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
+        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
+        filter_layout.addWidget(subject_combo, 1, 1)
+
+        # Filtro per sessione
+        session_combo = QComboBox()
+        session_combo.setEditable(True)
+        session_combo.lineEdit().setPlaceholderText("All sessions...")
+        filter_layout.addWidget(QLabel("Session:"), 1, 2)
+        filter_layout.addWidget(session_combo, 1, 3)
+
+        # Filtro per modalità (T1, T2, FLAIR, etc.)
+        modality_combo = QComboBox()
+        modality_combo.setEditable(True)
+        modality_combo.lineEdit().setPlaceholderText("All modalities...")
+        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
+        filter_layout.addWidget(modality_combo, 2, 1)
+
+        # Filtro per tipo di file (anatomico, funzionale, etc.)
+        datatype_combo = QComboBox()
+        datatype_combo.addItems(["All types", "anat", "func", "dwi", "fmap", "perf"])
+        filter_layout.addWidget(QLabel("Data type:"), 2, 2)
+        filter_layout.addWidget(datatype_combo, 2, 3)
+
+        # Checkbox per mostrare solo file senza mask
+        from PyQt6.QtWidgets import QCheckBox
+        no_mask_checkbox = QCheckBox("Show only files without existing masks")
+        filter_layout.addWidget(no_mask_checkbox, 3, 0, 1, 2)
+
+        # Checkbox per mostrare solo file con mask
+        with_mask_checkbox = QCheckBox("Show only files with existing masks")
+        filter_layout.addWidget(with_mask_checkbox, 3, 2, 1, 2)
+
+        layout.addWidget(filter_group)
+
+        # === RACCOLTA E PARSING DEI FILE ===
         all_nii_files = []
         relative_to_absolute = {}
         files_with_masks = set()
+        subjects_set = set()
+        sessions_set = set()
+        modalities_set = set()
 
         for root, dirs, files in os.walk(self.context["workspace_path"]):
             # Ignora la cartella 'derivatives' e tutte le sue sottocartelle
@@ -136,59 +186,205 @@ class NiftiSelectionPage(WizardPage):
                     all_nii_files.append(relative_path)
                     relative_to_absolute[relative_path] = full_path
 
+                    # Estrai informazioni BIDS dal percorso
+                    path_parts = relative_path.split(os.sep)
+
+                    # Estrai subject
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subjects_set.add(part)
+                            break
+
+                    # Estrai session
+                    for part in path_parts:
+                        if part.startswith('ses-'):
+                            sessions_set.add(part)
+                            break
+
+                    filename = os.path.basename(f)
+                    json_path = full_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+                    # Estrai modality
+                    modality = None
+                    if os.path.exists(json_path):
+                        try:
+                            with open(json_path, 'r') as jf:
+                                metadata = json.load(jf)
+                                protocol_name = metadata.get("ProtocolName", "")
+                                if protocol_name:
+                                    # Pulizia: sostituisci caratteri strani con spazi e rimuovi spazi multipli
+                                    modality = re.sub(r'[^A-Za-z0-9 ]+', ' ', protocol_name)
+                                    modality = re.sub(r'\s+', '_', modality).strip()
+                        except Exception as e:
+                            print(f"Errore nella lettura del JSON {json_path}: {e}")
+
+                    # Fallback se non c'è il json o non contiene ProtocolName
+                    if not modality:
+                        # Prende una parte del filename tra l’ultimo "_" e un blocco numerico finale
+                        match = re.search(r'_([^_]+(?:_[^_]+)+)_(?:\d{6,})', filename)
+                        if match:
+                            modality = match.group(1)
+                        else:
+                            modality = "Unknown"
+
+                    modalities_set.add(modality)
+
                     # Segna i file che hanno già una mask
                     if self.has_existing_mask(full_path, self.context["workspace_path"]):
                         files_with_masks.add(relative_path)
 
-        # Info label con legenda colori
-        info_text = f"Showing {len(all_nii_files)} files"
-        if files_with_masks:
-            info_text += f" ({len(files_with_masks)} with existing masks shown in orange)"
+        # === POPOLA I DROPDOWN ===
+        subject_combo.addItem("All subjects")
+        subject_combo.addItems(sorted(subjects_set))
 
-        info_label = QLabel(info_text)
-        info_label.setStyleSheet("color: gray; font-size: 10px;")
+        session_combo.addItem("All sessions")
+        session_combo.addItems(sorted(sessions_set))
+
+        modality_combo.addItem("All modalities")
+        modality_combo.addItems(sorted(modalities_set))
+
+        # === INFO LABEL ===
+        info_label = QLabel()
+
+        def update_info_label(visible_count):
+            info_text = f"Showing {visible_count} of {len(all_nii_files)} files"
+            if files_with_masks:
+                info_text += f" ({len(files_with_masks)} total with existing masks)"
+            info_label.setText(info_text)
+            info_label.setStyleSheet("color: gray; font-size: 10px;")
+
+        update_info_label(len(all_nii_files))
         layout.addWidget(info_label)
 
-        # Usa QListWidget invece di QListView per avere più controllo sui colori
-        from PyQt6.QtWidgets import QListWidget
+        # === LISTA FILE ===
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
         from PyQt6.QtCore import Qt
         from PyQt6.QtGui import QBrush, QColor
 
         file_list = QListWidget()
         file_list.setEditTriggers(QListWidget.EditTrigger.NoEditTriggers)
         file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        file_list.setAlternatingRowColors(True)  # Righe alternate colorate
 
         # Aggiungi tutti i file con colori differenziati
-        for relative_path in sorted(all_nii_files):
-            item = QListWidgetItem(relative_path)
+        def populate_file_list():
+            file_list.clear()
+            for relative_path in sorted(all_nii_files):
+                item = QListWidgetItem(relative_path)
 
-            # Se il file ha già una mask, coloralo in arancione
-            if relative_path in files_with_masks:
-                item.setForeground(QBrush(QColor(255, 193, 7)))  # Giallo (Bootstrap warning color)
-                item.setToolTip(f"{relative_to_absolute[relative_path]}\nThis patient already has a mask")
-            else:
-                item.setToolTip(relative_to_absolute[relative_path])
+                # Se il file ha già una mask, coloralo in arancione
+                if relative_path in files_with_masks:
+                    item.setForeground(QBrush(QColor(255, 140, 0)))  # Arancione più scuro
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n✓ This patient already has a mask")
+                else:
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n○ No existing mask")
 
-            file_list.addItem(item)
+                file_list.addItem(item)
 
+        populate_file_list()
         layout.addWidget(file_list)
 
-        # Aggiungi filtro di ricerca
-        def filter_items():
+        # === FUNZIONE DI FILTRO AVANZATA ===
+        def apply_filters():
             search_text = search_bar.text().lower()
+            selected_subject = subject_combo.currentText()
+            selected_session = session_combo.currentText()
+            selected_modality = modality_combo.currentText()
+            selected_datatype = datatype_combo.currentText()
+
+            show_only_no_mask = no_mask_checkbox.isChecked()
+            show_only_with_mask = with_mask_checkbox.isChecked()
+
+            visible_count = 0
+
             for i in range(file_list.count()):
                 item = file_list.item(i)
-                item.setHidden(search_text not in item.text().lower())
+                relative_path = item.text()
+                should_show = True
 
-        search_bar.textChanged.connect(filter_items)
+                # Filtro ricerca testuale
+                if search_text and search_text not in relative_path.lower():
+                    should_show = False
 
+                # Filtro soggetto
+                if selected_subject != "All subjects" and selected_subject:
+                    if selected_subject not in relative_path:
+                        should_show = False
+
+                # Filtro sessione
+                if selected_session != "All sessions" and selected_session:
+                    if selected_session not in relative_path:
+                        should_show = False
+
+                # Filtro modalità
+                if selected_modality != "All modalities" and selected_modality:
+                    if selected_modality not in relative_path:
+                        should_show = False
+
+                # Filtro tipo di dato
+                if selected_datatype != "All types":
+                    if f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
+                        should_show = False
+
+                # Filtro per presenza/assenza mask
+                has_mask = relative_path in files_with_masks
+                if show_only_no_mask and has_mask:
+                    should_show = False
+                if show_only_with_mask and not has_mask:
+                    should_show = False
+
+                item.setHidden(not should_show)
+                if should_show:
+                    visible_count += 1
+
+            update_info_label(visible_count)
+
+        # === CONNESSIONI EVENTI ===
+        search_bar.textChanged.connect(apply_filters)
+        subject_combo.currentTextChanged.connect(apply_filters)
+        session_combo.currentTextChanged.connect(apply_filters)
+        modality_combo.currentTextChanged.connect(apply_filters)
+        datatype_combo.currentTextChanged.connect(apply_filters)
+        no_mask_checkbox.toggled.connect(apply_filters)
+        with_mask_checkbox.toggled.connect(apply_filters)
+
+        # Evita che entrambi i checkbox siano selezionati insieme
+        def on_no_mask_toggled(checked):
+            if checked:
+                with_mask_checkbox.setChecked(False)
+
+        def on_with_mask_toggled(checked):
+            if checked:
+                no_mask_checkbox.setChecked(False)
+
+        no_mask_checkbox.toggled.connect(on_no_mask_toggled)
+        with_mask_checkbox.toggled.connect(on_with_mask_toggled)
+
+        # === PULSANTI ===
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Pulsante per resettare tutti i filtri
+        reset_button = QPushButton("Reset Filters")
+
+        def reset_filters():
+            search_bar.clear()
+            subject_combo.setCurrentIndex(0)
+            session_combo.setCurrentIndex(0)
+            modality_combo.setCurrentIndex(0)
+            datatype_combo.setCurrentIndex(0)
+            no_mask_checkbox.setChecked(False)
+            with_mask_checkbox.setChecked(False)
+
+        reset_button.clicked.connect(reset_filters)
+        buttons.addButton(reset_button, QDialogButtonBox.ButtonRole.ResetRole)
+
         layout.addWidget(buttons)
 
+        # === LOGICA ACCETTAZIONE ===
         def accept():
             current_item = file_list.currentItem()
-            if not current_item:
-                QMessageBox.warning(dialog, "No selection", "Please select a NIfTI file.")
+            if not current_item or current_item.isHidden():
+                QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
                 return
 
             selected_relative_path = current_item.text()

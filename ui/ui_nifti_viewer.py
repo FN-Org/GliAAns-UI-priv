@@ -18,7 +18,7 @@ try:
                                  QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
                                  QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea, QDialog, QLineEdit,
-                                 QListWidget, QDialogButtonBox, QListWidgetItem)
+                                 QListWidget, QDialogButtonBox, QListWidgetItem, QGroupBox)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent, QTransform)
@@ -852,28 +852,58 @@ class NiftiViewer(QMainWindow):
         for view in self.views:
             view.coordinate_changed.connect(self.update_coordinates)
 
-    def show_workspace_nii_dialog(self):
+    def show_workspace_nii_dialog(self, title="Select a NIfTI file from workspace", filter_fn=None):
         dialog = QDialog(self)
-        dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(600, 500)
+        dialog.setWindowTitle(title)
+        dialog.resize(700, 600)
 
         layout = QVBoxLayout(dialog)
 
+        # === FILTRI AVANZATI ===
+        filter_group = QGroupBox("Filters")
+        filter_layout = QGridLayout(filter_group)
+
         search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search (e.g., T1, FLAIR, etc.)")
-        layout.addWidget(QLabel("Search:"))
-        layout.addWidget(search_bar)
+        search_bar.setPlaceholderText("Search files (T1, FLAIR, dwi, func, etc.)")
+        search_bar.setClearButtonEnabled(True)
+        filter_layout.addWidget(QLabel("Search:"), 0, 0)
+        filter_layout.addWidget(search_bar, 0, 1, 1, 3)
 
-        file_list_widget = QListWidget()
-        layout.addWidget(file_list_widget)
+        from PyQt6.QtWidgets import QComboBox
+        subject_combo = QComboBox()
+        subject_combo.setEditable(True)
+        subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
+        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
+        filter_layout.addWidget(subject_combo, 1, 1)
 
-        # Bottone OK/Cancel
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        layout.addWidget(buttons)
+        session_combo = QComboBox()
+        session_combo.setEditable(True)
+        session_combo.lineEdit().setPlaceholderText("All sessions...")
+        filter_layout.addWidget(QLabel("Session:"), 1, 2)
+        filter_layout.addWidget(session_combo, 1, 3)
 
-        # Raccoglie tutti i file .nii/.nii.gz (escludendo derivatives)
+        modality_combo = QComboBox()
+        modality_combo.setEditable(True)
+        modality_combo.lineEdit().setPlaceholderText("All modalities...")
+        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
+        filter_layout.addWidget(modality_combo, 2, 1)
+
+        datatype_combo = QComboBox()
+        datatype_combo.addItems(["All types", "anat", "func", "dwi", "fmap", "perf"])
+        filter_layout.addWidget(QLabel("Data type:"), 2, 2)
+        filter_layout.addWidget(datatype_combo, 2, 3)
+
+        layout.addWidget(filter_group)
+
+        # === FILE PARSING ===
         all_nii_files = []
         relative_to_absolute = {}
+        files_with_masks = set()
+        subjects_set = set()
+        sessions_set = set()
+        modalities_set = set()
+
+        import os, re, json
 
         for root, dirs, files in os.walk(self.context["workspace_path"]):
             dirs[:] = [d for d in dirs if d != "derivatives"]
@@ -883,26 +913,134 @@ class NiftiViewer(QMainWindow):
                     relative_path = os.path.relpath(full_path, self.context["workspace_path"])
                     all_nii_files.append(relative_path)
                     relative_to_absolute[relative_path] = full_path
-                    item = QListWidgetItem(relative_path)
-                    file_list_widget.addItem(item)
 
-        # Filtro in tempo reale con la search bar
-        def filter_files(text):
-            file_list_widget.clear()
-            for path in all_nii_files:
-                if text.lower() in path.lower():
-                    file_list_widget.addItem(QListWidgetItem(path))
+                    path_parts = relative_path.split(os.sep)
 
-        search_bar.textChanged.connect(filter_files)
+                    # Estrai subject
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subjects_set.add(part)
+                            break
+
+                    # Estrai session
+                    for part in path_parts:
+                        if part.startswith('ses-'):
+                            sessions_set.add(part)
+                            break
+
+                    filename = os.path.basename(f)
+                    json_path = full_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+                    modality = None
+                    if os.path.exists(json_path):
+                        try:
+                            with open(json_path, 'r') as jf:
+                                metadata = json.load(jf)
+                                protocol_name = metadata.get("ProtocolName", "")
+                                if protocol_name:
+                                    modality = re.sub(r'[^A-Za-z0-9 ]+', ' ', protocol_name)
+                                    modality = re.sub(r'\s+', '_', modality).strip()
+                        except Exception:
+                            pass
+
+                    if not modality:
+                        match = re.search(r'_([^_]+(?:_[^_]+)+)_(?:\d{6,})', filename)
+                        modality = match.group(1) if match else "Unknown"
+
+                    modalities_set.add(modality)
+
+        for root, dirs, files in os.walk(self.context["workspace_path"]):
+            ...
+            for f in files:
+                if f.endswith((".nii", ".nii.gz")):
+                    full_path = os.path.join(root, f)
+                    # Se c'è una funzione filtro, applicala
+                    if filter_fn and not filter_fn(full_path):
+                        continue
+
+        subject_combo.addItem("All subjects")
+        subject_combo.addItems(sorted(subjects_set))
+        session_combo.addItem("All sessions")
+        session_combo.addItems(sorted(sessions_set))
+        modality_combo.addItem("All modalities")
+        modality_combo.addItems(sorted(modalities_set))
+
+        info_label = QLabel()
+        layout.addWidget(info_label)
+
+        def update_info_label(count):
+            total = len(all_nii_files)
+            mask_info = f" ({len(files_with_masks)} with masks)" if files_with_masks else ""
+            info_label.setText(f"Showing {count} of {total} files{mask_info}")
+            info_label.setStyleSheet("color: gray; font-size: 10px;")
+
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
+        from PyQt6.QtGui import QBrush, QColor
+
+        file_list = QListWidget()
+        file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        layout.addWidget(file_list)
+
+        def populate_file_list():
+            file_list.clear()
+            for rel_path in sorted(all_nii_files):
+                item = QListWidgetItem(rel_path)
+                if rel_path in files_with_masks:
+                    item.setForeground(QBrush(QColor(255, 140, 0)))
+                file_list.addItem(item)
+
+        populate_file_list()
+        update_info_label(len(all_nii_files))
+
+        def apply_filters():
+            text = search_bar.text().lower()
+            subj = subject_combo.currentText()
+            sess = session_combo.currentText()
+            mod = modality_combo.currentText()
+            dtype = datatype_combo.currentText()
+
+            visible = 0
+            for i in range(file_list.count()):
+                item = file_list.item(i)
+                path = item.text()
+                show = True
+
+                if text and text not in path.lower():
+                    show = False
+                if subj != "All subjects" and subj not in path:
+                    show = False
+                if sess != "All sessions" and sess not in path:
+                    show = False
+                if mod != "All modalities" and mod not in path:
+                    show = False
+                if dtype != "All types" and f"/{dtype}/" not in path and f"\\{dtype}\\" not in path:
+                    show = False
+
+                item.setHidden(not show)
+                if show:
+                    visible += 1
+
+            update_info_label(visible)
+
+        search_bar.textChanged.connect(apply_filters)
+        subject_combo.currentTextChanged.connect(apply_filters)
+        session_combo.currentTextChanged.connect(apply_filters)
+        modality_combo.currentTextChanged.connect(apply_filters)
+        datatype_combo.currentTextChanged.connect(apply_filters)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(buttons)
 
         selected_file = None
 
         def accept():
             nonlocal selected_file
-            current_item = file_list_widget.currentItem()
-            if current_item:
-                selected_file = relative_to_absolute[current_item.text()]
+            item = file_list.currentItem()
+            if item and not item.isHidden():
+                selected_file = relative_to_absolute[item.text()]
                 dialog.accept()
+            else:
+                QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
 
         def reject():
             dialog.reject()
@@ -1034,10 +1172,9 @@ class NiftiViewer(QMainWindow):
             QMessageBox.warning(self, _t("NIfTIViewer","Warning"), _t("NIfTIViewer","Please load a base image first!"))
             return
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, _t("NIfTIViewer","Open NIfTI Overlay File"), "",
-            "NIfTI files (*.nii *.nii.gz);;All files (*)"
-        )
+        file_path = self.show_workspace_nii_dialog(title="Select overlay NIfTI file")
+        if not file_path:
+            return
 
         if file_path:
             try:
