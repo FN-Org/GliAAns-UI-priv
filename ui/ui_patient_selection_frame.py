@@ -34,6 +34,22 @@ class PatientSelectionPage(WizardPage):
         select_all_btn = QPushButton("Select All")
         deselect_all_btn = QPushButton("Deselect All")
 
+        btn_style = """
+                    QPushButton {
+                        background-color: #e0e0e0;
+                        padding: 10px 20px;
+                        border-radius: 10px;
+                        border: 1px solid #bdc3c7;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #d0d0d0;
+                    }
+                """
+
+        select_all_btn.setStyleSheet(btn_style)
+        deselect_all_btn.setStyleSheet(btn_style)
+
         select_all_btn.clicked.connect(self._select_all_patients)
         deselect_all_btn.clicked.connect(self._deselect_all_patients)
 
@@ -45,6 +61,14 @@ class PatientSelectionPage(WizardPage):
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                font-size: 13px;
+                border: 1px solid #bdc3c7;
+                border-radius: 10px;
+                padding: 5px;
+            }
+        """)
         self.scroll_content = QWidget()
         self.grid_layout = QGridLayout(self.scroll_content)
 
