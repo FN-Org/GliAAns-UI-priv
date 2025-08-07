@@ -402,8 +402,11 @@ class ImportThread(QThread):
     def _convert_to_bids_structure(self, input_folder):
         """
         Converte un dataset contenente file NIfTI + JSON in struttura BIDS.
-        Funziona anche se i file sono nella stessa cartella, senza sottocartelle per paziente.
+        I file vengono rinominati come: sub-XX_<ProtocolName>.nii.gz
         """
+        import re
+        from collections import defaultdict
+
         all_json_files = []
         for root, _, files in os.walk(input_folder):
             for file in files:
@@ -418,6 +421,8 @@ class ImportThread(QThread):
         dest_sub_dir = os.path.join(self.workspace_path, sub_id)
         os.makedirs(dest_sub_dir, exist_ok=True)
 
+        used_names = defaultdict(int)  # Per tracciare nomi usati ed evitare duplicati
+
         for json_path in all_json_files:
             nii_path = json_path.replace(".json", ".nii.gz")
             if not os.path.exists(nii_path):
@@ -428,28 +433,37 @@ class ImportThread(QThread):
                 metadata = json.load(f)
 
             modality = metadata.get("Modality", "").upper()
-            original_base = os.path.basename(nii_path).replace(".nii.gz", "")
-            new_base = f"{sub_id}_{original_base}"
+            series_desc = metadata.get("ProtocolName", "unknown")
 
+            # Pulisce la ProtocolName: rimuove caratteri non validi
+            series_desc_clean = re.sub(r'[^\w\-]+', '_', series_desc.strip())
+
+            # Crea nome base e gestisce duplicati
+            base_name = f"{sub_id}_{series_desc_clean}"
+            used_names[base_name] += 1
+            if used_names[base_name] > 1:
+                base_name = f"{base_name}_{used_names[base_name] - 1}"
+
+            # Determina la cartella di destinazione
             if modality == "MR":
-                anat_dir = os.path.join(dest_sub_dir, "anat")
-                os.makedirs(anat_dir, exist_ok=True)
-                shutil.copy2(nii_path, os.path.join(anat_dir, f"{new_base}.nii.gz"))
-                shutil.copy2(json_path, os.path.join(anat_dir, f"{new_base}.json"))
-
+                target_dir = os.path.join(dest_sub_dir, "anat")
             elif modality == "PT":
                 keys = ["FrameDuration", "FrameReferenceTime"]
                 if all(
                         k in metadata and isinstance(metadata[k], (list, tuple)) and len(metadata[k]) > 1
                         for k in keys
                 ):
-                    ses_dir = os.path.join(dest_sub_dir, "ses-02")
+                    target_dir = os.path.join(dest_sub_dir, "ses-02")
                 else:
-                    ses_dir = os.path.join(dest_sub_dir, "ses-01")
+                    target_dir = os.path.join(dest_sub_dir, "ses-01")
+            else:
+                target_dir = os.path.join(dest_sub_dir, "unknown")
 
-                os.makedirs(ses_dir, exist_ok=True)
-                shutil.copy2(nii_path, os.path.join(ses_dir, f"{new_base}.nii.gz"))
-                shutil.copy2(json_path, os.path.join(ses_dir, f"{new_base}.json"))
+            os.makedirs(target_dir, exist_ok=True)
+
+            # Copia i file con il nuovo nome
+            shutil.copy2(nii_path, os.path.join(target_dir, f"{base_name}.nii.gz"))
+            shutil.copy2(json_path, os.path.join(target_dir, f"{base_name}.json"))
 
         print(f"[BIDS] Importato {sub_id} in struttura BIDS.")
 
