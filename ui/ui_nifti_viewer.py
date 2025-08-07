@@ -301,10 +301,12 @@ class NiftiViewer(QMainWindow):
         self.slice_labels = []
         self.coord_displays = []
 
-        # Time slider for 4D data
+        # Time things for 4D data
         self.time_slider = None
         self.time_spin = None
         self.time_checkbox = None
+        self.time_plot_figure = None
+        self.time_plot_canvas = None
 
         # Other
         self.file_info_label = None
@@ -1438,7 +1440,9 @@ class NiftiViewer(QMainWindow):
         self.info_text.hide()
 
 
-        self.time_plot_figure = Figure(figsize=(3.5, 3.5), facecolor='white')
+        self.time_plot_figure = Figure(figsize=(3, 3), facecolor='black')
+        self.time_plot_figure.set_tight_layout(True)
+
         self.time_plot_canvas = FigureCanvas(self.time_plot_figure)
         self.time_plot_axes = self.time_plot_figure.add_subplot(111)
         self.time_plot_axes.set_facecolor('black')
@@ -1461,9 +1465,18 @@ class NiftiViewer(QMainWindow):
 
         try:
             coords = self.current_coordinates
+            bool_in_mask = False
+            if self.overlay_data is not None and self.overlay_data[coords[0],coords[1],coords[2]] > 0:
+                bool_in_mask = True
+                mask = (self.overlay_data > 0)  # True dove overlay > 0
+                # Estrazione dei voxel della ROI
+                roi_voxels = self.img_data[mask, :]  # shape: (N_voxels, T)
 
-            # Extract time series data for current voxel
-            time_series = self.img_data[coords[0], coords[1], coords[2], :]
+                # Calcolo della serie temporale media
+                time_series = roi_voxels.mean(axis=0)  # shape: (T,)
+            else:
+                # Extract time series data for current voxel
+                time_series = self.img_data[coords[0], coords[1], coords[2], :]
             time_points = np.arange(self.dims[3])
 
             # Clear and plot
@@ -1481,7 +1494,10 @@ class NiftiViewer(QMainWindow):
             # Styling
             self.time_plot_axes.set_xlabel(_t("NIfTIViewer","Time Point"), color='white')
             self.time_plot_axes.set_ylabel(_t("NIfTIViewer","Signal Intensity"), color='white')
-            self.time_plot_axes.set_title(f'Voxel ({coords[0]}, {coords[1]}, {coords[2]})', color='white')
+            if bool_in_mask:
+                self.time_plot_axes.set_title(f'Mean in overlay mask', color='white')
+            else:
+                self.time_plot_axes.set_title(f'Voxel ({coords[0]}, {coords[1]}, {coords[2]})', color='white')
             self.time_plot_axes.tick_params(colors='white')
             self.time_plot_axes.legend()
 
@@ -1555,12 +1571,21 @@ class NiftiViewer(QMainWindow):
 
     def resizeEvent(self, event: QResizeEvent):
         """Handle window resize to maintain aspect ratios"""
+
         super().resizeEvent(event)
         # Refit all views after a short delay
         QTimer.singleShot(100, self.fit_all_views)
 
     def fit_all_views(self):
         """Fit all views to their scenes while maintaining aspect ratio"""
+        # fit the time plot
+        if self.time_plot_figure is not None and self.time_plot_canvas is not None:
+            dpi = self.time_plot_figure.dpi
+            w = self.width() / dpi
+            h = self.height() / dpi
+            self.time_plot_figure.set_size_inches(w, h, forward=True)
+            self.time_plot_canvas.draw()
+
         for view in self.views:
             if view.scene():
                 view.fitInView(view.scene().sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
