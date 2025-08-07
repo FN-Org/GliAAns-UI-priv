@@ -458,7 +458,7 @@ class NiftiViewer(QMainWindow):
 
             # Coordinate display
             coord_label = QLabel("(-, -)")
-            coord_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 10px;")
+            coord_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
             coord_label.setMinimumWidth(45)
             coord_label.setMaximumWidth(60)
             coord_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -590,26 +590,62 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_radius_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_radius_label)
 
+        # Radius slider and spinbox container
+        radius_controls_widget = QWidget()
+        radius_controls_layout = QHBoxLayout(radius_controls_widget)
+        radius_controls_layout.setContentsMargins(0, 0, 0, 0)
+        radius_controls_layout.setSpacing(5)
+
         self.automaticROI_radius_slider = QSlider(Qt.Orientation.Horizontal)
         self.automaticROI_radius_slider.setMinimum(0)
-        self.automaticROI_radius_slider.setMaximum(100)
-        self.automaticROI_radius_slider.setValue(50)
+        self.automaticROI_radius_slider.setMaximum(9999)  # Valore sufficientemente alto per gestire tutti i casi
+        self.automaticROI_radius_slider.setValue(32)
         self.automaticROI_radius_slider.setEnabled(True)
         self.automaticROI_radius_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        automaticROI_sliders_layout.addWidget(self.automaticROI_radius_slider)
+        radius_controls_layout.addWidget(self.automaticROI_radius_slider, stretch=3)
+
+        self.automaticROI_radius_spin = QSpinBox()
+        self.automaticROI_radius_spin.setMinimum(0)
+        self.automaticROI_radius_spin.setMaximum(9999)  # Valore sufficientemente alto per gestire tutti i casi
+        self.automaticROI_radius_spin.setValue(32)
+        self.automaticROI_radius_spin.setMaximumWidth(60)
+        self.automaticROI_radius_spin.setMinimumWidth(50)
+        self.automaticROI_radius_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        radius_controls_layout.addWidget(self.automaticROI_radius_spin, stretch=0)
+
+        radius_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_sliders_layout.addWidget(radius_controls_widget)
 
         self.automaticROI_diff_label = QLabel(_t("NIfTIViewer", "Difference:"))
         self.automaticROI_diff_label.setStyleSheet("font-size: 10px;")
         self.automaticROI_diff_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_diff_label)
 
+        # Difference slider and spinbox container
+        diff_controls_widget = QWidget()
+        diff_controls_layout = QHBoxLayout(diff_controls_widget)
+        diff_controls_layout.setContentsMargins(0, 0, 0, 0)
+        diff_controls_layout.setSpacing(5)
+
         self.automaticROI_diff_slider = QSlider(Qt.Orientation.Horizontal)
         self.automaticROI_diff_slider.setMinimum(0)
-        self.automaticROI_diff_slider.setMaximum(100)
-        self.automaticROI_diff_slider.setValue(50)
+        self.automaticROI_diff_slider.setMaximum(99999)  # Valore molto alto per gestire qualsiasi range di intensità
+        self.automaticROI_diff_slider.setValue(16)
         self.automaticROI_diff_slider.setEnabled(True)
         self.automaticROI_diff_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        automaticROI_sliders_layout.addWidget(self.automaticROI_diff_slider)
+        diff_controls_layout.addWidget(self.automaticROI_diff_slider, stretch=3)
+
+        self.automaticROI_diff_spin = QSpinBox()
+        self.automaticROI_diff_spin.setMinimum(0)
+        self.automaticROI_diff_spin.setMaximum(99999)  # Valore molto alto per gestire qualsiasi range di intensità
+        self.automaticROI_diff_spin.setValue(16)
+        self.automaticROI_diff_spin.setMaximumWidth(60)
+        self.automaticROI_diff_spin.setMinimumWidth(50)
+        self.automaticROI_diff_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        diff_controls_layout.addWidget(self.automaticROI_diff_spin, stretch=0)
+
+        diff_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_sliders_layout.addWidget(diff_controls_widget)
 
         self.automaticROI_sliders_group.setVisible(False)
         self.automaticROI_sliders_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -649,13 +685,32 @@ class NiftiViewer(QMainWindow):
         self.alpha_overlay_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.alpha_overlay_label)
 
+        # Alpha slider and spinbox container
+        alpha_controls_widget = QWidget()
+        alpha_controls_layout = QHBoxLayout(alpha_controls_widget)
+        alpha_controls_layout.setContentsMargins(0, 0, 0, 0)
+        alpha_controls_layout.setSpacing(5)
+
         self.overlay_alpha_slider = QSlider(Qt.Orientation.Horizontal)
         self.overlay_alpha_slider.setMinimum(10)
         self.overlay_alpha_slider.setMaximum(100)
         self.overlay_alpha_slider.setValue(70)
         self.overlay_alpha_slider.setEnabled(False)
         self.overlay_alpha_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        overlay_layout.addWidget(self.overlay_alpha_slider)
+        alpha_controls_layout.addWidget(self.overlay_alpha_slider, stretch=3)
+
+        self.overlay_alpha_spin = QSpinBox()
+        self.overlay_alpha_spin.setMinimum(10)
+        self.overlay_alpha_spin.setMaximum(100)
+        self.overlay_alpha_spin.setValue(70)
+        self.overlay_alpha_spin.setEnabled(False)
+        self.overlay_alpha_spin.setMaximumWidth(60)
+        self.overlay_alpha_spin.setMinimumWidth(50)
+        self.overlay_alpha_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        alpha_controls_layout.addWidget(self.overlay_alpha_spin, stretch=0)
+
+        alpha_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        overlay_layout.addWidget(alpha_controls_widget)
 
         # Overlay threshold slider
         self.overlay_threshold_label = QLabel(_t("NIfTIViewer", "Overlay Threshold:"))
@@ -663,13 +718,32 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_threshold_label)
 
+        # Threshold slider and spinbox container
+        threshold_controls_widget = QWidget()
+        threshold_controls_layout = QHBoxLayout(threshold_controls_widget)
+        threshold_controls_layout.setContentsMargins(0, 0, 0, 0)
+        threshold_controls_layout.setSpacing(5)
+
         self.overlay_threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.overlay_threshold_slider.setMinimum(0)
         self.overlay_threshold_slider.setMaximum(100)
         self.overlay_threshold_slider.setValue(10)
         self.overlay_threshold_slider.setEnabled(False)
         self.overlay_threshold_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        overlay_layout.addWidget(self.overlay_threshold_slider)
+        threshold_controls_layout.addWidget(self.overlay_threshold_slider, stretch=3)
+
+        self.overlay_threshold_spin = QSpinBox()
+        self.overlay_threshold_spin.setMinimum(0)
+        self.overlay_threshold_spin.setMaximum(100)
+        self.overlay_threshold_spin.setValue(10)
+        self.overlay_threshold_spin.setEnabled(False)
+        self.overlay_threshold_spin.setMaximumWidth(60)
+        self.overlay_threshold_spin.setMinimumWidth(50)
+        self.overlay_threshold_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        threshold_controls_layout.addWidget(self.overlay_threshold_spin, stretch=0)
+
+        threshold_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        overlay_layout.addWidget(threshold_controls_widget)
 
         # Overlay info
         self.overlay_info_label = QLabel(_t("NIfTIViewer", "No overlay loaded"))
@@ -693,10 +767,28 @@ class NiftiViewer(QMainWindow):
         scroll_area.setMinimumWidth(240)
         scroll_area.setMaximumWidth(340)
 
+        # ✅ Connessioni signal/slot per sincronizzare slider e spinbox
+
+        # Automatic ROI - Radius
+        self.automaticROI_radius_slider.valueChanged.connect(self.automaticROI_radius_spin.setValue)
+        self.automaticROI_radius_spin.valueChanged.connect(self.automaticROI_radius_slider.setValue)
+
+        # Automatic ROI - Difference
+        self.automaticROI_diff_slider.valueChanged.connect(self.automaticROI_diff_spin.setValue)
+        self.automaticROI_diff_spin.valueChanged.connect(self.automaticROI_diff_slider.setValue)
+
+        # Overlay - Alpha/Transparency
+        self.overlay_alpha_slider.valueChanged.connect(self.overlay_alpha_spin.setValue)
+        self.overlay_alpha_spin.valueChanged.connect(self.overlay_alpha_slider.setValue)
+
+        # Overlay - Threshold
+        self.overlay_threshold_slider.valueChanged.connect(self.overlay_threshold_spin.setValue)
+        self.overlay_threshold_spin.valueChanged.connect(self.overlay_threshold_slider.setValue)
+
         # ✅ Aggiungi lo scroll area al parent
         parent.addWidget(scroll_area)
 
-    # 🎯 Funzione helper per formattare il testo senza causare scroll orizzontale
+    # Funzione helper per formattare il testo senza causare scroll orizzontale
     def format_info_text(self, text, max_line_length=35):
         """
         Formatta il testo per prevenire scroll orizzontale nel control panel
@@ -1235,7 +1327,9 @@ class NiftiViewer(QMainWindow):
         """Toggle overlay display on/off"""
         self.overlay_enabled = enabled
         self.overlay_alpha_slider.setEnabled(enabled)
+        self.overlay_alpha_spin.setEnabled(enabled)
         self.overlay_threshold_slider.setEnabled(enabled)
+        self.overlay_threshold_spin.setEnabled(enabled)
         if self.overlay_data is not None:
             self.update_all_displays()
 
