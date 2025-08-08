@@ -1103,6 +1103,7 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_slider.setEnabled(enabled)
         if self.overlay_data is not None:
             self.update_all_displays()
+            self.update_time_series_plot()
 
 
     def update_overlay_alpha(self, value):
@@ -1458,7 +1459,7 @@ class NiftiViewer(QMainWindow):
         try:
             coords = self.current_coordinates
             bool_in_mask = False
-            if self.overlay_data is not None and self.overlay_data[coords[0],coords[1],coords[2]] > 0:
+            if self.overlay_data is not None and self.overlay_data[coords[0],coords[1],coords[2]] > 0 and self.overlay_enabled:
                 bool_in_mask = True
                 mask = (self.overlay_data > 0)  # True dove overlay > 0
                 # Estrazione dei voxel della ROI
@@ -1570,13 +1571,6 @@ class NiftiViewer(QMainWindow):
 
     def fit_all_views(self):
         """Fit all views to their scenes while maintaining aspect ratio"""
-        # fit the time plot
-        if self.time_plot_figure is not None and self.time_plot_canvas is not None:
-            dpi = self.time_plot_figure.dpi
-            w = self.width() / dpi
-            h = self.height() / dpi
-            self.time_plot_figure.set_size_inches(w, h, forward=True)
-            self.time_plot_canvas.draw()
 
         for view in self.views:
             if view.scene():
