@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QRadioButton,
-    QGroupBox, QButtonGroup
+    QGroupBox, QButtonGroup, QWidget, QFrame
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 from ui.ui_fsl_frame import SkullStrippingPage
 from ui.ui_nifti_selection import NiftiSelectionPage
+from ui.ui_patient_for_pipeline import PipelinePatientSelectionPage
 from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 
@@ -21,22 +23,59 @@ class ToolChoicePage(WizardPage):
         self.next_pipeline = None
 
         self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(40, 40, 40, 40)
+        self.layout.setSpacing(30)
         self.setLayout(self.layout)
 
-        title = QLabel("Select the next processing step")
+        # Titolo principale
+        title = QLabel("Select the Next Processing Step")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.layout.addWidget(title)
 
-        self.radio_group_box = QGroupBox("Available processes")
+        # Gruppo processi con stile card moderno
+        self.radio_group_box = QGroupBox()
+        self.radio_group_box.setTitle("Available Processes")
+        self.radio_group_box.setStyleSheet("""
+            QGroupBox {
+                font-size: 13px;
+                border: 1px solid #bdc3c7;
+                border-radius: 10px;
+                padding: 40px;
+                background-color: #e5e5e5;
+            }
+        """)
+
         radio_layout = QVBoxLayout()
+        radio_layout.setSpacing(30)
 
         self.radio_group = QButtonGroup(self)
 
+        # Radio buttons con stile migliorato
         self.radio_skull = QRadioButton("Skull Stripping")
         self.radio_draw = QRadioButton("Manual / Automatic Drawing")
         self.radio_dl = QRadioButton("Deep Learning Segmentation")
-        self.radio_analysis = QRadioButton("Pipeline")
+        self.radio_analysis = QRadioButton("Full Pipeline")
+
+        for btn in [self.radio_skull, self.radio_draw, self.radio_dl, self.radio_analysis]:
+            btn.setFont(QFont("Arial", 14))
+            btn.setStyleSheet("""
+                QRadioButton {
+                    padding: 20px;
+                    border: 1px solid #bdc3c7;
+                    border-radius: 8px;
+                    background-color: white;
+                }
+                QRadioButton::hover {
+                    background-color: #dff9fb;
+                    border: 1px solid #3498db;
+                }
+                QRadioButton::checked {
+                    background-color: #d6eaf8;
+                    border: 2px solid #2980b9;
+                }
+            """)
+
         self.radio_group.buttonToggled.connect(lambda: self.on_selection())
 
         for i, btn in enumerate([self.radio_skull, self.radio_draw, self.radio_dl, self.radio_analysis]):
@@ -55,10 +94,7 @@ class ToolChoicePage(WizardPage):
             self.context["update_main_buttons"]()
 
     def is_ready_to_advance(self):
-        selected_id = self.radio_group.checkedId()
-        if selected_id != -1:
-            return True
-        return False
+        return self.radio_group.checkedId() != -1
 
     def is_ready_to_go_back(self):
         return True
@@ -68,7 +104,7 @@ class ToolChoicePage(WizardPage):
             0: ("next_skull_stripping", SkullStrippingPage),
             1: ("next_manual_draw", NiftiSelectionPage),
             2: ("next_deep_learning", WorkInProgressPage),
-            3: ("next_pipeline", WorkInProgressPage),
+            3: ("next_pipeline", PipelinePatientSelectionPage),
         }
 
         if self.selected_option not in page_classes:
@@ -90,15 +126,11 @@ class ToolChoicePage(WizardPage):
         if self.previous_page:
             self.previous_page.on_enter()
             return self.previous_page
-
         return None
 
     def reset_page(self):
-        # Deseleziona tutti i radio button
         self.radio_group.setExclusive(False)
         for button in self.radio_group.buttons():
             button.setChecked(False)
         self.radio_group.setExclusive(True)
-
-        # Reset dello stato interno
         self.selected_option = None

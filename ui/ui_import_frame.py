@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import json
@@ -418,6 +419,9 @@ class ImportThread(QThread):
         dest_sub_dir = os.path.join(self.workspace_path, sub_id)
         os.makedirs(dest_sub_dir, exist_ok=True)
 
+        pet_run_counter = 1
+        mr_run_counter = {}
+
         for json_path in all_json_files:
             nii_path = json_path.replace(".json", ".nii.gz")
             if not os.path.exists(nii_path):
@@ -428,28 +432,63 @@ class ImportThread(QThread):
                 metadata = json.load(f)
 
             modality = metadata.get("Modality", "").upper()
-            original_base = os.path.basename(nii_path).replace(".nii.gz", "")
-            new_base = f"{sub_id}_{original_base}"
 
             if modality == "MR":
+                series_desc = metadata.get("ProtocolName", "").lower()
+
+                # Identifica il tipo (suffix BIDS)
+                if "flair" in series_desc:
+                    suffix = "flair"
+                elif "t1" in series_desc:
+                    suffix = "T1w"
+                elif "t2" in series_desc:
+                    suffix = "T2w"
+                else:
+                    suffix = "T1w"  # fallback
+
+                # Contatore run per stesso tipo
+                mr_run_counter.setdefault(suffix, 1)
+                run_label = f"run-{mr_run_counter[suffix]}"
+                mr_run_counter[suffix] += 1
+
+                # Directory anat
                 anat_dir = os.path.join(dest_sub_dir, "anat")
                 os.makedirs(anat_dir, exist_ok=True)
+
+                new_base = f"{sub_id}_{run_label}_{suffix}"
+
+                # Copia file
                 shutil.copy2(nii_path, os.path.join(anat_dir, f"{new_base}.nii.gz"))
                 shutil.copy2(json_path, os.path.join(anat_dir, f"{new_base}.json"))
 
             elif modality == "PT":
-                keys = ["FrameDuration", "FrameReferenceTime"]
-                if all(
-                        k in metadata and isinstance(metadata[k], (list, tuple)) and len(metadata[k]) > 1
-                        for k in keys
-                ):
-                    ses_dir = os.path.join(dest_sub_dir, "ses-02")
-                else:
-                    ses_dir = os.path.join(dest_sub_dir, "ses-01")
+                # --- Ricava il tracciante ---
+                raw_trc = metadata.get("Radiopharmaceutical", "unknown")
+                # estrai la prima parola alfabetica come tracciante
+                trc = re.sub(r'[^a-zA-Z]', '', raw_trc.split()[0]).lower()
+                trc_label = f"trc-{trc}" if trc else "trc-unknown"
 
-                os.makedirs(ses_dir, exist_ok=True)
-                shutil.copy2(nii_path, os.path.join(ses_dir, f"{new_base}.nii.gz"))
-                shutil.copy2(json_path, os.path.join(ses_dir, f"{new_base}.json"))
+                # --- Determina se statico o dinamico ---
+                frame_durations = metadata.get("FrameDuration", [])
+                frame_times = metadata.get("FrameReferenceTime", [])
+                if (isinstance(frame_durations, (list, tuple)) and len(frame_durations) > 1) or \
+                        (isinstance(frame_times, (list, tuple)) and len(frame_times) > 1):
+                    acq_label = "acq-dynamic"
+                    ses_label = "ses-02"
+                else:
+                    acq_label = "acq-static"
+                    ses_label = "ses-01"
+
+                pet_dir = os.path.join(dest_sub_dir, ses_label, "pet")
+                os.makedirs(pet_dir, exist_ok=True)
+
+                run_label = f"run-{pet_run_counter}"
+                new_base = f"{sub_id}_{trc_label}_{acq_label}_{run_label}_pet"
+
+                shutil.copy2(nii_path, os.path.join(pet_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(pet_dir, f"{new_base}.json"))
+
+                pet_run_counter += 1
 
         print(f"[BIDS] Importato {sub_id} in struttura BIDS.")
 

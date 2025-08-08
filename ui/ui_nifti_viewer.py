@@ -1,7 +1,7 @@
 """
 NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D files
 """
-
+import re
 import sys
 import os
 import gc
@@ -18,7 +18,7 @@ try:
                                  QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
                                  QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea, QDialog, QLineEdit,
-                                 QListWidget, QDialogButtonBox, QListWidgetItem)
+                                 QListWidget, QDialogButtonBox, QListWidgetItem, QGroupBox)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent, QTransform)
@@ -460,7 +460,7 @@ class NiftiViewer(QMainWindow):
 
             # Coordinate display
             coord_label = QLabel("(-, -)")
-            coord_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 10px;")
+            coord_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
             coord_label.setMinimumWidth(45)
             coord_label.setMaximumWidth(60)
             coord_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -592,26 +592,62 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_radius_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_radius_label)
 
+        # Radius slider and spinbox container
+        radius_controls_widget = QWidget()
+        radius_controls_layout = QHBoxLayout(radius_controls_widget)
+        radius_controls_layout.setContentsMargins(0, 0, 0, 0)
+        radius_controls_layout.setSpacing(5)
+
         self.automaticROI_radius_slider = QSlider(Qt.Orientation.Horizontal)
         self.automaticROI_radius_slider.setMinimum(0)
-        self.automaticROI_radius_slider.setMaximum(100)
-        self.automaticROI_radius_slider.setValue(50)
+        self.automaticROI_radius_slider.setMaximum(9999)  # Valore sufficientemente alto per gestire tutti i casi
+        self.automaticROI_radius_slider.setValue(32)
         self.automaticROI_radius_slider.setEnabled(True)
         self.automaticROI_radius_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        automaticROI_sliders_layout.addWidget(self.automaticROI_radius_slider)
+        radius_controls_layout.addWidget(self.automaticROI_radius_slider, stretch=3)
+
+        self.automaticROI_radius_spin = QSpinBox()
+        self.automaticROI_radius_spin.setMinimum(0)
+        self.automaticROI_radius_spin.setMaximum(9999)  # Valore sufficientemente alto per gestire tutti i casi
+        self.automaticROI_radius_spin.setValue(32)
+        self.automaticROI_radius_spin.setMaximumWidth(60)
+        self.automaticROI_radius_spin.setMinimumWidth(50)
+        self.automaticROI_radius_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        radius_controls_layout.addWidget(self.automaticROI_radius_spin, stretch=0)
+
+        radius_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_sliders_layout.addWidget(radius_controls_widget)
 
         self.automaticROI_diff_label = QLabel(_t("NIfTIViewer", "Difference:"))
         self.automaticROI_diff_label.setStyleSheet("font-size: 10px;")
         self.automaticROI_diff_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_diff_label)
 
+        # Difference slider and spinbox container
+        diff_controls_widget = QWidget()
+        diff_controls_layout = QHBoxLayout(diff_controls_widget)
+        diff_controls_layout.setContentsMargins(0, 0, 0, 0)
+        diff_controls_layout.setSpacing(5)
+
         self.automaticROI_diff_slider = QSlider(Qt.Orientation.Horizontal)
         self.automaticROI_diff_slider.setMinimum(0)
-        self.automaticROI_diff_slider.setMaximum(100)
-        self.automaticROI_diff_slider.setValue(50)
+        self.automaticROI_diff_slider.setMaximum(99999)  # Valore molto alto per gestire qualsiasi range di intensità
+        self.automaticROI_diff_slider.setValue(16)
         self.automaticROI_diff_slider.setEnabled(True)
         self.automaticROI_diff_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        automaticROI_sliders_layout.addWidget(self.automaticROI_diff_slider)
+        diff_controls_layout.addWidget(self.automaticROI_diff_slider, stretch=3)
+
+        self.automaticROI_diff_spin = QSpinBox()
+        self.automaticROI_diff_spin.setMinimum(0)
+        self.automaticROI_diff_spin.setMaximum(99999)  # Valore molto alto per gestire qualsiasi range di intensità
+        self.automaticROI_diff_spin.setValue(16)
+        self.automaticROI_diff_spin.setMaximumWidth(60)
+        self.automaticROI_diff_spin.setMinimumWidth(50)
+        self.automaticROI_diff_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        diff_controls_layout.addWidget(self.automaticROI_diff_spin, stretch=0)
+
+        diff_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_sliders_layout.addWidget(diff_controls_widget)
 
         self.automaticROI_sliders_group.setVisible(False)
         self.automaticROI_sliders_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -651,13 +687,32 @@ class NiftiViewer(QMainWindow):
         self.alpha_overlay_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.alpha_overlay_label)
 
+        # Alpha slider and spinbox container
+        alpha_controls_widget = QWidget()
+        alpha_controls_layout = QHBoxLayout(alpha_controls_widget)
+        alpha_controls_layout.setContentsMargins(0, 0, 0, 0)
+        alpha_controls_layout.setSpacing(5)
+
         self.overlay_alpha_slider = QSlider(Qt.Orientation.Horizontal)
         self.overlay_alpha_slider.setMinimum(10)
         self.overlay_alpha_slider.setMaximum(100)
         self.overlay_alpha_slider.setValue(70)
         self.overlay_alpha_slider.setEnabled(False)
         self.overlay_alpha_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        overlay_layout.addWidget(self.overlay_alpha_slider)
+        alpha_controls_layout.addWidget(self.overlay_alpha_slider, stretch=3)
+
+        self.overlay_alpha_spin = QSpinBox()
+        self.overlay_alpha_spin.setMinimum(10)
+        self.overlay_alpha_spin.setMaximum(100)
+        self.overlay_alpha_spin.setValue(70)
+        self.overlay_alpha_spin.setEnabled(False)
+        self.overlay_alpha_spin.setMaximumWidth(60)
+        self.overlay_alpha_spin.setMinimumWidth(50)
+        self.overlay_alpha_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        alpha_controls_layout.addWidget(self.overlay_alpha_spin, stretch=0)
+
+        alpha_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        overlay_layout.addWidget(alpha_controls_widget)
 
         # Overlay threshold slider
         self.overlay_threshold_label = QLabel(_t("NIfTIViewer", "Overlay Threshold:"))
@@ -665,13 +720,32 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_threshold_label)
 
+        # Threshold slider and spinbox container
+        threshold_controls_widget = QWidget()
+        threshold_controls_layout = QHBoxLayout(threshold_controls_widget)
+        threshold_controls_layout.setContentsMargins(0, 0, 0, 0)
+        threshold_controls_layout.setSpacing(5)
+
         self.overlay_threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.overlay_threshold_slider.setMinimum(0)
         self.overlay_threshold_slider.setMaximum(100)
         self.overlay_threshold_slider.setValue(10)
         self.overlay_threshold_slider.setEnabled(False)
         self.overlay_threshold_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        overlay_layout.addWidget(self.overlay_threshold_slider)
+        threshold_controls_layout.addWidget(self.overlay_threshold_slider, stretch=3)
+
+        self.overlay_threshold_spin = QSpinBox()
+        self.overlay_threshold_spin.setMinimum(0)
+        self.overlay_threshold_spin.setMaximum(100)
+        self.overlay_threshold_spin.setValue(10)
+        self.overlay_threshold_spin.setEnabled(False)
+        self.overlay_threshold_spin.setMaximumWidth(60)
+        self.overlay_threshold_spin.setMinimumWidth(50)
+        self.overlay_threshold_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        threshold_controls_layout.addWidget(self.overlay_threshold_spin, stretch=0)
+
+        threshold_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        overlay_layout.addWidget(threshold_controls_widget)
 
         # Overlay info
         self.overlay_info_label = QLabel(_t("NIfTIViewer", "No overlay loaded"))
@@ -695,10 +769,28 @@ class NiftiViewer(QMainWindow):
         scroll_area.setMinimumWidth(240)
         scroll_area.setMaximumWidth(340)
 
+        # ✅ Connessioni signal/slot per sincronizzare slider e spinbox
+
+        # Automatic ROI - Radius
+        self.automaticROI_radius_slider.valueChanged.connect(self.automaticROI_radius_spin.setValue)
+        self.automaticROI_radius_spin.valueChanged.connect(self.automaticROI_radius_slider.setValue)
+
+        # Automatic ROI - Difference
+        self.automaticROI_diff_slider.valueChanged.connect(self.automaticROI_diff_spin.setValue)
+        self.automaticROI_diff_spin.valueChanged.connect(self.automaticROI_diff_slider.setValue)
+
+        # Overlay - Alpha/Transparency
+        self.overlay_alpha_slider.valueChanged.connect(self.overlay_alpha_spin.setValue)
+        self.overlay_alpha_spin.valueChanged.connect(self.overlay_alpha_slider.setValue)
+
+        # Overlay - Threshold
+        self.overlay_threshold_slider.valueChanged.connect(self.overlay_threshold_spin.setValue)
+        self.overlay_threshold_spin.valueChanged.connect(self.overlay_threshold_slider.setValue)
+
         # ✅ Aggiungi lo scroll area al parent
         parent.addWidget(scroll_area)
 
-    # 🎯 Funzione helper per formattare il testo senza causare scroll orizzontale
+    # Funzione helper per formattare il testo senza causare scroll orizzontale
     def format_info_text(self, text, max_line_length=35):
         """
         Formatta il testo per prevenire scroll orizzontale nel control panel
@@ -857,54 +949,198 @@ class NiftiViewer(QMainWindow):
     def show_workspace_nii_dialog(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(600, 500)
+        dialog.resize(700, 600)
 
         layout = QVBoxLayout(dialog)
 
+        # === FILTRI UI ===
+        filter_group = QGroupBox("Filters")
+        filter_layout = QGridLayout(filter_group)
+
         search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search (e.g., T1, FLAIR, etc.)")
-        layout.addWidget(QLabel("Search:"))
-        layout.addWidget(search_bar)
+        search_bar.setPlaceholderText("Search files (T1, FLAIR, dwi, func, etc.)")
+        search_bar.setClearButtonEnabled(True)
+        filter_layout.addWidget(QLabel("Search:"), 0, 0)
+        filter_layout.addWidget(search_bar, 0, 1, 1, 5)
 
-        file_list_widget = QListWidget()
-        layout.addWidget(file_list_widget)
+        subject_combo = QComboBox()
+        subject_combo.setEditable(True)
+        subject_combo.lineEdit().setPlaceholderText("All subjects")
+        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
+        filter_layout.addWidget(subject_combo, 1, 1)
 
-        # Bottone OK/Cancel
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        layout.addWidget(buttons)
+        session_combo = QComboBox()
+        session_combo.setEditable(True)
+        session_combo.lineEdit().setPlaceholderText("All sessions")
+        filter_layout.addWidget(QLabel("Session:"), 1, 2)
+        filter_layout.addWidget(session_combo, 1, 3)
 
-        # Raccoglie tutti i file .nii/.nii.gz (escludendo derivatives)
+        datatype_combo = QComboBox()
+        datatype_combo.setEditable(True)
+        datatype_combo.lineEdit().setPlaceholderText("All datatypes")
+        datatype_combo.addItems(["All datatypes", "anat", "func", "dwi", "fmap", "perf"])
+        filter_layout.addWidget(QLabel("Datatype:"), 1, 4)
+        filter_layout.addWidget(datatype_combo, 1, 5)
+
+        modality_combo = QComboBox()
+        modality_combo.setEditable(True)
+        modality_combo.lineEdit().setPlaceholderText("All modalities")
+        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
+        filter_layout.addWidget(modality_combo, 2, 1, 1, 2)
+
+        pipeline_combo = QComboBox()
+        pipeline_combo.setEditable(True)
+        pipeline_combo.lineEdit().setPlaceholderText("All pipelines")
+        filter_layout.addWidget(QLabel("derivatives/<pipeline>:"), 2, 3)
+        filter_layout.addWidget(pipeline_combo, 2, 4, 1, 2)
+
+        layout.addWidget(filter_group)
+
+        # === SCANSIONE WORKSPACE ===
+        workspace_path = self.context["workspace_path"]
         all_nii_files = []
         relative_to_absolute = {}
+        file_metadata = []
 
-        for root, dirs, files in os.walk(self.context["workspace_path"]):
-            dirs[:] = [d for d in dirs if d != "derivatives"]
+        subjects_set = set()
+        sessions_set = set()
+        modalities_set = set()
+        pipelines_set = set()
+
+        for root, dirs, files in os.walk(workspace_path):
             for f in files:
                 if f.endswith((".nii", ".nii.gz")):
                     full_path = os.path.join(root, f)
-                    relative_path = os.path.relpath(full_path, self.context["workspace_path"])
-                    all_nii_files.append(relative_path)
-                    relative_to_absolute[relative_path] = full_path
-                    item = QListWidgetItem(relative_path)
-                    file_list_widget.addItem(item)
+                    rel_path = os.path.relpath(full_path, workspace_path)
+                    relative_to_absolute[rel_path] = full_path
+                    all_nii_files.append(rel_path)
 
-        # Filtro in tempo reale con la search bar
-        def filter_files(text):
-            file_list_widget.clear()
-            for path in all_nii_files:
-                if text.lower() in path.lower():
-                    file_list_widget.addItem(QListWidgetItem(path))
+                    # === DATI PER FILTRI ===
+                    parts = rel_path.split(os.sep)
 
-        search_bar.textChanged.connect(filter_files)
+                    subject = next((p for p in parts if p.startswith("sub-")), None)
+                    session = next((p for p in parts if p.startswith("ses-")), None)
+                    datatype = next((p for p in parts if p in ["anat", "func", "dwi", "fmap", "perf"]), None)
+
+                    pipeline = None
+                    if "derivatives" in parts:
+                        derivatives_idx = parts.index("derivatives")
+                        if len(parts) > derivatives_idx + 1:
+                            pipeline = parts[derivatives_idx + 1]
+                            pipelines_set.add(pipeline)
+                        else:
+                            pipeline = "Unknown"
+                    else:
+                        pipeline = "workspace"
+
+                    subjects_set.add(subject) if subject else None
+                    sessions_set.add(session) if session else None
+
+                    # === MODALITY (dal JSON o nome file) ===
+                    filename = os.path.basename(f)
+                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # rimuove .nii.gz o .nii
+                    parts = filename_noext.split("_")
+                    # La modalità è in genere l'ultima parte del nome
+                    possible_modality = parts[-1]
+                    modality = possible_modality if possible_modality else "Unknown"
+
+                    modalities_set.add(modality)
+
+                    file_metadata.append({
+                        "path": rel_path,
+                        "subject": subject,
+                        "session": session,
+                        "datatype": datatype,
+                        "modality": modality,
+                        "pipeline": pipeline,
+                    })
+
+        # === POPOLA COMBOBOX ===
+        subject_combo.addItem("All subjects")
+        subject_combo.addItems(sorted(s for s in subjects_set if s))
+        session_combo.addItem("All sessions")
+        session_combo.addItems(sorted(s for s in sessions_set if s))
+        modality_combo.addItem("All modalities")
+        modality_combo.addItems(sorted(modalities_set))
+        pipeline_combo.addItem("All pipelines")
+        pipeline_combo.addItems(sorted(pipelines_set.union({"workspace"})))
+
+        # === LISTA FILE ===
+        info_label = QLabel()
+        layout.addWidget(info_label)
+
+        def update_info_label(count):
+            total = len(all_nii_files)
+            info_label.setText(f"Showing {count} of {total} files")
+            info_label.setStyleSheet("color: gray; font-size: 10px;")
+
+        file_list = QListWidget()
+        file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
+        layout.addWidget(file_list)
+
+        def populate_file_list():
+            file_list.clear()
+            for f in file_metadata:
+                item = QListWidgetItem(f["path"])
+                file_list.addItem(item)
+
+        populate_file_list()
+        update_info_label(len(file_metadata))
+
+        def apply_filters():
+            text = search_bar.text().lower()
+            subj = subject_combo.currentText()
+            sess = session_combo.currentText()
+            dtype = datatype_combo.currentText()
+            mod = modality_combo.currentText()
+            pipe = pipeline_combo.currentText()
+
+            visible = 0
+            for i, f in enumerate(file_metadata):
+                item = file_list.item(i)
+                show = True
+
+                if text and text not in f["path"].lower():
+                    show = False
+                if subj != "All subjects" and f["subject"] != subj:
+                    show = False
+                if sess != "All sessions" and f["session"] != sess:
+                    show = False
+                if dtype != "All datatypes" and f["datatype"] != dtype:
+                    show = False
+                if mod != "All modalities" and f["modality"] != mod:
+                    show = False
+                if pipe != "All pipelines" and f["pipeline"] != pipe:
+                    show = False
+
+                item.setHidden(not show)
+                if show:
+                    visible += 1
+
+            update_info_label(visible)
+
+        # Connetti eventi
+        search_bar.textChanged.connect(apply_filters)
+        subject_combo.currentTextChanged.connect(apply_filters)
+        session_combo.currentTextChanged.connect(apply_filters)
+        datatype_combo.currentTextChanged.connect(apply_filters)
+        modality_combo.currentTextChanged.connect(apply_filters)
+        pipeline_combo.currentTextChanged.connect(apply_filters)
+
+        # === PULSANTI ===
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        layout.addWidget(buttons)
 
         selected_file = None
 
         def accept():
             nonlocal selected_file
-            current_item = file_list_widget.currentItem()
-            if current_item:
-                selected_file = relative_to_absolute[current_item.text()]
+            item = file_list.currentItem()
+            if item and not item.isHidden():
+                selected_file = relative_to_absolute[item.text()]
                 dialog.accept()
+            else:
+                QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
 
         def reject():
             dialog.reject()
@@ -1036,10 +1272,9 @@ class NiftiViewer(QMainWindow):
             QMessageBox.warning(self, _t("NIfTIViewer","Warning"), _t("NIfTIViewer","Please load a base image first!"))
             return
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, _t("NIfTIViewer","Open NIfTI Overlay File"), "",
-            "NIfTI files (*.nii *.nii.gz);;All files (*)"
-        )
+        file_path = self.show_workspace_nii_dialog()
+        if not file_path:
+            return
 
         if file_path:
             try:
@@ -1100,7 +1335,9 @@ class NiftiViewer(QMainWindow):
         """Toggle overlay display on/off"""
         self.overlay_enabled = enabled
         self.overlay_alpha_slider.setEnabled(enabled)
+        self.overlay_alpha_spin.setEnabled(enabled)
         self.overlay_threshold_slider.setEnabled(enabled)
+        self.overlay_threshold_spin.setEnabled(enabled)
         if self.overlay_data is not None:
             self.update_all_displays()
             self.update_time_series_plot()
