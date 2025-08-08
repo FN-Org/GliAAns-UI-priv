@@ -1819,17 +1819,34 @@ class NiftiViewer(QMainWindow):
             self.update_all_displays()
 
     def automaticROI_clicked(self):
+
+        self.automaticROI_seed_coordinates = self.current_coordinates
+
+        # Maximum radius in mm
+        # Calcola le dimensioni reali (in mm) dell'immagine lungo X, Y, Z
+        voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))  # mm/voxel
+        dims_voxel = self.dims[:3]  # numero di voxel lungo X, Y, Z
+        dims_mm = dims_voxel * voxel_sizes  # dimensioni reali in mm
+        # Trova il lato più corto in mm e lo dimezza per avere il raggio massimo
+        max_radius_mm = np.min(dims_mm) / 2
+        # Imposta il massimo dello slider (in mm)
+        self.automaticROI_radius_slider.setMaximum(int(max_radius_mm))
+
+        self.automaticROI_radius_slider.setValue(
+            32 if not self.automaticROI_overlay else self.automaticROI_radius_slider.value()
+        )
+
+        max_diff = int((self.img_data.max() - self.img_data.min()) / 2)
+        self.automaticROI_diff_slider.setMaximum(max_diff)
+        self.automaticROI_diff_slider.setValue(
+            int(max_diff * (16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
+        )
+        self.automaticROI_sliders_group.setVisible(True)
+        self.automaticROI_sliders_group.setEnabled(True)
         self.automaticROIbtn.setText("Reset Origin")
         self.automaticROI_overlay = True
         self.automaticROI_save_btn.setEnabled(True)
-        self.automaticROI_seed_coordinates = self.current_coordinates
-        self.automaticROI_radius_slider.setMaximum(int(min(self.dims)/2))
-        self.automaticROI_radius_slider.setValue(32)
-        max_diff = int((self.img_data.max()-self.img_data.min())/2)
-        self.automaticROI_diff_slider.setMaximum(max_diff)
-        self.automaticROI_diff_slider.setValue(int(max_diff*(16/100)))
-        self.automaticROI_sliders_group.setVisible(True)
-        self.automaticROI_sliders_group.setEnabled(True)
+
         self.automaticROI_drawing()
 
         self.overlay_info_label.setText(
