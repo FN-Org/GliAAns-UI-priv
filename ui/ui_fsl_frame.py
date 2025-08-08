@@ -510,25 +510,13 @@ class SkullStrippingPage(WizardPage):
                             sessions_set.add(part)
                             break
 
-                    # Estrai modalità dal nome file
+                    # Estrai modality
                     filename = os.path.basename(f)
-                    json_path = full_path.replace(".nii.gz", ".json").replace(".nii", ".json")
-
-                    modality = None
-                    if os.path.exists(json_path):
-                        try:
-                            with open(json_path, 'r') as jf:
-                                metadata = json.load(jf)
-                                protocol_name = metadata.get("ProtocolName", "")
-                                if protocol_name:
-                                    modality = re.sub(r'[^A-Za-z0-9 ]+', ' ', protocol_name)
-                                    modality = re.sub(r'\s+', '_', modality).strip()
-                        except Exception:
-                            pass
-
-                    if not modality:
-                        match = re.search(r'_([^_]+(?:_[^_]+)+)_(?:\d{6,})', filename)
-                        modality = match.group(1) if match else "Unknown"
+                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # rimuove .nii.gz o .nii
+                    parts = filename_noext.split("_")
+                    # La modalità è in genere l'ultima parte del nome
+                    possible_modality = parts[-1]
+                    modality = possible_modality if possible_modality else "Unknown"
 
                     modalities_set.add(modality)
 

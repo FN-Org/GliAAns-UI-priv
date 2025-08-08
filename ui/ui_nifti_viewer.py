@@ -1035,21 +1035,12 @@ class NiftiViewer(QMainWindow):
                     sessions_set.add(session) if session else None
 
                     # === MODALITY (dal JSON o nome file) ===
-                    modality = None
-                    json_path = full_path.replace(".nii.gz", ".json").replace(".nii", ".json")
-                    if os.path.exists(json_path):
-                        try:
-                            with open(json_path, 'r') as jf:
-                                metadata = json.load(jf)
-                                protocol_name = metadata.get("ProtocolName", "")
-                                if protocol_name:
-                                    modality = re.sub(r'[^A-Za-z0-9 ]+', ' ', protocol_name)
-                                    modality = re.sub(r'\s+', '_', modality).strip()
-                        except Exception:
-                            pass
-                    if not modality:
-                        match = re.search(r'_([^_]+(?:_[^_]+)+)_(?:\d{6,})', f)
-                        modality = match.group(1) if match else "Unknown"
+                    filename = os.path.basename(f)
+                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # rimuove .nii.gz o .nii
+                    parts = filename_noext.split("_")
+                    # La modalità è in genere l'ultima parte del nome
+                    possible_modality = parts[-1]
+                    modality = possible_modality if possible_modality else "Unknown"
 
                     modalities_set.add(modality)
 

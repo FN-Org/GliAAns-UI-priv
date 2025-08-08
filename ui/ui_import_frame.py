@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import json
@@ -402,11 +403,8 @@ class ImportThread(QThread):
     def _convert_to_bids_structure(self, input_folder):
         """
         Converte un dataset contenente file NIfTI + JSON in struttura BIDS.
-        I file vengono rinominati come: sub-XX_<ProtocolName>.nii.gz
+        Funziona anche se i file sono nella stessa cartella, senza sottocartelle per paziente.
         """
-        import re
-        from collections import defaultdict
-
         all_json_files = []
         for root, _, files in os.walk(input_folder):
             for file in files:
@@ -421,7 +419,8 @@ class ImportThread(QThread):
         dest_sub_dir = os.path.join(self.workspace_path, sub_id)
         os.makedirs(dest_sub_dir, exist_ok=True)
 
-        used_names = defaultdict(int)  # Per tracciare nomi usati ed evitare duplicati
+        pet_run_counter = 1
+        mr_run_counter = {}
 
         for json_path in all_json_files:
             nii_path = json_path.replace(".json", ".nii.gz")
@@ -433,37 +432,63 @@ class ImportThread(QThread):
                 metadata = json.load(f)
 
             modality = metadata.get("Modality", "").upper()
-            series_desc = metadata.get("ProtocolName", "unknown")
 
-            # Pulisce la ProtocolName: rimuove caratteri non validi
-            series_desc_clean = re.sub(r'[^\w\-]+', '_', series_desc.strip())
-
-            # Crea nome base e gestisce duplicati
-            base_name = f"{sub_id}_{series_desc_clean}"
-            used_names[base_name] += 1
-            if used_names[base_name] > 1:
-                base_name = f"{base_name}_{used_names[base_name] - 1}"
-
-            # Determina la cartella di destinazione
             if modality == "MR":
-                target_dir = os.path.join(dest_sub_dir, "anat")
-            elif modality == "PT":
-                keys = ["FrameDuration", "FrameReferenceTime"]
-                if all(
-                        k in metadata and isinstance(metadata[k], (list, tuple)) and len(metadata[k]) > 1
-                        for k in keys
-                ):
-                    target_dir = os.path.join(dest_sub_dir, "ses-02")
+                series_desc = metadata.get("ProtocolName", "").lower()
+
+                # Identifica il tipo (suffix BIDS)
+                if "flair" in series_desc:
+                    suffix = "flair"
+                elif "t1" in series_desc:
+                    suffix = "T1w"
+                elif "t2" in series_desc:
+                    suffix = "T2w"
                 else:
-                    target_dir = os.path.join(dest_sub_dir, "ses-01")
-            else:
-                target_dir = os.path.join(dest_sub_dir, "unknown")
+                    suffix = "T1w"  # fallback
 
-            os.makedirs(target_dir, exist_ok=True)
+                # Contatore run per stesso tipo
+                mr_run_counter.setdefault(suffix, 1)
+                run_label = f"run-{mr_run_counter[suffix]}"
+                mr_run_counter[suffix] += 1
 
-            # Copia i file con il nuovo nome
-            shutil.copy2(nii_path, os.path.join(target_dir, f"{base_name}.nii.gz"))
-            shutil.copy2(json_path, os.path.join(target_dir, f"{base_name}.json"))
+                # Directory anat
+                anat_dir = os.path.join(dest_sub_dir, "anat")
+                os.makedirs(anat_dir, exist_ok=True)
+
+                new_base = f"{sub_id}_{run_label}_{suffix}"
+
+                # Copia file
+                shutil.copy2(nii_path, os.path.join(anat_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(anat_dir, f"{new_base}.json"))
+
+            elif modality == "PT":
+                # --- Ricava il tracciante ---
+                raw_trc = metadata.get("Radiopharmaceutical", "unknown")
+                # estrai la prima parola alfabetica come tracciante
+                trc = re.sub(r'[^a-zA-Z]', '', raw_trc.split()[0]).lower()
+                trc_label = f"trc-{trc}" if trc else "trc-unknown"
+
+                # --- Determina se statico o dinamico ---
+                frame_durations = metadata.get("FrameDuration", [])
+                frame_times = metadata.get("FrameReferenceTime", [])
+                if (isinstance(frame_durations, (list, tuple)) and len(frame_durations) > 1) or \
+                        (isinstance(frame_times, (list, tuple)) and len(frame_times) > 1):
+                    acq_label = "acq-dynamic"
+                    ses_label = "ses-02"
+                else:
+                    acq_label = "acq-static"
+                    ses_label = "ses-01"
+
+                pet_dir = os.path.join(dest_sub_dir, ses_label, "pet")
+                os.makedirs(pet_dir, exist_ok=True)
+
+                run_label = f"run-{pet_run_counter}"
+                new_base = f"{sub_id}_{trc_label}_{acq_label}_{run_label}_pet"
+
+                shutil.copy2(nii_path, os.path.join(pet_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(pet_dir, f"{new_base}.json"))
+
+                pet_run_counter += 1
 
         print(f"[BIDS] Importato {sub_id} in struttura BIDS.")
 
