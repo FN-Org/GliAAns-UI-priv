@@ -7,6 +7,7 @@ from PyQt6.QtGui import QFont
 
 from ui.ui_fsl_frame import SkullStrippingPage
 from ui.ui_nifti_selection import NiftiSelectionPage
+from ui.ui_patient_for_pipeline import PipelinePatientSelectionPage
 from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 
@@ -103,7 +104,7 @@ class ToolChoicePage(WizardPage):
             0: ("next_skull_stripping", SkullStrippingPage),
             1: ("next_manual_draw", NiftiSelectionPage),
             2: ("next_deep_learning", WorkInProgressPage),
-            3: ("next_pipeline", WorkInProgressPage),
+            3: ("next_pipeline", PipelinePatientSelectionPage),
         }
 
         if self.selected_option not in page_classes:
