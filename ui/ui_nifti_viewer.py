@@ -198,7 +198,7 @@ class CrosshairGraphicsView(QGraphicsView):
 
             # Check bounds
             scene_rect = self.scene().sceneRect()
-            if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
+            if 0 <= x < scene_rect.width() and 0 <= y < scene_rect.height():
                 # Update clicked coordinates and trigger cross-view updates
                 self.parent_viewer.handle_click_coordinates(self.view_idx, x, y)
 
@@ -1288,15 +1288,23 @@ class NiftiViewer(QMainWindow):
         coords = self.current_coordinates
 
         for i, view in enumerate(self.views):
+            # Se il fattore di stretch non esiste ancora, usa (1.0, 1.0)
+            stretch_x, stretch_y = self.stretch_factors.get(i, (1.0, 1.0))
+
             if i == 0:  # Axial view
-                # Show crosshairs at X, Y position
-                view.set_crosshair_position(coords[0], self.img_data.shape[1] - 1 - coords[1])
+                x = coords[0] * stretch_x
+                y = (self.img_data.shape[1] - 1 - coords[1]) * stretch_y
+                view.set_crosshair_position(x, y)
+
             elif i == 1:  # Coronal view
-                # Show crosshairs at X, Z position
-                view.set_crosshair_position(coords[0], self.img_data.shape[2] - 1 - coords[2])
+                x = coords[0] * stretch_x
+                y = (self.img_data.shape[2] - 1 - coords[2]) * stretch_y
+                view.set_crosshair_position(x, y)
+
             elif i == 2:  # Sagittal view
-                # Show crosshairs at Y, Z position
-                view.set_crosshair_position(coords[1], self.img_data.shape[2] - 1 - coords[2])
+                x = coords[1] * stretch_x
+                y = (self.img_data.shape[2] - 1 - coords[2]) * stretch_y
+                view.set_crosshair_position(x, y)
 
     def update_display(self, plane_idx):
         """Update a specific plane display with matplotlib-style rendering"""
@@ -1354,56 +1362,40 @@ class NiftiViewer(QMainWindow):
             qimage = QImage(rgba_data_uint8.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
 
             if qimage is not None:
-
-                # Ottieni dimensione immagine
+                # Dimensione originale
                 img_w = qimage.width()
                 img_h = qimage.height()
 
-                # Update display
-                self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage))
-                self.scenes[plane_idx].setSceneRect(0, 0, img_w, img_h)
-
-
-                view_w = self.views[plane_idx].viewport().width()
-                view_h = self.views[plane_idx].viewport().height()
-
-                # Calcola fattori di scala base per adattare l'immagine
-                scale_x = view_w / img_w
-                scale_y = view_h / img_h
-
-                # Mantieni il rapporto minimo per adattare l'immagine completamente
-                base_scale = min(scale_x, scale_y)
-
-                # Calcola rapporto immagine
+                # Calcola rapporto
                 aspect_ratio = img_w / img_h if img_h > 0 else 1.0
                 inv_aspect_ratio = img_h / img_w if img_w > 0 else 1.0
 
-                # Stretch per immagini molto "piatte" (larghezza >> altezza)
-                if aspect_ratio > 3.0:
-                    # logaritmo per scalare in maniera dolce
-                    stretch_factor_y = min(2.5, 1.0 + 0.5 * np.log10(aspect_ratio / 3.0 + 1))
+                # Stretch aggressivo se molto schiacciata
+                if aspect_ratio > 2.0:
+                    stretch_factor_y = min(4.0, 1.0 + 1.2 * np.log1p(aspect_ratio / 2.0))
                     stretch_factor_x = 1.0
-
-                # Stretch per immagini molto "strette" (altezza >> larghezza)
-                elif inv_aspect_ratio > 3.0:
-                    stretch_factor_x = min(2.5, 1.0 + 0.5 * np.log10(inv_aspect_ratio / 3.0 + 1))
+                elif inv_aspect_ratio > 2.0:
+                    stretch_factor_x = min(4.0, 1.0 + 1.2 * np.log1p(inv_aspect_ratio / 2.0))
                     stretch_factor_y = 1.0
-
                 else:
-                    # Nessun stretch se il rapporto è vicino a 1
                     stretch_factor_x = 1.0
                     stretch_factor_y = 1.0
 
-                # Salva fattori di scala per questo piano
+                # Applica stretch solo sull'immagine
+                qimage_stretched = qimage.scaled(
+                    int(img_w * stretch_factor_x),
+                    int(img_h * stretch_factor_y),
+                    Qt.AspectRatioMode.IgnoreAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+
                 self.stretch_factors[plane_idx] = (stretch_factor_x, stretch_factor_y)
+                # Aggiorna pixmap nella scena
+                self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage_stretched))
+                self.scenes[plane_idx].setSceneRect(0, 0, qimage_stretched.width(), qimage_stretched.height())
 
-
-                # Crea trasformazione
-                transform = QTransform()
-                transform.scale(base_scale * stretch_factor_x, base_scale * stretch_factor_y)
-
-                # Applica trasformazione alla view
-                self.views[plane_idx].setTransform(transform)
+                # Adatta la view alla nuova immagine mantenendo proporzioni
+                self.views[plane_idx].fitInView(self.scenes[plane_idx].sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
 
         except Exception as e:
