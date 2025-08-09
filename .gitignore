@@ -6,3 +6,4 @@
 *.pyc
 /.venv
 *.pyc
+/ui/__pycache__
