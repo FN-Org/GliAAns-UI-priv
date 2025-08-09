@@ -41,17 +41,20 @@ from numba import njit, prange
 
 
 @njit(parallel=True)
-def compute_mask_numba(img, x0, y0, z0, radius_vox, seed_intensity, diff,
-                       x_min, x_max, y_min, y_max, z_min, z_max):
+def compute_mask_numba_mm(img, x0, y0, z0, radius_mm, voxel_sizes,
+                          seed_intensity, diff,
+                          x_min, x_max, y_min, y_max, z_min, z_max):
     mask = np.zeros(img.shape, dtype=np.uint8)
-    r2 = radius_vox * radius_vox
+    r2 = radius_mm * radius_mm
+    vx, vy, vz = voxel_sizes  # mm per asse
+
     for x in prange(x_min, x_max):
         for y in range(y_min, y_max):
             for z in range(z_min, z_max):
-                dx = x - x0
-                dy = y - y0
-                dz = z - z0
-                if dx * dx + dy * dy + dz * dz <= r2:  # dentro al raggio
+                dx_mm = (x - x0) * vx
+                dy_mm = (y - y0) * vy
+                dz_mm = (z - z0) * vz
+                if dx_mm * dx_mm + dy_mm * dy_mm + dz_mm * dz_mm <= r2:
                     if abs(img[x, y, z] - seed_intensity) <= diff:
                         mask[x, y, z] = 1
     return mask
@@ -262,6 +265,7 @@ class NiftiViewer(QMainWindow):
         self.current_coordinates = [0, 0, 0]  # x, y, z in image space
         self.file_path = None
         self.stretch_factors = {}
+        self.voxel_sizes = None
 
         # Overlay data
         self.overlay_data = None
@@ -1193,6 +1197,7 @@ class NiftiViewer(QMainWindow):
         self.dims = dims
         self.affine = affine
         self.is_4d = is_4d
+        self.voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))  # mm/voxel
 
         # Update file info
         filename = os.path.basename(self.file_path)
@@ -1545,7 +1550,7 @@ class NiftiViewer(QMainWindow):
                 view.set_crosshair_position(x, y)
 
     def update_display(self, plane_idx):
-        """Update a specific plane display with matplotlib-style rendering"""
+        """Update a specific plane display with matplotlib-style rendering in mm scale"""
         if self.img_data is None:
             return
 
@@ -1556,39 +1561,37 @@ class NiftiViewer(QMainWindow):
             else:
                 current_data = self.img_data
 
-            # Extract slice with correct orientation
             slice_idx = self.current_slices[plane_idx]
 
-            if plane_idx == 0:  # Axial (XY plane)
+            if plane_idx == 0:  # Axial (XY)
                 slice_data = current_data[:, :, slice_idx].T
-                # Flip vertically for correct orientation
                 slice_data = np.flipud(slice_data)
-            elif plane_idx == 1:  # Coronal (XZ plane)
+                pixel_spacing = self.voxel_sizes[0:2]  # X, Y
+            elif plane_idx == 1:  # Coronal (XZ)
                 slice_data = current_data[:, slice_idx, :].T
-                # Flip vertically for correct orientation
                 slice_data = np.flipud(slice_data)
-            elif plane_idx == 2:  # Sagittal (YZ plane)
+                pixel_spacing = (self.voxel_sizes[0], self.voxel_sizes[2])  # X, Z
+            elif plane_idx == 2:  # Sagittal (YZ)
                 slice_data = current_data[slice_idx, :, :].T
-                # Flip vertically for correct orientation
                 slice_data = np.flipud(slice_data)
+                pixel_spacing = self.voxel_sizes[1:3]  # Y, Z
             else:
                 return
 
-            # Get overlay slice if available
-            # TODO: Check the orientation of the overlay
+            # Overlay
             overlay_slice = None
             if self.overlay_enabled and self.overlay_data is not None:
-                if plane_idx == 0:  # Axial
+                if plane_idx == 0:
                     overlay_slice = self.overlay_data[:, :, slice_idx].T
                     overlay_slice = np.flipud(overlay_slice)
-                elif plane_idx == 1:  # Coronal
+                elif plane_idx == 1:
                     overlay_slice = self.overlay_data[:, slice_idx, :].T
                     overlay_slice = np.flipud(overlay_slice)
-                elif plane_idx == 2:  # Sagittal
+                elif plane_idx == 2:
                     overlay_slice = self.overlay_data[slice_idx, :, :].T
                     overlay_slice = np.flipud(overlay_slice)
 
-            # Create composite image with overlay if enabled
+            # Create composite
             height, width = slice_data.shape
             normalized_data = self.normalize_data_matplotlib_style(slice_data)
             rgba_image = self.apply_colormap_matplotlib(normalized_data, self.colormap)
@@ -1596,44 +1599,32 @@ class NiftiViewer(QMainWindow):
                 rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
 
             rgba_data_uint8 = (rgba_image * 255).astype(np.uint8)
-
             qimage = QImage(rgba_data_uint8.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
 
             if qimage is not None:
-                # Dimensione originale
-                img_w = qimage.width()
-                img_h = qimage.height()
+                img_w, img_h = qimage.width(), qimage.height()
 
-                # Calcola rapporto
-                aspect_ratio = img_w / img_h if img_h > 0 else 1.0
-                inv_aspect_ratio = img_h / img_w if img_w > 0 else 1.0
+                # Scaling in mm
+                phys_w = img_w * pixel_spacing[0]  # mm
+                phys_h = img_h * pixel_spacing[1]  # mm
 
-                # Stretch aggressivo se molto schiacciata
-                if aspect_ratio > 2.0:
-                    stretch_factor_y = min(4.0, 1.0 + 1.2 * np.log1p(aspect_ratio / 2.0))
-                    stretch_factor_x = 1.0
-                elif inv_aspect_ratio > 2.0:
-                    stretch_factor_x = min(4.0, 1.0 + 1.2 * np.log1p(inv_aspect_ratio / 2.0))
-                    stretch_factor_y = 1.0
-                else:
-                    stretch_factor_x = 1.0
-                    stretch_factor_y = 1.0
+                # Fattori di scala per mantenere proporzioni reali
+                scale_x = phys_w / phys_w  # sarà 1.0
+                scale_y = phys_h / phys_w  # normalizzo rispetto a X
 
-                # Applica stretch solo sull'immagine
-                qimage_stretched = qimage.scaled(
-                    int(img_w * stretch_factor_x),
-                    int(img_h * stretch_factor_y),
+                # Applica il ridimensionamento in mm
+                qimage_scaled = qimage.scaled(
+                    int(img_w),
+                    int(img_h * (pixel_spacing[1] / pixel_spacing[0])),
                     Qt.AspectRatioMode.IgnoreAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
 
-                self.stretch_factors[plane_idx] = (stretch_factor_x, stretch_factor_y)
-                # Aggiorna pixmap nella scena
-                self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage_stretched))
-                self.scenes[plane_idx].setSceneRect(0, 0, qimage_stretched.width(), qimage_stretched.height())
-
-                # Adatta la view alla nuova immagine mantenendo proporzioni
+                self.stretch_factors[plane_idx] = (1.0, pixel_spacing[1] / pixel_spacing[0])
+                self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage_scaled))
+                self.scenes[plane_idx].setSceneRect(0, 0, qimage_scaled.width(), qimage_scaled.height())
                 self.views[plane_idx].fitInView(self.scenes[plane_idx].sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
 
 
         except Exception as e:
@@ -1819,17 +1810,33 @@ class NiftiViewer(QMainWindow):
             self.update_all_displays()
 
     def automaticROI_clicked(self):
+
+        self.automaticROI_seed_coordinates = self.current_coordinates
+
+        # Maximum radius in mm
+        # Calcola le dimensioni reali (in mm) dell'immagine lungo X, Y, Z
+        dims_voxel = self.dims[:3]  # numero di voxel lungo X, Y, Z
+        dims_mm = dims_voxel * self.voxel_sizes  # dimensioni reali in mm
+        # Trova il lato più corto in mm e lo dimezza per avere il raggio massimo
+        max_radius_mm = np.min(dims_mm) / 2
+        # Imposta il massimo dello slider (in mm)
+        self.automaticROI_radius_slider.setMaximum(int(max_radius_mm))
+
+        self.automaticROI_radius_slider.setValue(
+            32 if not self.automaticROI_overlay else self.automaticROI_radius_slider.value()
+        )
+
+        max_diff = int((self.img_data.max() - self.img_data.min()) / 2)
+        self.automaticROI_diff_slider.setMaximum(max_diff)
+        self.automaticROI_diff_slider.setValue(
+            int(max_diff * (16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
+        )
+        self.automaticROI_sliders_group.setVisible(True)
+        self.automaticROI_sliders_group.setEnabled(True)
         self.automaticROIbtn.setText("Reset Origin")
         self.automaticROI_overlay = True
         self.automaticROI_save_btn.setEnabled(True)
-        self.automaticROI_seed_coordinates = self.current_coordinates
-        self.automaticROI_radius_slider.setMaximum(int(min(self.dims)/2))
-        self.automaticROI_radius_slider.setValue(32)
-        max_diff = int((self.img_data.max()-self.img_data.min())/2)
-        self.automaticROI_diff_slider.setMaximum(max_diff)
-        self.automaticROI_diff_slider.setValue(int(max_diff*(16/100)))
-        self.automaticROI_sliders_group.setVisible(True)
-        self.automaticROI_sliders_group.setEnabled(True)
+
         self.automaticROI_drawing()
 
         self.overlay_info_label.setText(
@@ -1842,31 +1849,30 @@ class NiftiViewer(QMainWindow):
         self.update_all_displays()
 
     def automaticROI_drawing(self):
-        radius = self.automaticROI_radius_slider.value()
+        radius_mm = self.automaticROI_radius_slider.value()  # già in mm
         difference = self.automaticROI_diff_slider.value()
         x0, y0, z0 = self.automaticROI_seed_coordinates
 
-        # Usa immagine corretta (3D o 4D)
         img_data = self.img_data[..., self.current_time] if self.is_4d else self.img_data
-
-        # Conversione raggio da mm a voxel
-        voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))
-        radius_vox = radius / np.mean(voxel_sizes)
 
         # Intensità al punto di origine
         seed_intensity = img_data[x0, y0, z0]
 
-        # Bounding box attorno al raggio
-        r = int(np.ceil(radius_vox))
-        x_min, x_max = max(0, x0 - r), min(img_data.shape[0], x0 + r + 1)
-        y_min, y_max = max(0, y0 - r), min(img_data.shape[1], y0 + r + 1)
-        z_min, z_max = max(0, z0 - r), min(img_data.shape[2], z0 + r + 1)
+        # Estensione in voxel per asse, convertendo il raggio mm
+        rx_vox = int(np.ceil(radius_mm / self.voxel_sizes[0]))
+        ry_vox = int(np.ceil(radius_mm / self.voxel_sizes[1]))
+        rz_vox = int(np.ceil(radius_mm / self.voxel_sizes[2]))
+
+        x_min, x_max = max(0, x0 - rx_vox), min(img_data.shape[0], x0 + rx_vox + 1)
+        y_min, y_max = max(0, y0 - ry_vox), min(img_data.shape[1], y0 + ry_vox + 1)
+        z_min, z_max = max(0, z0 - rz_vox), min(img_data.shape[2], z0 + rz_vox + 1)
 
         # Calcolo parallelo con numba
-        mask = compute_mask_numba(img_data, x0, y0, z0, radius_vox, seed_intensity, difference,
-                                  x_min, x_max, y_min, y_max, z_min, z_max)
+        mask = compute_mask_numba_mm(img_data, x0, y0, z0,
+                                     radius_mm, self.voxel_sizes,
+                                     seed_intensity, difference,
+                                     x_min, x_max, y_min, y_max, z_min, z_max)
 
-        # Salva il risultato
         self.overlay_data = mask
 
     def automaticROI_save(self):
