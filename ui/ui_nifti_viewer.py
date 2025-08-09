@@ -1695,9 +1695,11 @@ class NiftiViewer(QMainWindow):
 
                 # Calcolo della serie temporale media
                 time_series = roi_voxels.mean(axis=0)  # shape: (T,)
+                std_series = roi_voxels.std(axis=0)
             else:
                 # Extract time series data for current voxel
                 time_series = self.img_data[coords[0], coords[1], coords[2], :]
+                std_series = None
             time_points = np.arange(self.dims[3])
 
             # Clear and plot
@@ -1706,6 +1708,8 @@ class NiftiViewer(QMainWindow):
 
             # Plot time series
             self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=_t("NIfTIViewer",'Concentration'))
+            if std_series is not None:
+                self.time_plot_axes.fill_between(time_points, time_series - std_series, time_series + std_series, alpha=0.2, color='c')
 
             # Add current time indicator
             self.time_indicator_line = self.time_plot_axes.axvline(
