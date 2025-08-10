@@ -1730,26 +1730,37 @@ class NiftiViewer(QMainWindow):
     def update_time_series_plot(self):
         """Update the time series plot with current voxel data"""
 
-        # TODO: you should show the graph of the overlay mean only of the things that don't exceed the threshold value
         if not self.is_4d or self.time_plot_canvas is None or self.img_data is None:
             return
 
         try:
             coords = self.current_coordinates
             bool_in_mask = False
-            if self.overlay_data is not None and self.overlay_data[coords[0],coords[1],coords[2]] > 0 and self.overlay_enabled:
-                bool_in_mask = True
-                mask = (self.overlay_data > 0)  # True dove overlay > 0
-                # Estrazione dei voxel della ROI
-                roi_voxels = self.img_data[mask, :]  # shape: (N_voxels, T)
+            if self.overlay_data is not None and self.overlay_enabled:
+                # Normalizza overlay_data in modo coerente
+                overlay_norm = self.normalize_data_matplotlib_style(self.overlay_data)
 
-                # Calcolo della serie temporale media
-                time_series = roi_voxels.mean(axis=0)  # shape: (T,)
-                std_series = roi_voxels.std(axis=0)
+                # Calcola mask thresholded
+                overlay_max = np.max(overlay_norm) if np.max(overlay_norm) > 0 else 1
+                threshold_value = self.overlay_threshold * overlay_max
+                threshold_mask = overlay_norm > threshold_value
+
+                if threshold_mask[coords[0], coords[1], coords[2]]:
+                    bool_in_mask = True
+                    # Usa il mask thresholded per la ROI
+                    roi_voxels = self.img_data[threshold_mask, :]  # shape: (N_voxels, T)
+
+                    time_series = roi_voxels.mean(axis=0)
+                    std_series = roi_voxels.std(axis=0)
+                else:
+                    # Voxel singolo fuori soglia, prendi la serie singola
+                    time_series = self.img_data[coords[0], coords[1], coords[2], :]
+                    std_series = None
             else:
-                # Extract time series data for current voxel
+                # Caso overlay non abilitato o non disponibile
                 time_series = self.img_data[coords[0], coords[1], coords[2], :]
                 std_series = None
+
             time_points = np.arange(self.dims[3])
 
             # Clear and plot
@@ -2016,7 +2027,6 @@ class NiftiViewer(QMainWindow):
         # Clear image data to free memory
         self.img_data = None
         self.overlay_data = None
-
 
 
         gc.collect()
