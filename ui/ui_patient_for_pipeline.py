@@ -3,6 +3,7 @@ import os
 import glob
 
 from PyQt6 import QtWidgets, QtGui
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
                              QFrame, QGridLayout, QHBoxLayout, QMessageBox, QGroupBox,
                              QTextEdit, QSplitter)
@@ -103,39 +104,70 @@ class PipelinePatientSelectionPage(WizardPage):
         self._load_patients()
 
     def _create_summary_widget(self):
-        """Crea il widget per il resoconto dei pazienti"""
+        """Crea il widget per il resoconto dei pazienti in stile moderno"""
         summary_frame = QFrame()
         summary_frame.setObjectName("summaryCard")
         summary_frame.setStyleSheet("""
             QFrame#summaryCard {
-                border: 1px solid #bdc3c7;
-                border-radius: 10px;
+                border: 1px solid #e0e0e0;
+                border-radius: 12px;
                 background-color: #ffffff;
-                padding: 5px;
+                padding: 10px;
             }
         """)
 
-        summary_layout = QVBoxLayout(summary_frame)
+        main_layout = QVBoxLayout(summary_frame)
 
-        summary_title = QLabel("Pipeline Requirements Summary")
-        summary_title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
-        summary_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        summary_layout.addWidget(summary_title)
+        title = QLabel("Pipeline Requirements Summary")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 10px;")
+        main_layout.addWidget(title)
 
-        self.summary_text = QLabel()
-        self.summary_text.setStyleSheet("""
-            QLabel {
-                border: 1px solid #CCCCCC;
-                border-radius: 5px;
-                padding-left: 20px;
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 13px;
-                background-color: #f8f8f8;
-            }
-        """)
-        summary_layout.addWidget(self.summary_text)
+        # Layout delle "pillole" informative
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(15)
+
+        self.total_label = self._create_stat_pill("./resources/icon_total.png", "Total Patients", "0")
+        self.eligible_label = self._create_stat_pill("./resources/icon_check.png", "Eligible", "0", color="#27ae60")
+        self.not_eligible_label = self._create_stat_pill("./resources/icon_cross.png", "Not Eligible", "0",
+                                                         color="#c0392b")
+
+        stats_layout.addWidget(self.total_label)
+        stats_layout.addWidget(self.eligible_label)
+        stats_layout.addWidget(self.not_eligible_label)
+
+        main_layout.addLayout(stats_layout)
 
         return summary_frame
+
+    def _create_stat_pill(self, icon_path, label_text, value_text, color="#34495e"):
+        """Crea una card con icona, etichetta e valore"""
+        pill = QFrame()
+        pill.setObjectName("summaryCard")
+        pill.setStyleSheet(f"""
+            QFrame#summaryCard {{
+                border: 1px solid #CCCCCC;
+                border-radius: 10px;
+                background-color: #f9f9f9;
+            }}
+        """)
+        layout = QVBoxLayout(pill)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        label = QLabel(label_text)
+        label.setStyleSheet("font-size: 13px; font-weight: bold;")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        value = QLabel(value_text)
+        value.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
+        value.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(label)
+        layout.addWidget(value)
+
+        # Lo salvo per poter aggiornare dinamicamente il valore
+        pill.value_label = value
+        return pill
 
     def _check_patient_requirements(self, patient_path, patient_id):
         """Verifica i requisiti per un paziente specifico"""
@@ -398,14 +430,9 @@ class PipelinePatientSelectionPage(WizardPage):
         return patient_frame
 
     def _update_summary(self, eligible_count, total_count):
-        """Aggiorna il resoconto nel pannello laterale"""
-        summary_text = f"""
-Total Patients: {total_count}
-Eligible for Pipeline: {eligible_count}
-Not Eligible: {total_count - eligible_count}
-"""
-
-        self.summary_text.setText(summary_text)
+        self.total_label.value_label.setText(str(total_count))
+        self.eligible_label.value_label.setText(str(eligible_count))
+        self.not_eligible_label.value_label.setText(str(total_count - eligible_count))
 
     def _select_all_eligible_patients(self):
         """Seleziona tutti i pazienti eligible"""
