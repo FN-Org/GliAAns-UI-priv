@@ -1733,6 +1733,8 @@ class NiftiViewer(QMainWindow):
 
     def update_time_series_plot(self):
         """Update the time series plot with current voxel data"""
+
+        # TODO: you should show the graph of the overlay mean only of the things that don't exceed the threshold value
         if not self.is_4d or self.time_plot_canvas is None or self.img_data is None:
             return
 
