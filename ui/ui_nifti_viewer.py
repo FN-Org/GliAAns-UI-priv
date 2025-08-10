@@ -10,7 +10,6 @@ import numpy as np
 import nibabel as nib
 from PyQt6 import QtCore
 from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
-from nibabel.processing import resample_from_to
 
 try:
     from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
