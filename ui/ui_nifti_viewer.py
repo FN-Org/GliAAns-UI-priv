@@ -1,7 +1,6 @@
 """
 NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D files
 """
-import re
 import sys
 import os
 import gc
@@ -9,7 +8,6 @@ import json
 import numpy as np
 import nibabel as nib
 from PyQt6 import QtCore
-from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
 
 try:
     from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -18,7 +16,7 @@ try:
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
                                  QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea, QDialog, QLineEdit,
                                  QListWidget, QDialogButtonBox, QListWidgetItem, QGroupBox)
-    from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
+    from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication, QRectF
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent, QTransform)
     from matplotlib.figure import Figure
@@ -227,7 +225,7 @@ class NiftiViewer(QMainWindow):
     def __init__(self, context=None):
         super().__init__()
 
-        self.load_thread = []
+        self.load_threads = []
         self.context = context
 
         self.progress_dialog = None
@@ -1167,11 +1165,11 @@ class NiftiViewer(QMainWindow):
             self.progress_dialog.setMinimumDuration(0)
 
             # Start loading thread
-            self.load_thread = ImageLoadThread(file_path,is_overlay)
-            self.load_thread.finished.connect(self.on_file_loaded)
-            self.load_thread.error.connect(self.on_load_error)
-            self.load_thread.progress.connect(self.progress_dialog.setValue)
-            self.load_thread.start()
+            self.load_threads.append(ImageLoadThread(file_path,is_overlay))
+            self.load_threads[-1].finished.connect(self.on_file_loaded)
+            self.load_threads[-1].error.connect(self.on_load_error)
+            self.load_threads[-1].progress.connect(self.progress_dialog.setValue)
+            self.load_threads[-1].start()
 
             if is_overlay:
                 self.overlay_file_path = file_path
@@ -1181,7 +1179,6 @@ class NiftiViewer(QMainWindow):
     def on_file_loaded(self, img_data, dims, affine, is_4d, is_overlay):
         """Handle successful file loading"""
         self.progress_dialog.close()
-
         if is_overlay:
             # Salva overlay
             self.overlay_data = img_data
@@ -2009,12 +2006,19 @@ class NiftiViewer(QMainWindow):
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads
-        if hasattr(self, 'load_thread') and self.load_thread.isRunning():
-            self.load_thread.terminate()
-            self.load_thread.wait()
+        if hasattr(self, 'load_threads'):
+            for i in range(len(self.load_threads)):
+                if self.load_threads[i].isRunning():
+                    self.load_threads[i].terminate()
+                    self.load_threads[i].wait()
+                    self.load_threads[i].deleteLater()
 
         # Clear image data to free memory
         self.img_data = None
+        self.overlay_data = None
+
+
+
         gc.collect()
 
         event.accept()
