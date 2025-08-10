@@ -11,7 +11,6 @@ import nibabel as nib
 from PyQt6 import QtCore
 from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
 
-
 try:
     from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                  QLabel, QSlider, QPushButton, QFileDialog, QSpinBox,
@@ -76,14 +75,15 @@ def apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_col
 
 
 class ImageLoadThread(QThread):
-    """Thread for loading large NIfTI files without blocking the UI"""
-    finished = pyqtSignal(object, object, object, bool)  # img_data, dims, affine, is_4d
+    """Thread for loading large NIfTI files without blocking the UI - VERSIONE MODIFICATA"""
+    finished = pyqtSignal( object, object, object, bool, bool)  # img_data, dims, affine, is_4d
     error = pyqtSignal(str)
     progress = pyqtSignal(int)
 
-    def __init__(self, file_path):
+    def __init__(self, file_path,is_overlay):
         super().__init__()
         self.file_path = file_path
+        self.is_overlay = is_overlay
 
     def run(self):
         try:
@@ -96,50 +96,28 @@ class ImageLoadThread(QThread):
             if not isinstance(img, (nib.Nifti1Image, nib.Nifti2Image)):
                 raise ValueError(_t("NIfTIViewer","Not a valid NIfTI file"))
 
-            # Get dimensions and affine
-            dims = img.header.get_data_shape()
-            affine = img.affine
-            is_4d = len(dims) == 4
+
+            canonical_img = nib.as_closest_canonical(img)
+
             self.progress.emit(50)
 
-            # Load full data
-            img_data = np.asarray(img.dataobj)
+            # Get dimensions and affine
+            dims = canonical_img.header.get_data_shape()
+
+            is_4d = len(dims) == 4
 
             self.progress.emit(80)
 
-            # Ensure proper orientation (RAS+)
-            if not is_4d:
-                img_data = self._reorient_to_ras(img_data, affine)
-            else:
-                # For 4D data, reorient each volume
-                reoriented_data = np.zeros_like(img_data)
-                for t in range(dims[3]):
-                    reoriented_data[..., t] = self._reorient_to_ras(img_data[..., t], affine)
-                img_data = reoriented_data
+            # Load full data
+            img_data = np.asarray(canonical_img.dataobj)
+            affine = canonical_img.affine
 
             self.progress.emit(100)
 
-            self.finished.emit(img_data, dims, affine, is_4d)
+            self.finished.emit(img_data, dims, affine, is_4d, self.is_overlay)
 
         except Exception as e:
             self.error.emit(str(e))
-
-    def _reorient_to_ras(self, data, affine):
-        """Reorient image data to RAS+ orientation"""
-        try:
-            # Get current orientation
-            ornt = io_orientation(affine)
-            # Convert to RAS+
-            ras_ornt = axcodes2ornt("RAS")
-            # Calculate transformation
-            transform = ornt_transform(ornt, ras_ornt)
-            # Apply transformation
-            data = apply_orientation(data, transform)
-            return data
-        except Exception:
-            # If reorientation fails, return original data
-            return data
-
 
 class CrosshairGraphicsView(QGraphicsView):
     """Custom QGraphicsView with crosshair support and coordinate capture"""
@@ -248,6 +226,8 @@ class NiftiViewer(QMainWindow):
 
     def __init__(self, context=None):
         super().__init__()
+
+        self.load_thread = []
         self.context = context
 
         self.progress_dialog = None
@@ -273,6 +253,7 @@ class NiftiViewer(QMainWindow):
         self.overlay_alpha = 0.7  # Default overlay transparency
         self.overlay_threshold = 0.1  # Only show overlay values above this threshold
         self.overlay_enabled = False
+        self.overlay_file_path = None
 
         # Planes
         self.plane_labels = None
@@ -923,7 +904,7 @@ class NiftiViewer(QMainWindow):
         """Setup signal-slot connections"""
         # File operations
         self.open_btn.clicked.connect(lambda: self.open_file())
-        self.overlay_btn.clicked.connect(self.open_overlay_file)
+        self.overlay_btn.clicked.connect(lambda: self.open_file(is_overlay=True))
         self.overlay_checkbox.toggled.connect(self.toggle_overlay)
         self.overlay_alpha_slider.valueChanged.connect(self.update_overlay_alpha)
         self.overlay_threshold_slider.valueChanged.connect(self.update_overlay_threshold)
@@ -1156,11 +1137,19 @@ class NiftiViewer(QMainWindow):
             return selected_file
         return None
 
-    def open_file(self, file_path=None):
+    def open_file(self, file_path=None, is_overlay = False):
         """Open a NIfTI file with progress dialog
         Args:
+            is_overlay: (bool, optional): true if a overlay file is opening
             file_path (str, optional): Path to the file to open. If None, shows file dialog.
         """
+        if is_overlay and self.img_data is None:
+            QMessageBox.warning(
+                self,
+                _t("NIfTIViewer", "Warning"),
+                _t("NIfTIViewer", "Please load a base image first!")
+            )
+            return
         # If no file path provided, show file dialog
         if file_path is None:
             file_path = self.show_workspace_nii_dialog()
@@ -1178,54 +1167,94 @@ class NiftiViewer(QMainWindow):
             self.progress_dialog.setMinimumDuration(0)
 
             # Start loading thread
-            self.load_thread = ImageLoadThread(file_path)
+            self.load_thread = ImageLoadThread(file_path,is_overlay)
             self.load_thread.finished.connect(self.on_file_loaded)
             self.load_thread.error.connect(self.on_load_error)
             self.load_thread.progress.connect(self.progress_dialog.setValue)
             self.load_thread.start()
 
-            self.file_path = file_path
+            if is_overlay:
+                self.overlay_file_path = file_path
+            else:
+                self.file_path = file_path
 
-    def on_file_loaded(self, img_data, dims, affine, is_4d):
+    def on_file_loaded(self, img_data, dims, affine, is_4d, is_overlay):
         """Handle successful file loading"""
         self.progress_dialog.close()
 
-        # Automatic ROI and Overlay resetting
-        self.reset_overlay()
+        if is_overlay:
+            # Salva overlay
+            self.overlay_data = img_data
+            self.overlay_dims = dims
 
-        self.img_data = img_data
-        self.dims = dims
-        self.affine = affine
-        self.is_4d = is_4d
-        self.voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))  # mm/voxel
+            # Disabilita controlli Automatic ROI
+            self.automaticROI_overlay = False
+            self.automaticROI_save_btn.setEnabled(False)
+            self.automaticROI_sliders_group.setEnabled(False)
+            self.automaticROI_sliders_group.setVisible(False)
 
-        # Update file info
-        filename = os.path.basename(self.file_path)
-        if is_4d:
-            info_text = _t("NIfTIViewer","File")+ f":{filename}\n"+_t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t("NIfTIViewer","4D Time Series")
-            self.time_group.setVisible(True)
-            self.time_checkbox.setChecked(True)
-            self.time_checkbox.setEnabled(True)
-            self.setup_time_series_plot()
+            # Aggiorna label info overlay
+            filename = os.path.basename(self.overlay_file_path)
+            self.overlay_info_label.setText(
+                f"Overlay: {filename}\n" +
+                _t("NIfTIViewer", "Dimensions") +
+                f":{self.overlay_dims}"
+            )
+
+            # Attiva overlay in UI
+            self.toggle_overlay(True)
+            self.overlay_checkbox.setChecked(True)
+            self.overlay_checkbox.setEnabled(True)
+
+            # Aggiorna visualizzazione
+            self.update_overlay_settings()
+            self.update_all_displays()
+
+            # Messaggio nella status bar
+            self.status_bar.showMessage(
+                _t("NIfTIViewer", "Overlay loaded") + f":{filename}"
+            )
         else:
-            info_text = _t("NIfTIViewer","File")+ f":{filename}\n" + _t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n"+ _t("NIfTIViewer","3D Volume")
-            self.time_group.setVisible(False)
-            self.time_checkbox.setChecked(False)
-            self.time_checkbox.setEnabled(False)
-            self.hide_time_series_plot()
+            # Automatic ROI and Overlay resetting
+            self.reset_overlay()
+            self.img_data = img_data
+            self.dims = dims
+            self.affine = affine
+            self.is_4d = is_4d
+            self.voxel_sizes = np.sqrt((self.affine[:3, :3] ** 2).sum(axis=0))  # mm/voxel
 
-        self.status_bar.clearMessage()
-        self.status_bar.addWidget(self.coord_label)
-        self.status_bar.addPermanentWidget(self.slice_info_label)
-        self.status_bar.addPermanentWidget(self.value_label)
+            # Update file info
+            filename = os.path.basename(self.file_path)
+            if is_4d:
+                info_text = _t("NIfTIViewer", "File") + f":{filename}\n" + _t("NIfTIViewer",
+                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t(
+                    "NIfTIViewer", "4D Time Series")
+                self.time_group.setVisible(True)
+                self.time_checkbox.setChecked(True)
+                self.time_checkbox.setEnabled(True)
+                self.setup_time_series_plot()
+            else:
+                info_text = _t("NIfTIViewer", "File") + f":{filename}\n" + _t("NIfTIViewer",
+                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n" + _t(
+                    "NIfTIViewer", "3D Volume")
+                self.time_group.setVisible(False)
+                self.time_checkbox.setChecked(False)
+                self.time_checkbox.setEnabled(False)
+                self.hide_time_series_plot()
 
-        self.automaticROIbtn.setEnabled(True)
-        self.automaticROIbtn.setText("Automatic ROI")
+            self.status_bar.clearMessage()
+            self.status_bar.addWidget(self.coord_label)
+            self.status_bar.addPermanentWidget(self.slice_info_label)
+            self.status_bar.addPermanentWidget(self.value_label)
 
-        self.file_info_label.setText(info_text)
-        self.info_text.setText(info_text)
+            self.automaticROIbtn.setEnabled(True)
+            self.automaticROIbtn.setText("Automatic ROI")
 
-        self.initialize_display()
+            self.file_info_label.setText(info_text)
+            self.info_text.setText(info_text)
+
+            self.initialize_display()
+
 
     def on_load_error(self, error_message):
         """Handle file loading errors"""
@@ -1271,99 +1300,114 @@ class NiftiViewer(QMainWindow):
         # Enable overlay controls when base image is loaded
         self.overlay_btn.setEnabled(True)
 
-    def open_overlay_file(self):
-        """Open a NIfTI overlay file"""
+    def open_overlay_file(self, overlay_path=None):
+        """Open and align a NIfTI overlay file to the base image."""
         if self.img_data is None:
-            QMessageBox.warning(self, _t("NIfTIViewer","Warning"), _t("NIfTIViewer","Please load a base image first!"))
+            QMessageBox.warning(
+                self,
+                _t("NIfTIViewer", "Warning"),
+                _t("NIfTIViewer", "Please load a base image first!")
+            )
             return
 
-        file_path = self.show_workspace_nii_dialog()
-        if not file_path:
-            return
+        # Se non fornito, chiedi file
+        if overlay_path is None:
+            overlay_path = self.show_workspace_nii_dialog()
+            if not overlay_path:
+                return
 
-        if file_path:
-            try:
-                # Load overlay NIfTI file
-                overlay_img = nib.load(file_path)
-                overlay_data = np.array(overlay_img.dataobj)
-                overlay_dims = overlay_data.shape
+        try:
+            # Carica overlay
+            overlay_img = nib.load(overlay_path)
 
-                # Check dimensions compatibility
-                base_dims = self.dims[:3] if self.is_4d else self.dims
-                overlay_dims_3d = overlay_dims[:3] if len(overlay_dims) > 3 else overlay_dims
-
-                if overlay_dims_3d != base_dims:
-                    QMessageBox.warning(self, _t("NIfTIViewer","Dimension Mismatch"),
-                                        _t("NIfTIViewer","Overlay dimensions") +  f"{overlay_dims_3d}" + _t("NIfTIViewer","don't match base image dimensions")+f"{base_dims}") # the overlay will be padded")
-                    return
-
-                    # TODO : check for padding necessity
-                    #diff_dim = np.array(base_dims) - np.array(overlay_dims_3d)
-
-                    #padding = [(d // 2, d - d // 2) for d in diff_dim]
-                    #if np.all(diff_dim >= 0):
-                    #    overlay_data = np.pad(overlay_data, padding, mode="constant", constant_values=0)
-
-                # Store overlay data (use only 3D part if 4D)
-                if len(overlay_dims) > 3:
-                    self.overlay_data = overlay_data[:, :, :, 0]  # Use first time point
-                else:
-                    self.overlay_data = overlay_data
-
-                # Disable Automatic ROI overlay things
-                self.automaticROI_overlay = False
-                self.automaticROI_save_btn.setEnabled(False)
-                self.automaticROI_sliders_group.setEnabled(False)
-                self.automaticROI_sliders_group.setVisible(False)
+            overlay_canonical_img = nib.as_closest_canonical(overlay_img)
 
 
-                self.overlay_dims = self.overlay_data.shape
 
-                # Update overlay info
-                filename = os.path.basename(file_path)
-                self.overlay_info_label.setText(f"Overlay: {filename}\n"+_t("NIfTIViewer","Dimensions") + f":{self.overlay_dims}")
+            # Salva overlay
+            self.overlay_data = overlay_canonical_img.get_fdata()
+            self.overlay_dims = self.overlay_data.shape
 
-                self.toggle_overlay(True)
-                self.overlay_checkbox.setChecked(True)
-                self.overlay_checkbox.setEnabled(True)
+            # Disabilita controlli Automatic ROI
+            self.automaticROI_overlay = False
+            self.automaticROI_save_btn.setEnabled(False)
+            self.automaticROI_sliders_group.setEnabled(False)
+            self.automaticROI_sliders_group.setVisible(False)
 
-                # Update displays
-                self.update_overlay_settings()
-                self.update_all_displays()
+            # Aggiorna label info overlay
+            filename = os.path.basename(overlay_path)
+            self.overlay_info_label.setText(
+                f"Overlay: {filename}\n" +
+                _t("NIfTIViewer", "Dimensions") +
+                f":{self.overlay_dims}"
+            )
 
-                self.status_bar.showMessage(_t("NIfTIViewer","Overlay loaded")+ f":{filename}")
+            # Attiva overlay in UI
+            self.toggle_overlay(True)
+            self.overlay_checkbox.setChecked(True)
+            self.overlay_checkbox.setEnabled(True)
 
-            except Exception as e:
-                QMessageBox.critical(self, _t("NIfTIViewer","Error"), _t("NIfTIViewer","Failed to load overlay")+f":\n{str(e)}")
+            # Aggiorna visualizzazione
+            self.update_overlay_settings()
+            self.update_all_displays()
+
+            # Messaggio nella status bar
+            self.status_bar.showMessage(
+                _t("NIfTIViewer", "Overlay loaded") + f":{filename}"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                _t("NIfTIViewer", "Error"),
+                _t("NIfTIViewer", "Failed to load overlay") + f":\n{str(e)}"
+            )
 
     def toggle_overlay(self, enabled):
-        """Toggle overlay display on/off"""
+        """Toggle overlay display on/off - VERSIONE MIGLIORATA"""
         self.overlay_enabled = enabled
-        self.overlay_alpha_slider.setEnabled(enabled)
-        self.overlay_alpha_spin.setEnabled(enabled)
-        self.overlay_threshold_slider.setEnabled(enabled)
-        self.overlay_threshold_spin.setEnabled(enabled)
-        if self.overlay_data is not None:
-            self.update_all_displays()
-            self.update_time_series_plot()
 
+        # Abilita/disabilita controlli
+        if hasattr(self, 'overlay_alpha_slider'):
+            self.overlay_alpha_slider.setEnabled(enabled)
+        if hasattr(self, 'overlay_alpha_spin'):
+            self.overlay_alpha_spin.setEnabled(enabled)
+        if hasattr(self, 'overlay_threshold_slider'):
+            self.overlay_threshold_slider.setEnabled(enabled)
+        if hasattr(self, 'overlay_threshold_spin'):
+            self.overlay_threshold_spin.setEnabled(enabled)
+
+        # Aggiorna visualizzazione solo se abbiamo dati overlay
+        if hasattr(self, 'overlay_data') and self.overlay_data is not None:
+            self.update_all_displays()
+            if hasattr(self, 'update_time_series_plot'):
+                self.update_time_series_plot()
 
     def update_overlay_alpha(self, value):
-        """Update overlay transparency"""
+        """Update overlay transparency - CON CONTROLLI MIGLIORATI"""
         self.overlay_alpha = value / 100.0
-        if self.overlay_enabled and self.overlay_data is not None:
+        if (self.overlay_enabled and
+                hasattr(self, 'overlay_data') and
+                self.overlay_data is not None):
             self.update_all_displays()
 
     def update_overlay_threshold(self, value):
-        """Update overlay threshold"""
+        """Update overlay threshold - CON CONTROLLI MIGLIORATI"""
         self.overlay_threshold = value / 100.0
-        if self.overlay_enabled and self.overlay_data is not None:
+        if (self.overlay_enabled and
+                hasattr(self, 'overlay_data') and
+                self.overlay_data is not None):
             self.update_all_displays()
 
     def update_overlay_settings(self):
-        """Update overlay settings from UI controls"""
-        self.overlay_alpha = self.overlay_alpha_slider.value() / 100.0
-        self.overlay_threshold = self.overlay_threshold_slider.value() / 100.0
+        """Update overlay settings from UI controls - VERSIONE MIGLIORATA"""
+        if hasattr(self, 'overlay_alpha_slider') and hasattr(self, 'overlay_threshold_slider'):
+            self.overlay_alpha = self.overlay_alpha_slider.value() / 100.0
+            self.overlay_threshold = self.overlay_threshold_slider.value() / 100.0
+
+            # Aggiorna visualizzazione solo se overlay è abilitato e dati esistono
+            if self.overlay_enabled and hasattr(self, 'overlay_data') and self.overlay_data is not None:
+                self.update_all_displays()
 
     def slice_changed(self, plane_idx, value):
         """Handle slice navigation"""
@@ -1675,12 +1719,21 @@ class NiftiViewer(QMainWindow):
     def hide_time_series_plot(self):
         """Hide time series plot for 3D data"""
         if self.time_plot_canvas is not None:
-            self.time_plot_canvas.hide()
-            self.fourth_title.setText(_t("NIfTIViewer","Image Information"))
+            # Rimuovi dal layout per evitare che rimanga "sporco"
+            self.fourth_content_layout.removeWidget(self.time_plot_canvas)
+            self.time_plot_canvas.setParent(None)
+            self.time_plot_canvas.deleteLater()
+            self.time_plot_canvas = None
+            self.time_plot_axes = None
+            self.time_plot_figure = None
+
+        self.fourth_title.setText(_t("NIfTIViewer", "Image Information"))
         self.info_text.show()
 
     def update_time_series_plot(self):
         """Update the time series plot with current voxel data"""
+
+        # TODO: you should show the graph of the overlay mean only of the things that don't exceed the threshold value
         if not self.is_4d or self.time_plot_canvas is None or self.img_data is None:
             return
 
@@ -2037,6 +2090,3 @@ class NiftiViewer(QMainWindow):
         self.info_text.setText(info_text)
 
         #if self.overlay_data is not None
-
-
-
