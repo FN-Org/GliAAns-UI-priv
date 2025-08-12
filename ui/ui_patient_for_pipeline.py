@@ -1,3 +1,4 @@
+import json
 import shutil
 import os
 import glob
@@ -9,6 +10,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollA
                              QTextEdit, QSplitter)
 from PyQt6.QtCore import Qt
 
+from ui.ui_pipeline_review import PipelineReviewPage
+from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 
 
@@ -556,6 +559,91 @@ class PipelinePatientSelectionPage(WizardPage):
         super().resizeEvent(event)
         self._update_column_count()
 
+    import json
+
+    def _build_pipeline_config(self):
+        """Crea e salva un file JSON con la configurazione iniziale della pipeline.
+        Tutti i path nel JSON sono relativi a workspace_path.
+        """
+        config = {}
+
+        for patient_id in self.selected_patients:
+            patient_entry = {}
+            need_revision = False  # Flag per capire se il medico deve rivedere
+
+            # MRI (FLAIR)
+            flair_patterns = [
+                os.path.join(self.workspace_path, patient_id, "anat", "*_flair.nii"),
+                os.path.join(self.workspace_path, patient_id, "anat", "*_flair.nii.gz")
+            ]
+            flair_files = []
+            for p in flair_patterns:
+                flair_files.extend(glob.glob(p))
+            if len(flair_files) > 1:
+                need_revision = True
+            patient_entry["mri"] = os.path.relpath(flair_files[0], self.workspace_path) if flair_files else None
+
+            # MRI Skull Stripped
+            mri_str_patterns = [
+                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat", "*_brain.nii"),
+                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat",
+                             "*_brain.nii.gz")
+            ]
+            mri_str_files = []
+            for p in mri_str_patterns:
+                mri_str_files.extend(glob.glob(p))
+            if len(mri_str_files) > 1:
+                need_revision = True
+            patient_entry["mri_str"] = os.path.relpath(mri_str_files[0], self.workspace_path) if mri_str_files else None
+
+            # PET statica
+            pet_patterns = [
+                os.path.join(self.workspace_path, patient_id, "ses-01", "pet", "*_pet.nii"),
+                os.path.join(self.workspace_path, patient_id, "ses-01", "pet", "*_pet.nii.gz")
+            ]
+            pet_files = []
+            for p in pet_patterns:
+                pet_files.extend(glob.glob(p))
+            if len(pet_files) > 1:
+                need_revision = True
+            patient_entry["pet"] = os.path.relpath(pet_files[0], self.workspace_path) if pet_files else None
+
+            # PET dinamica (facoltativa)
+            pet4d_patterns = [
+                os.path.join(self.workspace_path, patient_id, "ses-02", "pet", "*_pet.nii"),
+                os.path.join(self.workspace_path, patient_id, "ses-02", "pet", "*_pet.nii.gz")
+            ]
+            pet4d_files = []
+            for p in pet4d_patterns:
+                pet4d_files.extend(glob.glob(p))
+            if len(pet4d_files) > 1:
+                need_revision = True
+            patient_entry["pet4d"] = os.path.relpath(pet4d_files[0], self.workspace_path) if pet4d_files else None
+
+            # Tumor MRI (mask)
+            tumor_patterns = [
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz")
+            ]
+            tumor_files = []
+            for p in tumor_patterns:
+                tumor_files.extend(glob.glob(p))
+            if len(tumor_files) > 1:
+                need_revision = True
+            patient_entry["tumor_mri"] = os.path.relpath(tumor_files[0], self.workspace_path) if tumor_files else None
+
+            # Aggiunge la flag finale
+            patient_entry["need_revision"] = need_revision
+
+            config[patient_id] = patient_entry
+
+        # Salva JSON nel workspace
+        output_path = os.path.join(self.workspace_path, "pipeline_config.json")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4)
+
+        print(f"Pipeline configuration saved to: {output_path}")
+
     def on_enter(self):
         """Chiamato quando si entra nella pagina"""
         self._refresh_patient_status()
@@ -568,68 +656,16 @@ class PipelinePatientSelectionPage(WizardPage):
         """Verifica se si può tornare alla pagina precedente"""
         return True
 
-    # def next(self, context):
-    #     """Procede alla pagina successiva dopo aver rimosso i pazienti non selezionati"""
-    #     # Lista dei pazienti da eliminare (solo tra quelli eligible non selezionati)
-    #     eligible_patients = {pid for pid, status in self.patient_status.items() if status['eligible']}
-    #     to_delete = []
-    #
-    #     for pid in eligible_patients:
-    #         if pid not in self.selected_patients:
-    #             # Trova il path del paziente
-    #             patient_dirs = self._find_patient_dirs()
-    #             for patient_path in patient_dirs:
-    #                 if os.path.basename(patient_path) == pid:
-    #                     to_delete.append(patient_path)
-    #                     break
-    #
-    #     unselected_ids = [os.path.basename(p) for p in to_delete]
-    #
-    #     if to_delete:
-    #         reply = QMessageBox.question(
-    #             self,
-    #             "Confirm Cleanup",
-    #             f"{len(to_delete)} eligible but unselected patient(s) will be removed from the workspace.\n\n"
-    #             f"Selected patients: {len(self.selected_patients)}\n"
-    #             f"Eligible but unselected: {len(to_delete)}\n"
-    #             f"Not eligible (will remain): {len(self.patient_status) - len(eligible_patients)}\n\n"
-    #             f"Continue?",
-    #             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-    #         )
-    #
-    #         if reply == QMessageBox.StandardButton.No:
-    #             return None
-    #
-    #         # Rimuovi le directory dei pazienti non selezionati
-    #         for patient_path in to_delete:
-    #             try:
-    #                 shutil.rmtree(patient_path)
-    #                 patient_id = os.path.basename(patient_path)
-    #                 self.selected_patients.discard(patient_id)
-    #                 print(f"Deleted patient directory: {patient_path}")
-    #             except Exception as e:
-    #                 print(f"Failed to delete {patient_path}: {e}")
-    #
-    #         # Rimozione da 'derivatives'
-    #         derivatives_root = os.path.join(self.workspace_path, "derivatives")
-    #         if os.path.exists(derivatives_root):
-    #             for root, dirs, files in os.walk(derivatives_root, topdown=False):
-    #                 for dir_name in dirs:
-    #                     if dir_name in unselected_ids:
-    #                         full_path = os.path.join(root, dir_name)
-    #                         try:
-    #                             shutil.rmtree(full_path)
-    #                             print(f"Deleted from derivatives: {full_path}")
-    #                         except Exception as e:
-    #                             print(f"Failed to delete from derivatives: {full_path}: {e}")
-    #
-    #     # Procedi alla pagina successiva
-    #     if not self.next_page:
-    #         self.next_page = ToolChoicePage(context, self)
-    #         self.context["history"].append(self.next_page)
-    #
-    #     self.next_page.on_enter()
-    #     return self.next_page
+    def next(self, context):
+        self._build_pipeline_config()
+
+        if self.next_page:
+            self.next_page.on_enter()
+            return self.next_page
+        else:
+            self.next_page = PipelineReviewPage(context, self)
+            self.context["history"].append(self.next_page)
+            return self.next_page
 
     def back(self):
         """Torna alla pagina precedente"""
