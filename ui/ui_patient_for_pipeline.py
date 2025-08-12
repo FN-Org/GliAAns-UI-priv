@@ -123,7 +123,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         title = QLabel("Pipeline Requirements Summary")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 10px;")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; margin-bottom: 10px;")
         main_layout.addWidget(title)
 
         # Layout delle "pillole" informative
@@ -143,7 +143,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         return summary_frame
 
-    def _create_stat_pill(self, icon_path, label_text, value_text, color="#34495e"):
+    def _create_stat_pill(self, icon_path, label_text, value_text, color="#000000"):
         """Crea una card con icona, etichetta e valore"""
         pill = QFrame()
         pill.setObjectName("summaryCard")

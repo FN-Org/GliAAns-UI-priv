@@ -20,6 +20,7 @@ class ClickableFrame(QFrame):
         super().mousePressEvent(event)
         self.clicked.emit()
 
+
 class CollapsiblePatientFrame(QFrame):
     def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, parent=None, save_callback=None):
         super().__init__(parent)
@@ -44,7 +45,6 @@ class CollapsiblePatientFrame(QFrame):
         self.setGraphicsEffect(shadow)
 
         self._build_ui()
-
         self._apply_style()
 
     def _apply_style(self):
@@ -52,8 +52,8 @@ class CollapsiblePatientFrame(QFrame):
             self.setStyleSheet("""
                 QFrame#collapsiblePatientFrame {
                     background: white;
-                    border: 1px solid #dcdcdc;
-                    border-radius: 6px;
+                    border: 1px solid #4CAF50;
+                    border-radius: 10px;
                     padding: 10px;
                     margin: 2px;
                 }
@@ -67,6 +67,9 @@ class CollapsiblePatientFrame(QFrame):
                     padding: 6px 8px 6px 4px;
                     text-align: right;
                     border-radius: 6px;
+                }
+                QToolButton:hover {
+                    background-color: rgba(0, 0, 0, 0.05);
                 }
                 QToolButton:checked {
                     background-color: rgba(155, 155, 155, 0.15);
@@ -92,6 +95,9 @@ class CollapsiblePatientFrame(QFrame):
                                 text-align: right;
                                 border-radius: 6px;
                             }
+                            QToolButton:hover {
+                                background-color: rgba(0, 0, 0, 0.05);
+                            }
                             QToolButton:checked {
                                 background-color: rgba(255, 193, 7, 0.15);
                             }
@@ -106,7 +112,7 @@ class CollapsiblePatientFrame(QFrame):
         frame_header_layout = QHBoxLayout(frame_header)
         subject_name = QLabel(self)
         subject_name.setText(f"Patient: {self.patient_id}")
-        subject_name.setStyleSheet("font-size: 15px; font-weight: bold;")
+        subject_name.setStyleSheet("font-size: 13px; font-weight: bold;")
         frame_header_layout.addWidget(subject_name)
 
         # Header con QToolButton
@@ -191,14 +197,12 @@ class CollapsiblePatientFrame(QFrame):
                 QPushButton {
                     font-size: 12px;
                     font-weight: bold;
-                    background-color: #28a745;
+                    background-color: #4CAF50;
                     color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
+                    border-radius: 12px;
+                    padding: 8px 16px;
                 }
-                QPushButton:hover { background-color: #218838; }
-                QPushButton:pressed { background-color: #1e7e34; }
+                QPushButton:hover { background-color: #45a049; }
             """)
             save_btn.clicked.connect(self._save_patient)
 
@@ -263,10 +267,68 @@ class PipelineReviewPage(WizardPage):
         layout.setContentsMargins(20, 15, 20, 15)
         layout.setSpacing(15)
 
-        header = QLabel("Medical Pipeline Configuration Review")
-        header.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        header = QLabel("Pipeline Configuration Review")
+        header.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(header)
+
+        # Informative message for the doctor
+        info_frame = QFrame()
+        info_frame.setObjectName("info_frame")
+        info_frame.setStyleSheet("""
+            QFrame#info_frame {
+                background-color: #e3f2fd;
+                border: 1px solid #2196f3;
+                border-radius: 8px;
+                padding: 12px;
+                margin: 8px 0px;
+            }
+        """)
+        info_layout = QVBoxLayout(info_frame)
+        info_layout.setContentsMargins(12, 10, 12, 10)
+        info_layout.setSpacing(6)
+
+        info_title = QLabel("Configuration Instructions")
+        info_title.setStyleSheet("""
+            font-size: 16px;
+            font-weight: bold;
+            color: #1976d2; 
+            margin-bottom: 5px;
+        """)
+
+        info_text = QLabel("""
+            <style>
+                  .info-list { margin: 0; padding-left: 1.25rem; }
+                  .info-list li { margin-bottom: 0.5rem; line-height: 1.4; }
+            </style>
+            <ul class="info-list" role="list">
+              <li><strong>Yellow frames</strong> indicate patients with <strong>multiple files found</strong> for one or more categories. 
+                <br> These patients require <strong>medical review and manual selection</strong> of the appropriate files.
+              </li>
+              <li><strong>White frames</strong> show patients with files automatically selected (only one option available).</li>
+            </ul>
+        """
+        )
+        info_text.setStyleSheet("""
+            color: #000000;
+            font-size: 13px;
+            line-height: 30px;
+            padding: 4px 0px;
+        """)
+        info_text.setWordWrap(True)
+
+        info_layout.addWidget(info_title)
+        info_layout.addWidget(info_text)
+        layout.addWidget(info_frame)
+
+        # Info label
+        info_label = QLabel(
+            "<strong>Click</strong> on any frame to expand and <strong>review</strong> the file selection for that patient, and <strong>save the configuration</strong> for each yellow frame after making your selections."
+        )
+        info_label.setStyleSheet("color: #666; font-size: 13px;")
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -335,4 +397,3 @@ class PipelineReviewPage(WizardPage):
             self.previous_page.on_enter()
             return self.previous_page
         return None
-
