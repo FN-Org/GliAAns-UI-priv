@@ -1,7 +1,6 @@
 """
 NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D files
 """
-import re
 import sys
 import os
 import gc
@@ -9,7 +8,6 @@ import json
 import numpy as np
 import nibabel as nib
 from PyQt6 import QtCore
-from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform, apply_orientation
 
 try:
     from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -18,7 +16,7 @@ try:
                                  QStatusBar, QMessageBox, QProgressDialog, QGridLayout,
                                  QSplitter, QFrame, QSizePolicy, QCheckBox, QComboBox, QScrollArea, QDialog, QLineEdit,
                                  QListWidget, QDialogButtonBox, QListWidgetItem, QGroupBox)
-    from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication
+    from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication, QRectF
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
                              QBrush, QResizeEvent, QMouseEvent, QTransform)
     from matplotlib.figure import Figure
@@ -227,7 +225,7 @@ class NiftiViewer(QMainWindow):
     def __init__(self, context=None):
         super().__init__()
 
-        self.load_thread = []
+        self.load_threads = []
         self.context = context
 
         self.progress_dialog = None
@@ -1167,11 +1165,11 @@ class NiftiViewer(QMainWindow):
             self.progress_dialog.setMinimumDuration(0)
 
             # Start loading thread
-            self.load_thread = ImageLoadThread(file_path,is_overlay)
-            self.load_thread.finished.connect(self.on_file_loaded)
-            self.load_thread.error.connect(self.on_load_error)
-            self.load_thread.progress.connect(self.progress_dialog.setValue)
-            self.load_thread.start()
+            self.load_threads.append(ImageLoadThread(file_path,is_overlay))
+            self.load_threads[-1].finished.connect(self.on_file_loaded)
+            self.load_threads[-1].error.connect(self.on_load_error)
+            self.load_threads[-1].progress.connect(self.progress_dialog.setValue)
+            self.load_threads[-1].start()
 
             if is_overlay:
                 self.overlay_file_path = file_path
@@ -1181,7 +1179,6 @@ class NiftiViewer(QMainWindow):
     def on_file_loaded(self, img_data, dims, affine, is_4d, is_overlay):
         """Handle successful file loading"""
         self.progress_dialog.close()
-
         if is_overlay:
             # Salva overlay
             self.overlay_data = img_data
@@ -1733,26 +1730,37 @@ class NiftiViewer(QMainWindow):
     def update_time_series_plot(self):
         """Update the time series plot with current voxel data"""
 
-        # TODO: you should show the graph of the overlay mean only of the things that don't exceed the threshold value
         if not self.is_4d or self.time_plot_canvas is None or self.img_data is None:
             return
 
         try:
             coords = self.current_coordinates
             bool_in_mask = False
-            if self.overlay_data is not None and self.overlay_data[coords[0],coords[1],coords[2]] > 0 and self.overlay_enabled:
-                bool_in_mask = True
-                mask = (self.overlay_data > 0)  # True dove overlay > 0
-                # Estrazione dei voxel della ROI
-                roi_voxels = self.img_data[mask, :]  # shape: (N_voxels, T)
+            if self.overlay_data is not None and self.overlay_enabled:
+                # Normalizza overlay_data in modo coerente
+                overlay_norm = self.normalize_data_matplotlib_style(self.overlay_data)
 
-                # Calcolo della serie temporale media
-                time_series = roi_voxels.mean(axis=0)  # shape: (T,)
-                std_series = roi_voxels.std(axis=0)
+                # Calcola mask thresholded
+                overlay_max = np.max(overlay_norm) if np.max(overlay_norm) > 0 else 1
+                threshold_value = self.overlay_threshold * overlay_max
+                threshold_mask = overlay_norm > threshold_value
+
+                if threshold_mask[coords[0], coords[1], coords[2]]:
+                    bool_in_mask = True
+                    # Usa il mask thresholded per la ROI
+                    roi_voxels = self.img_data[threshold_mask, :]  # shape: (N_voxels, T)
+
+                    time_series = roi_voxels.mean(axis=0)
+                    std_series = roi_voxels.std(axis=0)
+                else:
+                    # Voxel singolo fuori soglia, prendi la serie singola
+                    time_series = self.img_data[coords[0], coords[1], coords[2], :]
+                    std_series = None
             else:
-                # Extract time series data for current voxel
+                # Caso overlay non abilitato o non disponibile
                 time_series = self.img_data[coords[0], coords[1], coords[2], :]
                 std_series = None
+
             time_points = np.arange(self.dims[3])
 
             # Clear and plot
@@ -2009,12 +2017,19 @@ class NiftiViewer(QMainWindow):
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads
-        if hasattr(self, 'load_thread') and self.load_thread.isRunning():
-            self.load_thread.terminate()
-            self.load_thread.wait()
+        if hasattr(self, 'load_threads'):
+            for t in self.load_threads:
+                if t.isRunning():
+                    t.terminate()
+                    t.wait()
+                t.deleteLater()
+            self.load_threads.clear()
 
         # Clear image data to free memory
         self.img_data = None
+        self.overlay_data = None
+
+
         gc.collect()
 
         event.accept()
