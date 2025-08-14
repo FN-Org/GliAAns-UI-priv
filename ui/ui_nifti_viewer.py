@@ -2018,11 +2018,12 @@ class NiftiViewer(QMainWindow):
         """Clean up on application exit"""
         # Clean up any running threads
         if hasattr(self, 'load_threads'):
-            for i in range(len(self.load_threads)):
-                if self.load_threads[i].isRunning():
-                    self.load_threads[i].terminate()
-                    self.load_threads[i].wait()
-                    self.load_threads[i].deleteLater()
+            for t in self.load_threads:
+                if t.isRunning():
+                    t.terminate()
+                    t.wait()
+                t.deleteLater()
+            self.load_threads.clear()
 
         # Clear image data to free memory
         self.img_data = None
