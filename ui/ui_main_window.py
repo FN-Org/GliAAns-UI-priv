@@ -7,7 +7,7 @@ from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow,
     QTreeView, QVBoxLayout,
-    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
 
@@ -67,6 +67,8 @@ class MainWindow(QMainWindow):
         self.tree_view.clicked.connect(self.handle_workspace_click)
         self.tree_view.doubleClicked.connect(self.handle_double_click)
         self.tree_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.tree_view.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree_view.customContextMenuRequested.connect(self.open_tree_context_menu)
 
         self.main_layout.addWidget(self.splitter)
         self.splitter.setSizes([200, 600])
@@ -254,6 +256,79 @@ class MainWindow(QMainWindow):
             self.splitter.setSizes([200, 600])
             self.adjust_tree_columns()
         self.right_panel = new_widget  # utile per riferimenti futuri
+
+    def open_tree_context_menu(self, position):
+        index = self.tree_view.indexAt(position)
+        if not index.isValid():
+            return
+
+        file_path = self.tree_model.filePath(index)
+        is_dir = self.tree_model.isDir(index)
+
+        menu = QMenu()
+
+        if is_dir:
+            # Folder actions
+
+            open_action = menu.addAction("Open Folder")
+            menu.addSeparator()
+            new_file_action = menu.addAction("New File")
+            new_folder_action = menu.addAction("New Folder")
+            menu.addSeparator()
+            add_action = menu.addAction("Add Folder to Workspace")
+        else:
+            # File actions
+            open_action = menu.addAction("Open File")
+            menu.addSeparator()
+            add_action = menu.addAction("Add File to Workspace")
+            remove_action = menu.addAction("Remove File from Workspace")
+            menu.addSeparator()
+            info_action = menu.addAction("File Info")
+
+        action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
+
+        if is_dir:
+            if action == open_action:
+                self.open_folder(file_path)
+            elif action == new_file_action:
+                self.create_file(file_path)
+            elif action == new_folder_action:
+                self.create_folder(file_path)
+            elif action == add_action:
+                self.add_to_workspace(file_path)
+        else:
+            if action == open_action:
+                self.open_file(file_path)
+            elif action == add_action:
+                self.add_to_workspace(file_path)
+            elif action == remove_action:
+                self.remove_from_workspace(file_path)
+            elif action == info_action:
+                self.show_file_info(file_path)
+
+        # ---- Actions ----
+
+    def open_folder(self, path):
+        print(f"Opening folder: {path}")
+
+    def create_file(self, folder_path):
+        print(f"Creating new file in: {folder_path}")
+
+    def create_folder(self, folder_path):
+        print(f"Creating new folder in: {folder_path}")
+
+    def open_file(self, path):
+        print(f"Opening file: {path}")
+
+    def add_to_workspace(self, path):
+        print(f"Adding {path} to workspace")
+
+    def remove_from_workspace(self, path):
+        print(f"Removing {path} from workspace")
+
+    def show_file_info(self, path):
+        print(f"File info for: {path}")
+
 
 if __name__ == "__main__":
     import sys
