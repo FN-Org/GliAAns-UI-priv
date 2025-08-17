@@ -1,15 +1,17 @@
 import os
 import json
+import re
 import shutil
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
+from PyQt6.QtCore import QTranslator, pyqtSignal, Qt, QUrl
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow,
     QTreeView, QVBoxLayout,
-    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu, QFileDialog, QDialog, QLabel, QRadioButton,
+    QButtonGroup, QGroupBox, QFrame, QWidget, QDialogButtonBox
 )
-from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup
+from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup, QDesktopServices
 
 from ui.ui_button import UiButton
 from ui.ui_nifti_viewer import NiftiViewer
@@ -17,6 +19,213 @@ from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
+
+
+
+
+class FileRoleDialog(QDialog):
+    def __init__(self, workspace_path=None, subj = None, role = None, main = None, parent=None):
+        super().__init__(parent)
+
+        self.subj = subj
+        self.role = role
+        self.main = main
+
+        self.setWindowTitle("File role")
+        self.workspace_path = workspace_path
+        layout = QVBoxLayout(self)
+        if main is None and subj is None:
+            # --- Livello Main/Derivatives ---
+            self.level1_widget = QWidget()
+            level1_layout = QVBoxLayout(self.level1_widget)
+            self.pos_label = QLabel("Position:")
+            level1_layout.addWidget(self.pos_label)
+            self.opt_main = QRadioButton("Main subject files")
+            self.opt_derivatives = QRadioButton("derivatives")
+            level1_layout.addWidget(self.opt_main)
+            level1_layout.addWidget(self.opt_derivatives)
+
+
+            self.button_first_group = QButtonGroup(self)
+            self.button_first_group.addButton(self.opt_main)
+            self.button_first_group.addButton(self.opt_derivatives)
+
+            layout.addWidget(self.level1_widget)  # aggiungi il widget del livello 1
+
+            self.button_first_group.buttonToggled.connect(self.first_level_toggled)
+
+            self.derivative_extra_frame = QFrame()
+            derivative_extra_layout = QVBoxLayout(self.derivative_extra_frame)
+            self.derivative_extra_label = QLabel("What derivative:")
+            derivative_extra_layout.addWidget(self.derivative_extra_label)
+
+            self.derivative_extra_button_group = QButtonGroup(self)
+            self.skull_strip_btn = QRadioButton("fsl_skullstrips")
+            derivative_extra_layout.addWidget(self.skull_strip_btn)
+            self.derivative_extra_button_group.addButton(self.skull_strip_btn)
+
+            self.manual_mask_btn = QRadioButton("manual_masks")
+            derivative_extra_layout.addWidget(self.manual_mask_btn)
+            self.derivative_extra_button_group.addButton(self.manual_mask_btn)
+
+            self.deep_learning_mask = QRadioButton("deep_learning_masks")
+            derivative_extra_layout.addWidget(self.deep_learning_mask)
+            self.derivative_extra_button_group.addButton(self.deep_learning_mask)
+
+            self.derivative_extra_frame.hide()  # nascondi di default
+            layout.addWidget(self.derivative_extra_frame)
+
+        elif main == "derivatives":
+            self.derivative_extra_frame = QFrame(self)
+            derivative_extra_layout = QVBoxLayout(self.derivative_extra_frame)
+            self.derivative_extra_label = QLabel("What derivative:")
+            derivative_extra_layout.addWidget(self.derivative_extra_label)
+
+            self.derivative_extra_button_group = QButtonGroup(self)
+            self.skull_strip_btn = QRadioButton("fsl_skullstrips")
+            derivative_extra_layout.addWidget(self.skull_strip_btn)
+            self.derivative_extra_button_group.addButton(self.skull_strip_btn)
+
+            self.manual_mask_btn = QRadioButton("manual_masks")
+            derivative_extra_layout.addWidget(self.manual_mask_btn)
+            self.derivative_extra_button_group.addButton(self.manual_mask_btn)
+
+            self.deep_learning_mask = QRadioButton("deep_learning_masks")
+            derivative_extra_layout.addWidget(self.deep_learning_mask)
+            self.derivative_extra_button_group.addButton(self.deep_learning_mask)
+
+            layout.addWidget(self.derivative_extra_frame)
+
+            self.button_first_group = None
+        else:
+            self.button_first_group = None
+            self.derivative_extra_button_group = None
+
+
+        if subj is None:
+            # --- Livello Subject ---
+            self.level2_widget = QWidget()
+            level2_layout = QVBoxLayout(self.level2_widget)
+            self.sub_label = QLabel("Subject:")
+            level2_layout.addWidget(self.sub_label)
+
+            self.subj_buttons = []
+            self.button_second_group = QButtonGroup(self)
+            for subj_path in self._find_patient_dirs():
+                subj = os.path.basename(subj_path)
+                button = QRadioButton(subj)
+                self.subj_buttons.append(button)
+                level2_layout.addWidget(button)
+                self.button_second_group.addButton(button)
+
+            layout.addWidget(self.level2_widget)
+        else: self.button_second_group = None
+
+        if role is None:
+            # --- Livello Anat/Sess ---
+            self.level3_widget = QWidget()
+            level3_layout = QVBoxLayout(self.level3_widget)
+            self.role_label = QLabel("Role:")
+            level3_layout.addWidget(self.role_label)
+            self.button_third_group = QButtonGroup(self)
+            self.anat_button = QRadioButton("anat")
+            self.button_third_group.addButton(self.anat_button)
+            level3_layout.addWidget(self.anat_button)
+            self.ses_1_button = QRadioButton("ses-01")
+            self.button_third_group.addButton(self.ses_1_button)
+            level3_layout.addWidget(self.ses_1_button)
+            self.ses_2_button = QRadioButton("ses-02")
+            self.button_third_group.addButton(self.ses_2_button)
+            level3_layout.addWidget(self.ses_2_button)
+            layout.addWidget(self.level3_widget)
+        else: self.button_third_group = None
+        # --- Pulsanti OK/Annulla ---
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
+    def get_selections(self):
+
+        selections = {}
+
+
+        # Livello 1: Main/Derivatives
+        if self.button_first_group:
+            btn = self.button_first_group.checkedButton()
+            selections["main"] = btn.text() if btn else None
+
+        if self.derivative_extra_button_group:
+            btn = self.derivative_extra_button_group.checkedButton()
+            selections["derivative"] = btn.text() if btn else None
+
+        # Livello 2: Subject
+        if self.button_second_group:
+            btn = self.button_second_group.checkedButton()
+            selections["subj"] = btn.text() if btn else None
+
+
+        # Livello 3: Role
+        if self.button_third_group:
+            btn = self.button_third_group.checkedButton()
+            selections["role"] = btn.text() if btn else None
+
+
+        return selections
+
+    def get_relative_path(self):
+        parts = []
+        selections = self.get_selections()
+
+        # gestisci eventuali valori None
+        main = selections.get("main")
+        subj = selections.get("subj")
+        role = selections.get("role")
+        derivative = selections.get("derivative")
+
+        if derivative:
+            parts.append(derivative)
+
+        if subj:
+            parts.append(subj)
+
+        if role:
+            if re.match(r"^ses-\d+$", role):
+                parts.append(role)
+                parts.append("pet")
+            else:
+                parts.append(role)
+
+        return os.path.join(*parts) if parts else None
+
+    def _find_patient_dirs(self):
+        patient_dirs = []
+
+        for root, dirs, files in os.walk(self.workspace_path):
+            # Salta la cartella 'derivatives'
+            if "derivatives" in dirs:
+                dirs.remove("derivatives")
+
+            for dir_name in dirs:
+                if dir_name.startswith("sub-"):
+                    full_path = os.path.join(root, dir_name)
+                    patient_dirs.append(full_path)
+
+        return patient_dirs
+
+
+    def first_level_toggled(self, button, checked):
+        if not checked:
+            return
+        if button == self.opt_main:
+            self.derivative_extra_frame.hide()
+            self.adjustSize()
+        if button == self.opt_derivatives:
+            self.derivative_extra_frame.show()
+            self.adjustSize()
 
 class MainWindow(QMainWindow):
 
@@ -96,10 +305,13 @@ class MainWindow(QMainWindow):
 
         # File
         self.file_menu = self.menu_bar.addMenu("File")
-        self.import_action = QAction("Import", self)
+        self.import_action = QAction("Import File", self)
         self.export_action = QAction("Export", self)
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
+        self.import_action.triggered.connect(
+            lambda: self.add_file_to_workspace(folder_path=self.workspace_path, is_dir=True)
+        )
 
         # Workspace
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
@@ -269,62 +481,90 @@ class MainWindow(QMainWindow):
 
         if is_dir:
             # Folder actions
-
-            open_action = menu.addAction("Open Folder")
+            open_action = menu.addAction("Open folder in explorer")
             menu.addSeparator()
-            new_file_action = menu.addAction("New File")
-            new_folder_action = menu.addAction("New Folder")
-            menu.addSeparator()
-            add_action = menu.addAction("Add Folder to Workspace")
+            add_action = menu.addAction("Add File to folder")
+            remove_action = menu.addAction("Remove Folder from Workspace")
+            info_action = menu.addAction("Folder Info")
         else:
             # File actions
-            open_action = menu.addAction("Open File")
+            open_action = menu.addAction("Open with system predefinite")
             menu.addSeparator()
-            add_action = menu.addAction("Add File to Workspace")
+            add_action = menu.addAction("Add File")
             remove_action = menu.addAction("Remove File from Workspace")
             menu.addSeparator()
             info_action = menu.addAction("File Info")
 
         action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
-        if is_dir:
-            if action == open_action:
-                self.open_folder(file_path)
-            elif action == new_file_action:
-                self.create_file(file_path)
-            elif action == new_folder_action:
-                self.create_folder(file_path)
-            elif action == add_action:
-                self.add_to_workspace(file_path)
-        else:
-            if action == open_action:
-                self.open_file(file_path)
-            elif action == add_action:
-                self.add_to_workspace(file_path)
-            elif action == remove_action:
-                self.remove_from_workspace(file_path)
-            elif action == info_action:
-                self.show_file_info(file_path)
+
+        if action == open_action:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+        elif action == add_action:
+            self.add_file_to_workspace(file_path,is_dir)
+        elif action == remove_action:
+            self.remove_from_workspace(file_path)
+        elif action == info_action:
+            self.show_file_info(file_path)
 
         # ---- Actions ----
 
-    def open_folder(self, path):
-        print(f"Opening folder: {path}")
 
-    def create_file(self, folder_path):
-        print(f"Creating new file in: {folder_path}")
+    def add_file_to_workspace(self, folder_path,is_dir):
+        if hasattr(self,"context"):
+            dialog = QFileDialog(self.context['main_window'], "Select File")
+            dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+            dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.Option.ReadOnly, True)
+            dialog.setDirectory(os.path.expanduser("~"))
 
-    def create_folder(self, folder_path):
-        print(f"Creating new folder in: {folder_path}")
+            if dialog.exec():
+                file = dialog.selectedFiles()[0]
 
-    def open_file(self, path):
-        print(f"Opening file: {path}")
+                if is_dir:
+                    folder = os.path.basename(folder_path)
+                else:
+                    folder = os.path.dirname(folder_path)
+                if folder == "anat" or folder == "pet":
+                    shutil.copy(file, folder_path)
+                elif re.match(r"^ses-\d+$", folder):
+                    shutil.copy(file, os.path.join(folder_path, "pet"))
+                elif re.match(r"^sub-\d+$", folder):
+                    self.open_role_dialog(file=file, folder_path=folder_path, subj=folder)
+                elif folder == "derivatives":
+                    self.open_role_dialog(file=file, folder_path=folder_path, main=folder)
+                else: self.open_role_dialog(file=file, folder_path=self.workspace_path)
 
-    def add_to_workspace(self, path):
-        print(f"Adding {path} to workspace")
+
+    def open_role_dialog(self, file = None,folder_path = None, subj = None,role = None, main = None):
+        dialog = FileRoleDialog(workspace_path=self.workspace_path,subj=subj,role=role,main=main,parent=self)
+        if dialog.exec():
+            relative_path = dialog.get_relative_path()
+            path = os.path.join(folder_path, relative_path)
+            os.makedirs(path, exist_ok=True)
+            shutil.copy(file, path)
+        else:
+            return
 
     def remove_from_workspace(self, path):
-        print(f"Removing {path} from workspace")
+        if not os.path.exists(path):
+            return
+
+        is_dir = os.path.isdir(path)
+        item_type = "folder" if is_dir else "file"
+
+        reply = QMessageBox.question(
+            self,
+            "Confirm",
+            f"Are you sure you want to remove this {item_type}: \"{os.path.basename(path)}\"?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            if is_dir:
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
     def show_file_info(self, path):
         print(f"File info for: {path}")
