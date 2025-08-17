@@ -488,7 +488,7 @@ class MainWindow(QMainWindow):
             info_action = menu.addAction("Folder Info")
         else:
             # File actions
-            open_action = menu.addAction("Open with system predefinite")
+            open_action = menu.addAction("Open with system predefined")
             menu.addSeparator()
             add_action = menu.addAction("Add File")
             remove_action = menu.addAction("Remove File from Workspace")
