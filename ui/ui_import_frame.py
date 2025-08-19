@@ -468,22 +468,31 @@ class ImportThread(QThread):
                 trc = re.sub(r'[^a-zA-Z]', '', raw_trc.split()[0]).lower()
                 trc_label = f"trc-{trc}" if trc else "trc-unknown"
 
+                # --- Ricava il task ---
+                raw_task = metadata.get("SeriesDescription", "unknown")
+                task_clean = re.sub(r'[^a-zA-Z0-9]', '', raw_task.lower())
+                task_label = f"task-{task_clean}" if task_clean else "task-unknown"
+
                 # --- Determina se statico o dinamico ---
                 frame_durations = metadata.get("FrameDuration", [])
                 frame_times = metadata.get("FrameReferenceTime", [])
                 if (isinstance(frame_durations, (list, tuple)) and len(frame_durations) > 1) or \
                         (isinstance(frame_times, (list, tuple)) and len(frame_times) > 1):
-                    acq_label = "acq-dynamic"
+                    acq_label = "rec-acdync"
                     ses_label = "ses-02"
                 else:
-                    acq_label = "acq-static"
+                    acq_label = "rec-acstat"
                     ses_label = "ses-01"
 
                 pet_dir = os.path.join(dest_sub_dir, ses_label, "pet")
                 os.makedirs(pet_dir, exist_ok=True)
 
                 run_label = f"run-{pet_run_counter}"
-                new_base = f"{sub_id}_{trc_label}_{acq_label}_{run_label}_pet"
+
+                # Add:
+                # trc_label for the tracer
+                # acq_label for the acquisition type (dynamic or static)
+                new_base = f"{sub_id}_{task_label}_{run_label}_pet"
 
                 shutil.copy2(nii_path, os.path.join(pet_dir, f"{new_base}.nii.gz"))
                 shutil.copy2(json_path, os.path.join(pet_dir, f"{new_base}.json"))
