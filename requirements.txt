@@ -3,3 +3,4 @@ pydicom
 nibabel
 matplotlib
 numba
+dcm2niix

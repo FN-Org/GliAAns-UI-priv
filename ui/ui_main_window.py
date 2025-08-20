@@ -4,17 +4,16 @@ import re
 import shutil
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal, Qt, QUrl
+from PyQt6.QtCore import QTranslator, pyqtSignal, Qt, QUrl, QThread
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow,
     QTreeView, QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu, QFileDialog, QDialog, QLabel, QRadioButton,
-    QButtonGroup, QGroupBox, QFrame, QWidget, QDialogButtonBox
+    QButtonGroup, QFrame, QWidget, QDialogButtonBox
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup, QDesktopServices
 
 from ui.ui_button import UiButton
-from ui.ui_nifti_viewer import NiftiViewer
 from wizard_controller import WizardController
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
@@ -22,6 +21,38 @@ TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
 
 
 
+
+class CopyDeleteThread(QThread):
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, src, dst = None, is_folder=False, copy = False, delete = False):
+        super().__init__()
+        self.src = src
+        self.dst = dst
+        self.is_folder = is_folder
+        self.copy = copy
+        self.delete = delete
+
+    def run(self):
+        try:
+            if self.copy:
+                if self.src is None or self.dst is None:
+                    raise ValueError("Missing src or dst")
+                if self.is_folder:
+                    shutil.copytree(self.src, self.dst)
+                else: shutil.copy(self.src, self.dst)
+
+                self.finished.emit("Successfully copied {} to {}".format(self.src, self.dst))
+            if self.delete:
+                if self.src is None:
+                    raise ValueError("Missing src")
+                if self.is_folder:
+                    shutil.rmtree(self.src)
+                else: os.remove(self.src)
+                self.finished.emit("Successfully deleted {}".format(self.src))
+        except Exception as e:
+            self.error.emit("Error src:{}, dst:{},{}".format(self.src,self.dst,e))
 
 class FileRoleDialog(QDialog):
     def __init__(self, workspace_path=None, subj = None, role = None, main = None, parent=None):
@@ -239,10 +270,13 @@ class MainWindow(QMainWindow):
         self.workspace_path = os.path.join(os.getcwd(), ".workspace")
         os.makedirs(self.workspace_path, exist_ok=True)
 
+        self.threads = []
+
         # Setup
         self._setup_ui()
-        self._setup_menus()
         self._setup_controller()
+        self._setup_menus()
+
 
         saved_lang = self._load_saved_language()
         self.set_language(saved_lang)
@@ -309,9 +343,11 @@ class MainWindow(QMainWindow):
         self.export_action = QAction("Export", self)
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
-        self.import_action.triggered.connect(
-            lambda: self.add_file_to_workspace(folder_path=self.workspace_path, is_dir=True)
-        )
+
+        if "import_frame" in self.context and self.context["import_frame"]:
+            self.import_action.triggered.connect(self.context["import_frame"].open_folder_dialog)
+        else:
+            raise RuntimeError("Error setupping menus")
 
         # Workspace
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
@@ -369,12 +405,6 @@ class MainWindow(QMainWindow):
                     self.context["nifti_viewer"].open_file(file_path)
                     self.context["nifti_viewer"].show()
                     pass
-                else:
-                    self.context["nifti_viewer"] = NiftiViewer(self.context)
-                    self.context["nifti_viewer"].open_file(file_path)
-                    self.context["nifti_viewer"].show()
-                    pass
-                # viewer.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # Libera memoria alla chiusura
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Impossibile aprire il file NIfTI:\n{str(e)}")
 
@@ -444,13 +474,10 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             for item in os.listdir(self.workspace_path):
                 item_path = os.path.join(self.workspace_path, item)
-                try:
-                    if os.path.isfile(item_path) or os.path.islink(item_path):
-                        os.remove(item_path)
-                    elif os.path.isdir(item_path):
-                        shutil.rmtree(item_path)
-                except Exception as e:
-                    QMessageBox.warning(self, "Errore", f"Errore durante la rimozione di {item}:\n{str(e)}")
+                delete_thread = CopyDeleteThread(src=item_path, is_folder=os.path.isdir(item_path), delete=True)
+                delete_thread.error.connect(lambda msg,it=item: self.copydelete_thread_error(f"Error while clearing {it}:{msg}"))
+                delete_thread.finished.connect(self.copydelete_thread_success)
+                delete_thread.start()
 
             print("Workspace svuotato.")
             if self.context and "return_to_import" in self.context:
@@ -471,41 +498,53 @@ class MainWindow(QMainWindow):
 
     def open_tree_context_menu(self, position):
         index = self.tree_view.indexAt(position)
-        if not index.isValid():
-            return
-
-        file_path = self.tree_model.filePath(index)
-        is_dir = self.tree_model.isDir(index)
-
+        file_path = None
+        is_dir = False
         menu = QMenu()
+        open_action = None
+        add_action = None
+        export_action = None
+        remove_action = None
+        action = None
 
-        if is_dir:
-            # Folder actions
-            open_action = menu.addAction("Open folder in explorer")
-            menu.addSeparator()
-            add_action = menu.addAction("Add File to folder")
-            remove_action = menu.addAction("Remove Folder from Workspace")
-            info_action = menu.addAction("Folder Info")
+        if not index.isValid():
+            open_action = menu.addAction("Open workspace in explorer")
+            add_action = menu.addAction("Add File to workspace")
         else:
-            # File actions
-            open_action = menu.addAction("Open with system predefined")
-            menu.addSeparator()
-            add_action = menu.addAction("Add File")
-            remove_action = menu.addAction("Remove File from Workspace")
-            menu.addSeparator()
-            info_action = menu.addAction("File Info")
+            file_path = self.tree_model.filePath(index)
+            is_dir = self.tree_model.isDir(index)
+
+
+            if is_dir:
+                # Folder actions
+                open_action = menu.addAction("Open folder in explorer")
+                menu.addSeparator()
+                add_action = menu.addAction("Add File to folder")
+                remove_action = menu.addAction("Remove Folder from Workspace")
+                export_action = menu.addAction("Export Folder ")
+            else:
+                # File actions
+                open_action = menu.addAction("Open with system predefined")
+                menu.addSeparator()
+                add_action = menu.addAction("Add File")
+                remove_action = menu.addAction("Remove File from Workspace")
+                export_action = menu.addAction("Export File")
 
         action = menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
-
-        if action == open_action:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+        if action is None:
+            return
+        elif action == open_action:
+            if file_path:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+            else:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(self.workspace_path))
         elif action == add_action:
             self.add_file_to_workspace(file_path,is_dir)
         elif action == remove_action:
             self.remove_from_workspace(file_path)
-        elif action == info_action:
-            self.show_file_info(file_path)
+        elif action == export_action:
+            self.export_files(file_path, is_dir)
 
         # ---- Actions ----
 
@@ -520,15 +559,25 @@ class MainWindow(QMainWindow):
 
             if dialog.exec():
                 file = dialog.selectedFiles()[0]
+                if folder_path:
+                    if is_dir:
+                        folder = os.path.basename(folder_path)
+                    else:
+                        folder = os.path.dirname(folder_path)
+                else: folder = "workspace"
 
-                if is_dir:
-                    folder = os.path.basename(folder_path)
-                else:
-                    folder = os.path.dirname(folder_path)
                 if folder == "anat" or folder == "pet":
-                    shutil.copy(file, folder_path)
+
+                    self.threads.append(CopyDeleteThread(src=file,dst=folder_path, is_folder=is_dir, copy=True))
+                    self.threads[-1].error.connect(lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
+                    self.threads[-1].finished.connect(self.copydelete_thread_success)
+                    self.threads[-1].start()
                 elif re.match(r"^ses-\d+$", folder):
-                    shutil.copy(file, os.path.join(folder_path, "pet"))
+                    self.threads.append(CopyDeleteThread(src=file, dst=os.path.join(folder_path, "pet"), is_folder=is_dir, copy=True))
+                    self.threads[-1].error.connect(
+                        lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
+                    self.threads[-1].finished(lambda msg: self.copydelete_thread_success)
+                    self.threads[-1].start()
                 elif re.match(r"^sub-\d+$", folder):
                     self.open_role_dialog(file=file, folder_path=folder_path, subj=folder)
                 elif folder == "derivatives":
@@ -542,7 +591,12 @@ class MainWindow(QMainWindow):
             relative_path = dialog.get_relative_path()
             path = os.path.join(folder_path, relative_path)
             os.makedirs(path, exist_ok=True)
-            shutil.copy(file, path)
+
+            self.threads.append(CopyDeleteThread(src=file, dst=path, is_folder=False, copy=True))
+            self.threads[-1].error.connect(
+                lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
+            self.threads[-1].finished.connect(self.copydelete_thread_success)
+            self.threads[-1].start()
         else:
             return
 
@@ -561,14 +615,72 @@ class MainWindow(QMainWindow):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            if is_dir:
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
+            self.threads.append(CopyDeleteThread(src=path, is_folder=is_dir,delete=True))
+            self.threads[-1].error.connect(
+                lambda msg: self.copydelete_thread_error(f"Error while deleting file from workspace:{msg}"))
+            self.threads[-1].finished.connect(self.copydelete_thread_success)
+            self.threads[-1].start()
 
-    def show_file_info(self, path):
-        print(f"File info for: {path}")
 
+    def export_files(self, path, is_dir):
+        dst_path = None
+        if not is_dir:
+            filter = "All files (*.*)"
+            name, ext = os.path.splitext(path)
+            if ext == ".gz":
+                name, ext = os.path.splitext(path)
+                if ext == ".nii":
+                    filter = "NIfTI compressed (*.nii.gz);;NIfTI (*.nii);;Tutti i file (*.*)"
+            elif ext == ".json":
+                filter = "JSON (*.json);;Tutti i file (*.*)"
+
+            dst_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save file as...",
+                "",  # directory di partenza
+                filter
+            )
+        else:
+            dst_path = QFileDialog.getExistingDirectory(
+                None,
+                "Select destination folder",
+            )
+            dst_path = os.path.join(dst_path, os.path.basename(path))
+
+        self.threads.append(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_dir, copy=True))
+        self.threads[-1].error.connect(lambda msg: self.copydelete_thread_error(f"Error while exporting file from workspace:{msg}"))
+        self.threads[-1].finished.connect(self.copydelete_thread_success)
+        self.threads[-1].start()
+
+    def copydelete_thread_error(self, msg):
+        QMessageBox.warning(
+            self,
+            "Error",
+            msg
+        )
+        thread_to_remove = self.sender()
+        if thread_to_remove in self.threads:
+            self.threads.remove(thread_to_remove)
+
+    def copydelete_thread_success(self, msg):
+        QMessageBox.information(
+            self,
+            "Success!",
+            msg
+        )
+        thread_to_remove = self.sender()
+        if thread_to_remove in self.threads:
+            self.threads.remove(thread_to_remove)
+
+
+    def closeEvent(self, event):
+        if hasattr(self, "threads"):
+            for thread in self.threads:
+                thread.finished.disconnect()
+                thread.error.disconnect()
+                thread.wait()
+                self.threads.remove(thread)
+        event.accept()
 
 if __name__ == "__main__":
     import sys
