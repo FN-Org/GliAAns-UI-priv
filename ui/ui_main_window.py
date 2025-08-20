@@ -536,7 +536,17 @@ class MainWindow(QMainWindow):
             return
         elif action == open_action:
             if file_path:
-                QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+                success = QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+                if not success:
+                    name, ext = os.path.splitext(file_path)
+                    ext2 = ""
+                    if ext == ".gz":
+                        name, ext2 = os.path.splitext(file_path)
+                    QMessageBox.warning(
+                        self,
+                        "Error",
+                        "Error while opening file {}, there is no default app for {}{} extension files.".format(name, ext2, ext),
+                    )
             else:
                 QDesktopServices.openUrl(QUrl.fromLocalFile(self.workspace_path))
         elif action == add_action:
