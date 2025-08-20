@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QFrame, QGraphicsDropShadowEffect
 )
 
+from pediatric_fdopa_pipeline.pediatric_fdopa_pipeline import run_pipeline_from_config
 from wizard_state import WizardPage
 
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, pyqtSignal
@@ -348,6 +349,7 @@ class PipelineReviewPage(WizardPage):
             "mri": [os.path.join(self.workspace_path, "{pid}", "anat", "*_flair.nii*")],
             "mri_str": [os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
+            "pet_json": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.json")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
             "tumor_mri": [os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
         }
@@ -390,6 +392,7 @@ class PipelineReviewPage(WizardPage):
         pass
 
     def next(self, context):
+        run_pipeline_from_config(self.config_path, work_dir=self.workspace_path, out_dir=os.path.join(self.workspace_path, "output"))
         return self.next_page
 
     def back(self):

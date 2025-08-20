@@ -3,3 +3,8 @@ pydicom
 nibabel
 matplotlib
 numba
+antspyx
+pandas
+scikit-image
+scikit-learn
+seaborn
