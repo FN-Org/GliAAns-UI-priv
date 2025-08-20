@@ -237,6 +237,9 @@ class CollapsiblePatientFrame(QFrame):
         for category, combo in self.category_widgets.items():
             self.files[category] = combo.currentText()
 
+        # Quando l'utente salva, metti need_revision a False
+        self.files["need_revision"] = False
+
         # Salva nel JSON tramite callback
         if self.save_callback:
             self.save_callback(self.patient_id, self.files)
@@ -349,8 +352,8 @@ class PipelineReviewPage(WizardPage):
             "mri": [os.path.join(self.workspace_path, "{pid}", "anat", "*_flair.nii*")],
             "mri_str": [os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
-            "pet_json": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.json")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
+            "pet4d_json": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.json")],
             "tumor_mri": [os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
         }
 

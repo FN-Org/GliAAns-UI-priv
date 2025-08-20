@@ -63,11 +63,14 @@ def run_pipeline_from_config(config_path, work_dir, out_dir="output/"):
         mri_file = files.get("mri")
         mri_str_file = files.get("mri_str")
 
+        # estrai solo il numero dopo "sub-"
+        sub_number = patient_id.replace("sub-", "")
+
         # Qui costruiamo l'oggetto Subject come nel main originale
         subj = Subject(
             work_dir=work_dir,
             out_dir=out_dir,
-            sub=patient_id,
+            sub=sub_number,
             stx_fn="./pediatric_fdopa_pipeline/atlas/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz",
             atlas_fn="./pediatric_fdopa_pipeline/atlas/dka_atlas_eroded.nii.gz",
             flair_tumor=flair_tumor,

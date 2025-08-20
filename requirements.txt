@@ -8,3 +8,5 @@ pandas
 scikit-image
 scikit-learn
 seaborn
+numpy
+scipy

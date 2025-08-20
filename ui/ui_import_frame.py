@@ -62,8 +62,20 @@ class ImportThread(QThread):
                 if subfolders and not any(
                         self._is_nifti_file(f) or self._is_dicom_file(os.path.join(folder_path, f)) for f in
                         os.listdir(folder_path)):
-                    print(f"Multiple patient folders detected in: {folder_path}")
 
+                    # NEW: prima di assumere "più pazienti", verifica se le sottocartelle appartengono allo stesso soggetto
+                    if self._subfolders_belong_to_single_subject(subfolders):
+                        print(f"Single subject spread across {len(subfolders)} DICOM folders in: {folder_path}")
+
+                        # Processa l'intera root come UN solo paziente (PET+MR ecc.)
+                        self._process_single_patient_folder(folder_path)
+
+                        self.progress.emit(100)
+                        self.finished.emit()
+                        return
+
+                    # Altrimenti rimani con la logica “multi-paziente”
+                    print(f"Multiple patient folders detected in: {folder_path}")
                     folders_num = len(subfolders)
                     progress_for_folder = 90 / folders_num
                     self.current_progress = 10
@@ -512,6 +524,78 @@ class ImportThread(QThread):
         ])
         next_number = numbers[-1] + 1 if numbers else 1
         return f"sub-{next_number:02d}"
+
+    def _subfolders_belong_to_single_subject(self, subfolders):
+        """
+        Heuristics: le sottocartelle appartengono allo stesso soggetto se:
+        - c'è al massimo 1 PatientID non vuoto E al massimo 1 PatientName non vuoto, oppure
+        - coincidono (<=1) Name + BirthDate + Sex, oppure
+        - pattern tipico MR+PT (modalità {'MR','PT'}) con BirthDate/Sex coerenti e
+          niente chiari segnali di più soggetti.
+        """
+        import re
+
+        ids = set()
+        names = set()
+        births = set()
+        sexes = set()
+        modalities = set()
+
+        found_any_dicom = False
+
+        for sub in subfolders:
+            first_dcm = None
+            for root, _, files in os.walk(sub):
+                for file in files:
+                    fp = os.path.join(root, file)
+                    if self._is_dicom_file(fp):
+                        first_dcm = fp
+                        break
+                if first_dcm:
+                    break
+
+            if not first_dcm:
+                continue
+
+            found_any_dicom = True
+            try:
+                dcm = pydicom.dcmread(first_dcm, stop_before_pixels=True, force=True)
+            except Exception:
+                continue
+
+            pid = (str(getattr(dcm, 'PatientID', '') or '')).strip().lower()
+            pname = (str(getattr(dcm, 'PatientName', '') or '')).strip().lower()
+            pname = re.sub(r'\\s+', '', pname)  # normalizza spazi
+            bdate = (str(getattr(dcm, 'PatientBirthDate', '') or '')).strip()
+            sex = (str(getattr(dcm, 'PatientSex', '') or '')).strip().upper()
+            mod = (str(getattr(dcm, 'Modality', '') or '')).strip().upper()
+
+            if pid:
+                ids.add(pid)
+            if pname:
+                names.add(pname)
+            if bdate:
+                births.add(bdate)
+            if sex:
+                sexes.add(sex)
+            if mod:
+                modalities.add(mod)
+
+        if not found_any_dicom:
+            return False
+
+        # Casi “forti” di singolo soggetto
+        if len(ids) <= 1 and len(names) <= 1:
+            return True
+        if len(names) <= 1 and len(births) <= 1 and len(sexes) <= 1:
+            return True
+
+        # Heuristica comune: MR+PT per lo stesso paziente ma sistemi diversi → ID discordanti
+        if modalities.issuperset({'MR', 'PT'}) and len(births) <= 1 and len(sexes) <= 1:
+            # Niente anagrafiche in conflitto → un solo soggetto
+            return True
+
+        return False
 
 class ImportFrame(WizardPage):
 

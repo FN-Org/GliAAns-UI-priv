@@ -606,19 +606,7 @@ class PipelinePatientSelectionPage(WizardPage):
                 pet_files.extend(glob.glob(p))
             if len(pet_files) > 1:
                 need_revision = True
-            pet_file = pet_files[0] if pet_files else None
             patient_entry["pet"] = os.path.relpath(pet_files[0], self.workspace_path) if pet_files else None
-
-            # PET JSON sidecar
-            pet_json_file = None
-            if pet_file:
-                # prende stesso prefix e cerca il file .json
-                basename = os.path.basename(pet_file)
-                stem_no_ext = basename.split('.')[0]
-                candidate = os.path.join(os.path.dirname(pet_file), stem_no_ext + '.json')
-                if os.path.exists(candidate):
-                    pet_json_file = candidate
-            patient_entry["pet_json"] = os.path.relpath(pet_json_file, self.workspace_path) if pet_json_file else None
 
             # PET dinamica (facoltativa)
             pet4d_patterns = [
@@ -630,7 +618,19 @@ class PipelinePatientSelectionPage(WizardPage):
                 pet4d_files.extend(glob.glob(p))
             if len(pet4d_files) > 1:
                 need_revision = True
+            pet_file = pet4d_files[0] if pet4d_files else None
             patient_entry["pet4d"] = os.path.relpath(pet4d_files[0], self.workspace_path) if pet4d_files else None
+
+            # PET JSON sidecar
+            pet_json_file = None
+            if pet_file:
+                # prende stesso prefix e cerca il file .json
+                basename = os.path.basename(pet_file)
+                stem_no_ext = basename.split('.')[0]
+                candidate = os.path.join(os.path.dirname(pet_file), stem_no_ext + '.json')
+                if os.path.exists(candidate):
+                    pet_json_file = candidate
+            patient_entry["pet_json"] = os.path.relpath(pet_json_file, self.workspace_path) if pet_json_file else None
 
             # Tumor MRI (mask)
             tumor_patterns = [

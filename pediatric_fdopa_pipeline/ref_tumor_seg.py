@@ -156,7 +156,7 @@ def ref_seg(subj):
     if (Path(subj.data_dir+'/sub-'+subj.sub+'/ses-02').is_dir()):
 
         tumor_idx = (subj.tumor_atlas == subj.tumor_label).ravel()
-        nvox = np.product(subj.tumor_atlas.shape)
+        nvox = np.prod(subj.tumor_atlas.shape)
         index_range = np.arange(nvox).astype(int)
         tumor_index = index_range[tumor_idx]
 
@@ -203,7 +203,7 @@ def ref_seg(subj):
             best_svm_model = grid_search.best_estimator_
             df_tumor['label_svm'] = best_svm_model.predict(df_tumor.iloc[:, :2])
             mean_distances_svm = df_tumor.groupby('label_svm')[['distance', 'sinus']].mean()
-            max_mean_label_svm = mean_distances_svm.idxmax()[0]
+            max_mean_label_svm = mean_distances_svm.idxmax().iloc[0]
             df_tumor['label_svm'] = df_tumor['label_svm'].apply(lambda x: 1 if x == max_mean_label_svm else 0)
 
             plt.figure()
