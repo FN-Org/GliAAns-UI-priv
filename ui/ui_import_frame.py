@@ -403,7 +403,10 @@ class ImportThread(QThread):
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Conversion error: {e}") from e
         except Exception as e:
-            raise RuntimeError(f"Failed to convert DICOM: {e}") from e
+            if self._is_canceled:
+                raise Exception(f"Import canceled")
+            else:
+                raise RuntimeError(f"Failed to convert DICOM: {e}") from e
 
     def _is_bids_folder(self, folder_path):
         """
@@ -649,7 +652,7 @@ class ImportFrame(WizardPage):
     def on_load_error(self, error):
         """Handle file loading errors"""
         self.progress_dialog.close()
-        QMessageBox.critical(self, "Error Importing Files", "Failed to import files"+ f":\n{error}")
+        QMessageBox.critical(self.context["main_window"], "Error Importing Files", "Failed to import files"+ f":\n{error}")
 
     def on_file_loaded(self):
         self.progress_dialog.close()
