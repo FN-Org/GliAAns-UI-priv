@@ -474,10 +474,10 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             for item in os.listdir(self.workspace_path):
                 item_path = os.path.join(self.workspace_path, item)
-                delete_thread = CopyDeleteThread(src=item_path, is_folder=os.path.isdir(item_path), delete=True)
-                delete_thread.error.connect(lambda msg,it=item: self.copydelete_thread_error(f"Error while clearing {it}:{msg}"))
-                delete_thread.finished.connect(self.copydelete_thread_success)
-                delete_thread.start()
+                self.threads.append(CopyDeleteThread(src=item_path, is_folder=os.path.isdir(item_path), delete=True))
+                self.threads[-1].error.connect(lambda msg,it=item: self.copydelete_thread_error(f"Error while clearing {it}:{msg}"))
+                self.threads[-1].finished.connect(lambda msg,show=False: self.copydelete_thread_success(msg,show))
+                self.threads[-1].start()
 
             print("Workspace svuotato.")
             if self.context and "return_to_import" in self.context:
@@ -586,7 +586,7 @@ class MainWindow(QMainWindow):
                     self.threads.append(CopyDeleteThread(src=file, dst=os.path.join(folder_path, "pet"), is_folder=is_dir, copy=True))
                     self.threads[-1].error.connect(
                         lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
-                    self.threads[-1].finished(lambda msg: self.copydelete_thread_success)
+                    self.threads[-1].finished(self.copydelete_thread_success)
                     self.threads[-1].start()
                 elif re.match(r"^sub-\d+$", folder):
                     self.open_role_dialog(file=file, folder_path=folder_path, subj=folder)
@@ -672,12 +672,13 @@ class MainWindow(QMainWindow):
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
 
-    def copydelete_thread_success(self, msg):
-        QMessageBox.information(
-            self,
-            "Success!",
-            msg
-        )
+    def copydelete_thread_success(self, msg,show = True):
+        if show:
+            QMessageBox.information(
+                self,
+                "Success!",
+                msg
+                )
         thread_to_remove = self.sender()
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
