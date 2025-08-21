@@ -506,6 +506,9 @@ class PipelinePatientSelectionPage(WizardPage):
             if "derivatives" in dirs:
                 dirs.remove("derivatives")
 
+            if "output" in dirs:
+                dirs.remove("output")
+
             for dir_name in dirs:
                 if dir_name.startswith("sub-"):
                     full_path = os.path.join(root, dir_name)

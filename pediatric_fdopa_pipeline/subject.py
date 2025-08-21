@@ -36,7 +36,8 @@ class Subject():
 
         self.pet = os.path.join(self.data_dir, pet_file)
 
-        self.pet4d = os.path.join(self.data_dir, pet4d_file)
+        if pet4d_file:
+            self.pet4d = os.path.join(self.data_dir, pet4d_file)
 
         self.mri = os.path.join(self.data_dir, mri_file)
         self.mri_str = os.path.join(self.data_dir, mri_str_file)

@@ -443,18 +443,18 @@ class PipelineReviewPage(WizardPage):
         with open(self.config_path, "w", encoding="utf-8") as f:
             json.dump(self.pipeline_config, f, indent=4)
 
-    def _save_config(self):
-        for patient_id, frame in self.patient_widgets.items():
-            for category, combo in frame.category_widgets.items():
-                self.pipeline_config[patient_id][category] = combo.currentText()
-
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump(self.pipeline_config, f, indent=4)
-
-        print("Configuration updated:", self.config_path)
+    # def _save_config(self):
+    #     for patient_id, frame in self.patient_widgets.items():
+    #         for category, combo in frame.category_widgets.items():
+    #             self.pipeline_config[patient_id][category] = combo.currentText()
+    #
+    #     with open(self.config_path, "w", encoding="utf-8") as f:
+    #         json.dump(self.pipeline_config, f, indent=4)
+    #
+    #     print("Configuration updated:", self.config_path)
 
     def on_enter(self):
-        pass
+        self._load_config()
 
     def next(self, context):
         run_pipeline_from_config(self.config_path, work_dir=self.workspace_path, out_dir=os.path.join(self.workspace_path, "output"))
