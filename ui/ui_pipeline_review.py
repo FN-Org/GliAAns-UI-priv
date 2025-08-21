@@ -154,6 +154,7 @@ class CollapsiblePatientFrame(QFrame):
                 widget.deleteLater()
 
         for category, pat_list in self.patterns.items():
+
             category_container = QFrame()
             category_layout = QVBoxLayout(category_container)
             category_layout.setContentsMargins(6, 4, 6, 4)
@@ -172,6 +173,11 @@ class CollapsiblePatientFrame(QFrame):
                 file_label = QLabel(chosen_file if chosen_file else "Nessun file trovato")
                 category_layout.addWidget(category_label)
                 category_layout.addWidget(file_label)
+
+                # Caso speciale: se è pet4d, mostriamo anche il relativo JSON
+                if category == "pet4d":
+                    self._add_pet4d_json_display(category_layout, chosen_file)
+
             else:
                 combo = QComboBox()
                 combo.setMinimumHeight(28)
@@ -184,6 +190,17 @@ class CollapsiblePatientFrame(QFrame):
                 self.category_widgets[category] = combo
                 category_layout.addWidget(category_label)
                 category_layout.addWidget(combo)
+
+                if category == "pet4d":
+                    # label di sola lettura per il json
+                    self.pet4d_json_label = QLabel()
+                    self.pet4d_json_label.setWordWrap(True)
+                    category_layout.addWidget(self.pet4d_json_label)
+
+                    # collego il segnale per aggiornare automaticamente il json mostrato
+                    combo.currentIndexChanged.connect(self._update_pet4d_json_display)
+                    # inizializzo subito
+                    self._update_pet4d_json_display()
 
             self.content_layout.addWidget(category_container)
 
@@ -212,6 +229,52 @@ class CollapsiblePatientFrame(QFrame):
             save_layout.addStretch()
 
             self.content_layout.addWidget(save_container)
+
+    def _add_pet4d_json_display(self, parent_layout, pet4d_file_rel):
+        """Mostra il JSON associato al file pet4d scelto (solo in modalità locked)."""
+        if not pet4d_file_rel:
+            label = QLabel("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            parent_layout.addWidget(label)
+            return
+
+        abs_pet4d_path = os.path.join(self.workspace_path, pet4d_file_rel)
+        json_candidate = abs_pet4d_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+        if os.path.exists(json_candidate):
+            rel_json = os.path.relpath(json_candidate, self.workspace_path)
+            label = QLabel(f"JSON associato: <strong>{rel_json}</strong>")
+            label.setStyleSheet("color: black; font-size: 12px;")
+            self.files["pet4d_json"] = rel_json
+        else:
+            label = QLabel("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            self.files["pet4d_json"] = ""
+
+        label.setWordWrap(True)
+        parent_layout.addWidget(label)
+
+    def _update_pet4d_json_display(self):
+        """Aggiorna il label che mostra il JSON associato al file pet4d scelto."""
+        if "pet4d" not in self.category_widgets:
+            return
+
+        combo = self.category_widgets["pet4d"]
+        selected_file = combo.currentText()
+        if not selected_file:
+            self.pet4d_json_label.setText("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            return
+
+        # Ricava percorso assoluto e costruisce quello del json
+        abs_pet4d_path = os.path.join(self.workspace_path, selected_file)
+        json_candidate = abs_pet4d_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+        if os.path.exists(json_candidate):
+            rel_json = os.path.relpath(json_candidate, self.workspace_path)
+            self.pet4d_json_label.setText(f"JSON associato: <strong>{rel_json}</strong>")
+            self.pet4d_json_label.setStyleSheet("color: black; font-size: 12px;")
+            self.files["pet4d_json"] = rel_json  # salvo nel dict dei files
+        else:
+            self.pet4d_json_label.setText("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            self.files["pet4d_json"] = ""  # segno che manca
 
     def _on_header_clicked(self):
         # Cambia lo stato checked del toggle_button (toggle manuale)
@@ -353,7 +416,6 @@ class PipelineReviewPage(WizardPage):
             "mri_str": [os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
-            "pet4d_json": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.json")],
             "tumor_mri": [os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
         }
 

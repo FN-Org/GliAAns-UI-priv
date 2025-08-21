@@ -58,8 +58,8 @@ def run_pipeline_from_config(config_path, work_dir, out_dir="output/"):
     for patient_id, files in pipeline_config.items():
         flair_tumor = files.get("tumor_mri")
         pet_file = files.get("pet")
-        pet_json_file = files.get("pet_json")
         pet4d_file = files.get("pet4d")
+        pet_json_file = files.get("pet4d_json")
         mri_file = files.get("mri")
         mri_str_file = files.get("mri_str")
 
