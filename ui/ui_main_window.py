@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow,
     QTreeView, QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu, QFileDialog, QDialog, QLabel, QRadioButton,
-    QButtonGroup, QFrame, QWidget, QDialogButtonBox
+    QButtonGroup, QFrame, QWidget, QDialogButtonBox, QGroupBox, QLineEdit, QListWidget, QAbstractItemView, QComboBox
 )
 from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup, QDesktopServices
 
@@ -71,7 +71,7 @@ class FileRoleDialog(QDialog):
             level1_layout = QVBoxLayout(self.level1_widget)
             self.pos_label = QLabel("Position:")
             level1_layout.addWidget(self.pos_label)
-            self.opt_main = QRadioButton("Main subject files")
+            self.opt_main = QRadioButton("main subject files")
             self.opt_derivatives = QRadioButton("derivatives")
             level1_layout.addWidget(self.opt_main)
             level1_layout.addWidget(self.opt_derivatives)
@@ -132,25 +132,25 @@ class FileRoleDialog(QDialog):
             self.button_first_group = None
             self.derivative_extra_button_group = None
 
-
         if subj is None:
             # --- Livello Subject ---
-            self.level2_widget = QWidget()
+            self.level2_widget = QGroupBox("Subject")
             level2_layout = QVBoxLayout(self.level2_widget)
-            self.sub_label = QLabel("Subject:")
-            level2_layout.addWidget(self.sub_label)
 
-            self.subj_buttons = []
-            self.button_second_group = QButtonGroup(self)
-            for subj_path in self._find_patient_dirs():
-                subj = os.path.basename(subj_path)
-                button = QRadioButton(subj)
-                self.subj_buttons.append(button)
-                level2_layout.addWidget(button)
-                self.button_second_group.addButton(button)
+            subjects = [os.path.basename(p) for p in self._find_patient_dirs()]
+
+            # uso QComboBox al posto dei RadioButton
+            self.subj_combo = QComboBox()
+            self.subj_combo.addItems(subjects)
+            level2_layout.addWidget(self.subj_combo)
+
+            # mantengo compatibilità con la logica esistente
+            self.subj_buttons = []  # non serve più ma resta definito
+            self.button_second_group = None
 
             layout.addWidget(self.level2_widget)
-        else: self.button_second_group = None
+        else:
+            self.button_second_group = None
 
         if role is None:
             # --- Livello Anat/Sess ---
@@ -178,6 +178,29 @@ class FileRoleDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        # salva il pulsante OK e disabilitalo
+        self.ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        self.ok_button.setEnabled(False)
+
+        # ogni volta che cambia qualcosa → ricontrolla
+        if self.button_first_group:
+            self.button_first_group.buttonToggled.connect(self.update_ok_button)
+
+        if self.derivative_extra_button_group:
+            self.derivative_extra_button_group.buttonToggled.connect(self.update_ok_button)
+
+        if hasattr(self, "subj_combo"):
+            self.subj_combo.currentIndexChanged.connect(self.update_ok_button)
+
+        if self.button_third_group:
+            self.button_third_group.buttonToggled.connect(self.update_ok_button)
+
+    def filter_subjects(self, text):
+        """Filtro live per la lista dei subject."""
+        if hasattr(self, "subj_list"):
+            for i in range(self.subj_list.count()):
+                item = self.subj_list.item(i)
+                item.setHidden(text.lower() not in item.text().lower())
 
     def get_selections(self):
 
@@ -197,6 +220,8 @@ class FileRoleDialog(QDialog):
         if self.button_second_group:
             btn = self.button_second_group.checkedButton()
             selections["subj"] = btn.text() if btn else None
+        elif hasattr(self, "subj_combo"):
+            selections["subj"] = self.subj_combo.currentText()
 
 
         # Livello 3: Role
@@ -217,8 +242,10 @@ class FileRoleDialog(QDialog):
         role = selections.get("role")
         derivative = selections.get("derivative")
 
-        if derivative:
-            parts.append(derivative)
+        if main == "derivatives":
+            if derivative:
+                parts.append(derivative)
+
 
         if subj:
             parts.append(subj)
@@ -257,6 +284,30 @@ class FileRoleDialog(QDialog):
         if button == self.opt_derivatives:
             self.derivative_extra_frame.show()
             self.adjustSize()
+
+    def update_ok_button(self):
+        selections = self.get_selections()
+        enable = True
+
+        # Main o Derivatives deve essere selezionato
+        if not selections.get("main"):
+            enable = False
+
+        # Se "Derivatives" è selezionato, deve esserci anche il tipo di derivato
+        if selections.get("main") == "derivatives" and not selections.get("derivative"):
+            enable = False
+
+        # Subject deve essere selezionato
+        if not selections.get("subj"):
+            enable = False
+
+        # Role deve essere selezionato
+        if not selections.get("role"):
+            enable = False
+
+        # abilita o disabilita OK
+        self.ok_button.setEnabled(enable)
+
 
 class MainWindow(QMainWindow):
 
