@@ -1,4 +1,5 @@
 from ui.ui_import_frame import ImportFrame
+from ui.ui_nifti_viewer import NiftiViewer
 
 
 class WizardController:
@@ -15,8 +16,11 @@ class WizardController:
             "selected_files": [],
             "history": []
         }
+        self.context['import_frame'] = ImportFrame(self.context)
+        self.context['nifti_viewer'] = NiftiViewer(self.context)
 
-        self.start_page = ImportFrame(self.context)
+        self.start_page = self.context['import_frame']
+
         self.context["history"].append(self.start_page)
         self.current_page = self.start_page
 

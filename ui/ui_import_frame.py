@@ -1,9 +1,12 @@
+import gc
 import os
 import re
 import shutil
 import subprocess
 import json
+import sys
 import tempfile
+import signal
 
 from PyQt6.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -27,6 +30,8 @@ class ImportThread(QThread):
         self.folders_path = folders_path
         self.workspace_path = workspace_path
         self.current_progress = 0
+        self._is_canceled = False
+        self.process = None
 
     def run(self):
         try:
@@ -81,6 +86,8 @@ class ImportThread(QThread):
                     self.current_progress = 10
 
                     for subfolder in subfolders:
+                        if self._is_canceled:
+                            return
                         self._handle_import(subfolder)
                         self.current_progress += progress_for_folder
                         self.progress.emit(self.current_progress)
@@ -100,6 +107,9 @@ class ImportThread(QThread):
 
                 for root, _, files in os.walk(folder_path):  # CORREZIONE: usa folder_path
                     for file in files:
+                        if self._is_canceled:
+                            shutil.rmtree(temp_dir, ignore_errors=True)
+                            return
                         file_path = os.path.join(root, file)
 
                         relative_path = os.path.relpath(root, folder_path)  # CORREZIONE: usa folder_path
@@ -123,6 +133,9 @@ class ImportThread(QThread):
                 if nifti_num > 0:  # CORREZIONE: evita divisione per zero
                     progress_per_nifti = int(40 / nifti_num)
                     for src, dest in nifti_files:
+                        if self._is_canceled:
+                            shutil.rmtree(temp_dir, ignore_errors=True)
+                            return
                         shutil.copy2(src, dest)
                         self.current_progress += progress_per_nifti
                         self.progress.emit(self.current_progress)
@@ -130,6 +143,9 @@ class ImportThread(QThread):
 
                 self.current_progress = 60
                 self.progress.emit(self.current_progress)
+
+                if self._is_canceled:
+                    return
 
                 if dicom_files:
                     self._convert_dicom_folder_to_nifti(folder_path, temp_base_dir)  # CORREZIONE: usa folder_path
@@ -146,6 +162,8 @@ class ImportThread(QThread):
             elif len(self.folders_path) > 1:
                 progress_for_folder = int(90 / len(self.folders_path))
                 for path in self.folders_path:
+                    if self._is_canceled:
+                        return
                     self._handle_import(path)
                     self.current_progress += progress_for_folder
                     self.progress.emit(self.current_progress)
@@ -305,6 +323,11 @@ class ImportThread(QThread):
 
         for root, _, files in os.walk(folder_path):
             for file in files:
+
+                if self._is_canceled:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    return
+
                 file_path = os.path.join(root, file)
 
                 relative_path = os.path.relpath(root, folder_path)
@@ -319,6 +342,9 @@ class ImportThread(QThread):
                     shutil.copy2(file_path, os.path.join(dest_dir, file))
                     print(f"Imported other file: {os.path.join(relative_path, file)}")
 
+        if self._is_canceled:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return
         # Copia i file NIfTI
         for src, dest in nifti_files:
             shutil.copy2(src, dest)
@@ -329,6 +355,9 @@ class ImportThread(QThread):
             print(f"Converting {len(dicom_files)} DICOM files to NIfTI...")
             self._convert_dicom_folder_to_nifti(folder_path, temp_base_dir)
 
+        if self._is_canceled:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return
         # Converti in struttura BIDS
         print(f"Converting to BIDS structure...")
         self._convert_to_bids_structure(temp_base_dir)
@@ -374,14 +403,22 @@ class ImportThread(QThread):
                 "-o", output_folder,  # Destination folder
                 dicom_folder  # Source DICOM folder
             ]
-            subprocess.run(command, check=True)
+
+            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = self.process.communicate()
+            if self.process.returncode != 0:
+                raise RuntimeError(f"dcm2niix failed: {stderr.decode()}")
+
             self.current_progress += 10
             self.progress.emit(self.current_progress)
             print(f"Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Conversion error: {e}") from e
         except Exception as e:
-            raise RuntimeError(f"Failed to convert DICOM: {e}") from e
+            if self._is_canceled:
+                raise Exception(f"Import canceled")
+            else:
+                raise RuntimeError(f"Failed to convert DICOM: {e}") from e
 
     def _is_bids_folder(self, folder_path):
         """
@@ -597,10 +634,17 @@ class ImportThread(QThread):
 
         return False
 
+    def cancel(self):
+        self._is_canceled = True
+        if hasattr(self, 'process') and self.process is not None:
+            self.process.terminate()
+        print("Canceled.")
+
 class ImportFrame(WizardPage):
 
     def __init__(self, context=None):
         super().__init__()
+
         self.context = context
         self.next_page = None
         self.workspace_path = context["workspace_path"]
@@ -683,28 +727,46 @@ class ImportFrame(WizardPage):
 
     def _handle_import(self, folders_path):
 
-        self.progress_dialog = QProgressDialog("Loading NIfTI file...","Cancel",
+        self.progress_dialog = QProgressDialog("Importing files...","Cancel",
                                                0, 100, self.context["main_window"])
         self.progress_dialog.setWindowModality(Qt.WindowModality.NonModal)
         self.progress_dialog.setMinimumDuration(0)
 
         # Start importing thread
-        self.load_thread = ImportThread(self.context, folders_path, self.workspace_path)
-        self.load_thread.finished.connect(self.on_file_loaded)
-        self.load_thread.error.connect(self.on_load_error)
-        self.load_thread.progress.connect(self.progress_dialog.setValue)
-        self.load_thread.start()
+        self.import_thread = ImportThread(self.context, folders_path, self.workspace_path)
+        self.import_thread.finished.connect(self.on_file_loaded)
+        self.import_thread.error.connect(self.on_load_error)
+        self.import_thread.progress.connect(self.progress_dialog.setValue)
+        self.import_thread.start()
+
+        self.progress_dialog.canceled.connect(self.on_import_canceled)
 
     def on_load_error(self, error):
         """Handle file loading errors"""
         self.progress_dialog.close()
-        QMessageBox.critical(self, "Error Importing Files", "Failed to import files"+ f":\n{error}")
+        QMessageBox.critical(self.context["main_window"], "Error Importing Files", "Failed to import files"+ f":\n{error}")
 
     def on_file_loaded(self):
         self.progress_dialog.close()
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
         print("Import completed.")
+
+    def on_import_canceled(self):
+        if hasattr(self, 'import_thread') and self.import_thread.isRunning():
+            self.import_thread.cancel()
+
+    def closeEvent(self, event):
+        """Clean up on application exit"""
+        # Clean up any running threads
+        self.on_import_canceled()
+        self.import_thread.wait()
+        self.import_thread.deleteLater()
+        self.import_thread = None
+
+        gc.collect()
+
+        event.accept()
 
     def _retranslate_ui(self):
         _ = QCoreApplication.translate
