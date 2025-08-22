@@ -243,6 +243,7 @@ class FileRoleDialog(QDialog):
         derivative = selections.get("derivative")
 
         if main == "derivatives":
+            parts.append("derivatives")
             if derivative:
                 parts.append(derivative)
 
@@ -455,7 +456,6 @@ class MainWindow(QMainWindow):
                 if "nifti_viewer" in self.context and self.context["nifti_viewer"]:
                     self.context["nifti_viewer"].open_file(file_path)
                     self.context["nifti_viewer"].show()
-                    pass
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Impossibile aprire il file NIfTI:\n{str(e)}")
 
@@ -611,6 +611,21 @@ class MainWindow(QMainWindow):
 
 
     def add_file_to_workspace(self, folder_path,is_dir):
+
+        def _including_json(file_name,file_dir):
+            answer = QMessageBox.information(
+                self,
+                "Adding Json?",
+                "You want to include the JSON file if present?",
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel  # <-- aggiungo due pulsanti
+            )
+            if answer == QMessageBox.StandardButton.Ok:
+                json_file_name = file_name+".json"
+                json_file_path = os.path.join(file_dir,json_file_name)
+                if os.path.isfile(json_file_path):
+                    return json_file_path
+            return ""
+
         if hasattr(self,"context"):
             dialog = QFileDialog(self.context['main_window'], "Select File")
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -620,6 +635,17 @@ class MainWindow(QMainWindow):
 
             if dialog.exec():
                 file = dialog.selectedFiles()[0]
+                json_file = None
+                file_name = os.path.basename(file)
+                dir_name = os.path.dirname(file)
+                name, ext = os.path.splitext(file_name)
+                if ext == ".gz":
+                    name2, ext2 = os.path.splitext(name)
+                    if ext2 == ".nii":
+                        json_file = _including_json(name2,dir_name)
+                elif ext == ".nii":
+                    json_file = _including_json(name,dir_name)
+
                 if folder_path:
                     if is_dir:
                         folder = os.path.basename(folder_path)
@@ -640,24 +666,24 @@ class MainWindow(QMainWindow):
                     self.threads[-1].finished(self.copydelete_thread_success)
                     self.threads[-1].start()
                 elif re.match(r"^sub-\d+$", folder):
-                    self.open_role_dialog(file=file, folder_path=folder_path, subj=folder)
+                    self.open_role_dialog(files=[file,json_file], folder_path=folder_path, subj=folder)
                 elif folder == "derivatives":
-                    self.open_role_dialog(file=file, folder_path=folder_path, main=folder)
-                else: self.open_role_dialog(file=file, folder_path=self.workspace_path)
+                    self.open_role_dialog(files=[file,json_file], folder_path=folder_path, main=folder)
+                else: self.open_role_dialog(files=[file,json_file], folder_path=self.workspace_path)
 
-
-    def open_role_dialog(self, file = None,folder_path = None, subj = None,role = None, main = None):
+    def open_role_dialog(self,files,folder_path = None, subj = None,role = None, main = None):
         dialog = FileRoleDialog(workspace_path=self.workspace_path,subj=subj,role=role,main=main,parent=self)
         if dialog.exec():
             relative_path = dialog.get_relative_path()
             path = os.path.join(folder_path, relative_path)
             os.makedirs(path, exist_ok=True)
-
-            self.threads.append(CopyDeleteThread(src=file, dst=path, is_folder=False, copy=True))
-            self.threads[-1].error.connect(
-                lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
-            self.threads[-1].finished.connect(self.copydelete_thread_success)
-            self.threads[-1].start()
+            for file in files:
+                if file:
+                    self.threads.append(CopyDeleteThread(src=file, dst=path, is_folder=False, copy=True))
+                    self.threads[-1].error.connect(
+                        lambda msg: self.copydelete_thread_error(f"Error while adding file to workspace:{msg}"))
+                    self.threads[-1].finished.connect(self.copydelete_thread_success)
+                    self.threads[-1].start()
         else:
             return
 
