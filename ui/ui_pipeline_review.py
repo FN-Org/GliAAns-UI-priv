@@ -1,17 +1,20 @@
 import json
+import os
+import glob
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QScrollArea,
     QHBoxLayout, QFrame, QGraphicsDropShadowEffect
 )
 
+from pediatric_fdopa_pipeline.pediatric_fdopa_pipeline import run_pipeline_from_config
 from wizard_state import WizardPage
 
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, pyqtSignal
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QComboBox, QToolButton, QGraphicsDropShadowEffect
 from PyQt6.QtGui import QColor, QFont
-import os, glob
+
 
 class ClickableFrame(QFrame):
     clicked = pyqtSignal()
@@ -22,7 +25,8 @@ class ClickableFrame(QFrame):
 
 
 class CollapsiblePatientFrame(QFrame):
-    def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, parent=None, save_callback=None):
+    def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, parent=None,
+                 save_callback=None):
         super().__init__(parent)
         self.patient_id = patient_id
         self.workspace_path = workspace_path
@@ -153,6 +157,7 @@ class CollapsiblePatientFrame(QFrame):
                 widget.deleteLater()
 
         for category, pat_list in self.patterns.items():
+
             category_container = QFrame()
             category_layout = QVBoxLayout(category_container)
             category_layout.setContentsMargins(6, 4, 6, 4)
@@ -171,6 +176,11 @@ class CollapsiblePatientFrame(QFrame):
                 file_label = QLabel(chosen_file if chosen_file else "Nessun file trovato")
                 category_layout.addWidget(category_label)
                 category_layout.addWidget(file_label)
+
+                # Caso speciale: se è pet4d, mostriamo anche il relativo JSON
+                if category == "pet4d":
+                    self._add_pet4d_json_display(category_layout, chosen_file)
+
             else:
                 combo = QComboBox()
                 combo.setMinimumHeight(28)
@@ -183,6 +193,17 @@ class CollapsiblePatientFrame(QFrame):
                 self.category_widgets[category] = combo
                 category_layout.addWidget(category_label)
                 category_layout.addWidget(combo)
+
+                if category == "pet4d":
+                    # label di sola lettura per il json
+                    self.pet4d_json_label = QLabel()
+                    self.pet4d_json_label.setWordWrap(True)
+                    category_layout.addWidget(self.pet4d_json_label)
+
+                    # collego il segnale per aggiornare automaticamente il json mostrato
+                    combo.currentIndexChanged.connect(self._update_pet4d_json_display)
+                    # inizializzo subito
+                    self._update_pet4d_json_display()
 
             self.content_layout.addWidget(category_container)
 
@@ -212,6 +233,52 @@ class CollapsiblePatientFrame(QFrame):
 
             self.content_layout.addWidget(save_container)
 
+    def _add_pet4d_json_display(self, parent_layout, pet4d_file_rel):
+        """Mostra il JSON associato al file pet4d scelto (solo in modalità locked)."""
+        if not pet4d_file_rel:
+            label = QLabel("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            parent_layout.addWidget(label)
+            return
+
+        abs_pet4d_path = os.path.join(self.workspace_path, pet4d_file_rel)
+        json_candidate = abs_pet4d_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+        if os.path.exists(json_candidate):
+            rel_json = os.path.relpath(json_candidate, self.workspace_path)
+            label = QLabel(f"JSON associato: <strong>{rel_json}</strong>")
+            label.setStyleSheet("color: black; font-size: 12px;")
+            self.files["pet4d_json"] = rel_json
+        else:
+            label = QLabel("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            self.files["pet4d_json"] = ""
+
+        label.setWordWrap(True)
+        parent_layout.addWidget(label)
+
+    def _update_pet4d_json_display(self):
+        """Aggiorna il label che mostra il JSON associato al file pet4d scelto."""
+        if "pet4d" not in self.category_widgets:
+            return
+
+        combo = self.category_widgets["pet4d"]
+        selected_file = combo.currentText()
+        if not selected_file:
+            self.pet4d_json_label.setText("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            return
+
+        # Ricava percorso assoluto e costruisce quello del json
+        abs_pet4d_path = os.path.join(self.workspace_path, selected_file)
+        json_candidate = abs_pet4d_path.replace(".nii.gz", ".json").replace(".nii", ".json")
+
+        if os.path.exists(json_candidate):
+            rel_json = os.path.relpath(json_candidate, self.workspace_path)
+            self.pet4d_json_label.setText(f"JSON associato: <strong>{rel_json}</strong>")
+            self.pet4d_json_label.setStyleSheet("color: black; font-size: 12px;")
+            self.files["pet4d_json"] = rel_json  # salvo nel dict dei files
+        else:
+            self.pet4d_json_label.setText("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            self.files["pet4d_json"] = ""  # segno che manca
+
     def _on_header_clicked(self):
         # Cambia lo stato checked del toggle_button (toggle manuale)
         new_state = not self.toggle_button.isChecked()
@@ -236,6 +303,9 @@ class CollapsiblePatientFrame(QFrame):
         for category, combo in self.category_widgets.items():
             self.files[category] = combo.currentText()
 
+        # Quando l'utente salva, metti need_revision a False
+        self.files["need_revision"] = False
+
         # Salva nel JSON tramite callback
         if self.save_callback:
             self.save_callback(self.patient_id, self.files)
@@ -245,6 +315,7 @@ class CollapsiblePatientFrame(QFrame):
         self._apply_style()
         self._populate_content()
 
+
 class PipelineReviewPage(WizardPage):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
@@ -253,24 +324,74 @@ class PipelineReviewPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
-        self.config_path = os.path.join(self.workspace_path, "pipeline_config.json")
+        # Trova l'ultimo config file creato
+        self.config_path = self._find_latest_config()
         self.pipeline_config = self._load_config()
+
+        self.main_layout = QVBoxLayout(self)
 
         self._setup_ui()
 
-    def _load_config(self):
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+    def _find_latest_config(self):
+        """Trova il file config con l'ID più alto nella cartella pipeline."""
+        pipeline_dir = os.path.join(self.workspace_path, "pipeline")
+
+        # Se la cartella pipeline non esiste, ritorna il path di default
+        if not os.path.exists(pipeline_dir):
+            return os.path.join(pipeline_dir, "pipeline_config.json")
+
+        # Cerca tutti i file config con pattern XX_config.json
+        config_pattern = os.path.join(pipeline_dir, "*_config.json")
+        config_files = glob.glob(config_pattern)
+
+        if not config_files:
+            # Se non ci sono file config, ritorna il path di default
+            return os.path.join(pipeline_dir, "pipeline_config.json")
+
+        # Estrae gli ID dai nomi dei file e trova il massimo
+        max_id = 0
+        latest_config = None
+
+        for config_file in config_files:
+            filename = os.path.basename(config_file)
+            try:
+                # Estrae il numero dal pattern "XX_config.json"
+                # Il numero è all'inizio, prima del "_"
+                id_str = filename.split('_')[0]  # Prende la parte prima del primo underscore
+                config_id = int(id_str)
+                if config_id > max_id:
+                    max_id = config_id
+                    latest_config = config_file
+            except (ValueError, IndexError):
+                # Ignora file con nomi non conformi al pattern
+                continue
+
+        if latest_config:
+            print(f"Using latest config file: {latest_config}")
+            return latest_config
+        else:
+            # Se non è stato trovato nessun file valido, usa il path di default
+            return os.path.join(pipeline_dir, "pipeline_config.json")
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 15, 20, 15)
-        layout.setSpacing(15)
+        layout = self.main_layout
+        # prima svuota
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
 
         header = QLabel("Pipeline Configuration Review")
         header.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(header)
+
+        # Mostra quale config file si sta utilizzando
+        config_info = QLabel(f"Reviewing: {os.path.basename(self.config_path)}")
+        config_info.setStyleSheet("font-size: 12px; color: #666; font-style: italic;")
+        config_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(config_info)
 
         # Informative message for the doctor
         info_frame = QFrame()
@@ -308,7 +429,7 @@ class PipelineReviewPage(WizardPage):
               <li><strong>White frames</strong> show patients with files automatically selected (only one option available).</li>
             </ul>
         """
-        )
+                           )
         info_text.setStyleSheet("""
             color: #000000;
             font-size: 13px;
@@ -346,10 +467,12 @@ class PipelineReviewPage(WizardPage):
 
         categories = {
             "mri": [os.path.join(self.workspace_path, "{pid}", "anat", "*_flair.nii*")],
-            "mri_str": [os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
+            "mri_str": [
+                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
-            "tumor_mri": [os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
+            "tumor_mri": [
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
         }
 
         for patient_id, files in self.pipeline_config.items():
@@ -372,27 +495,80 @@ class PipelineReviewPage(WizardPage):
         content_layout.addStretch()
 
     def _save_single_patient(self, patient_id, files):
+        """Salva la configurazione di un singolo paziente."""
         self.pipeline_config[patient_id] = files
         with open(self.config_path, "w", encoding="utf-8") as f:
             json.dump(self.pipeline_config, f, indent=4)
 
-    def _save_config(self):
-        for patient_id, frame in self.patient_widgets.items():
-            for category, combo in frame.category_widgets.items():
-                self.pipeline_config[patient_id][category] = combo.currentText()
-
-        with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump(self.pipeline_config, f, indent=4)
-
-        print("Configuration updated:", self.config_path)
-
     def on_enter(self):
-        pass
+        """Chiamato quando si entra nella pagina."""
+        # Ricarica il config più recente
+        new_config_path = self._find_latest_config()
+        new_pipeline_config = self._load_config_from_path(new_config_path)
+
+        # Verifica se è cambiato il file config o il contenuto
+        config_changed = (
+                new_config_path != self.config_path or
+                new_pipeline_config != self.pipeline_config
+        )
+
+        if config_changed:
+            print(f"Config changed, reloading UI. New config: {os.path.basename(new_config_path)}")
+            self.config_path = new_config_path
+            self.pipeline_config = new_pipeline_config
+            self._setup_ui()
+        else:
+            print("Config unchanged, keeping existing UI")
+
+    def _load_config_from_path(self, config_path):
+        """Carica il file di configurazione da un path specifico."""
+        if not os.path.exists(config_path):
+            print(f"Warning: Config file not found at {config_path}")
+            return {}
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Error loading config file {config_path}: {e}")
+            return {}
+
+    def _load_config(self):
+        """Carica il file di configurazione corrente."""
+        return self._load_config_from_path(self.config_path)
 
     def next(self, context):
+        """Procede alla fase successiva avviando la pipeline."""
+        # Estrae l'ID dal nome del file config (es: "07_config.json" -> "07")
+        config_filename = os.path.basename(self.config_path)
+        try:
+            # Prende la parte prima del primo underscore
+            config_id = config_filename.split('_')[0]
+
+            # Crea la directory di output con il pattern XX_output
+            pipeline_output_dir = os.path.join(self.workspace_path, "pipeline", f"{config_id}_output")
+
+            # Crea la directory se non esiste
+            os.makedirs(pipeline_output_dir, exist_ok=True)
+
+        except (IndexError, ValueError):
+            # Fallback: se non riesce a estrarre l'ID, usa il formato originale
+            pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
+            print(
+                f"Warning: Could not extract ID from config filename {config_filename}, using default output directory")
+
+        run_pipeline_from_config(self.config_path, work_dir=self.workspace_path, out_dir=pipeline_output_dir)
         return self.next_page
 
     def back(self):
+        """Torna alla pagina precedente."""
+        if os.path.exists(self.config_path):
+            try:
+                os.remove(self.config_path)
+                print(f"Removed config file: {self.config_path}")
+            except OSError as e:
+                print(f"Error removing config file {self.config_path}: {e}")
+
         if self.previous_page:
             self.previous_page.on_enter()
             return self.previous_page
