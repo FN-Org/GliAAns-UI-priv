@@ -287,8 +287,8 @@ class PatientSelectionPage(WizardPage):
             if "derivatives" in dirs:
                 dirs.remove("derivatives")
 
-            if "output" in dirs:
-                dirs.remove("output")
+            if "pipeline" in dirs:
+                dirs.remove("pipeline")
 
             for dir_name in dirs:
                 if dir_name.startswith("sub-"):

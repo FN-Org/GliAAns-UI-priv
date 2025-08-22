@@ -37,7 +37,7 @@ def get_parser():
     return parser
 
 
-def run_pipeline_from_config(config_path, work_dir, out_dir="output/"):
+def run_pipeline_from_config(config_path, work_dir, out_dir):
 
     with open(config_path, "r", encoding="utf-8") as f:
         pipeline_config = json.load(f)

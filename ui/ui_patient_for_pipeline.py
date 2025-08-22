@@ -506,8 +506,8 @@ class PipelinePatientSelectionPage(WizardPage):
             if "derivatives" in dirs:
                 dirs.remove("derivatives")
 
-            if "output" in dirs:
-                dirs.remove("output")
+            if "pipeline" in dirs:
+                dirs.remove("pipeline")
 
             for dir_name in dirs:
                 if dir_name.startswith("sub-"):
@@ -562,11 +562,10 @@ class PipelinePatientSelectionPage(WizardPage):
         super().resizeEvent(event)
         self._update_column_count()
 
-    import json
-
     def _build_pipeline_config(self):
         """Crea e salva un file JSON con la configurazione iniziale della pipeline.
         Tutti i path nel JSON sono relativi a workspace_path.
+        Il file viene salvato con un ID numerico sequenziale.
         """
         config = {}
 
@@ -652,12 +651,59 @@ class PipelinePatientSelectionPage(WizardPage):
 
             config[patient_id] = patient_entry
 
-        # Salva JSON nel workspace
-        output_path = os.path.join(self.workspace_path, "pipeline_config.json")
+        # Gestione della cartella pipeline e del nome file
+        pipeline_dir = os.path.join(self.workspace_path, "pipeline")
+
+        # Crea la cartella pipeline se non esiste
+        if not os.path.exists(pipeline_dir):
+            os.makedirs(pipeline_dir)
+            print(f"Created pipeline directory: {pipeline_dir}")
+
+        # Trova il prossimo numero sequenziale disponibile
+        config_id = self._get_next_config_id(pipeline_dir)
+
+        # Nome del file con ID numerico
+        filename = f"{config_id:02d}_config.json"
+        output_path = os.path.join(pipeline_dir, filename)
+
+        # Salva il file JSON
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
 
         print(f"Pipeline configuration saved to: {output_path}")
+        return output_path
+
+    def _get_next_config_id(self, pipeline_dir):
+        """Trova il prossimo ID numerico sequenziale disponibile per i file config.
+
+        Args:
+            pipeline_dir (str): Path della directory pipeline
+
+        Returns:
+            int: Il prossimo ID numerico disponibile
+        """
+        # Pattern per trovare i file config esistenti
+        config_pattern = os.path.join(pipeline_dir, "*_config.json")
+        existing_configs = glob.glob(config_pattern)
+
+        if not existing_configs:
+            return 1  # se non ci sono file, parti da 1
+
+        existing_ids = []
+        for config_file in existing_configs:
+            filename = os.path.basename(config_file)  # es: "12_config.json"
+            try:
+                # prendi la parte prima di "_config.json"
+                id_str = filename.split("_")[0]  # "12"
+                config_id = int(id_str)
+                existing_ids.append(config_id)
+            except (ValueError, IndexError):
+                continue  # ignora file con nomi strani
+
+        if not existing_ids:
+            return 1
+
+        return max(existing_ids) + 1
 
     def on_enter(self):
         """Chiamato quando si entra nella pagina"""
