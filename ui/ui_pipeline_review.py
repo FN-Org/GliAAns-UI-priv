@@ -562,6 +562,13 @@ class PipelineReviewPage(WizardPage):
 
     def back(self):
         """Torna alla pagina precedente."""
+        if os.path.exists(self.config_path):
+            try:
+                os.remove(self.config_path)
+                print(f"Removed config file: {self.config_path}")
+            except OSError as e:
+                print(f"Error removing config file {self.config_path}: {e}")
+
         if self.previous_page:
             self.previous_page.on_enter()
             return self.previous_page
