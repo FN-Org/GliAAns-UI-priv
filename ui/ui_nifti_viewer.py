@@ -1171,6 +1171,8 @@ class NiftiViewer(QMainWindow):
             self.load_threads[-1].progress.connect(self.progress_dialog.setValue)
             self.load_threads[-1].start()
 
+            self.progress_dialog.canceled.connect(self.on_load_canceled)
+
             if is_overlay:
                 self.overlay_file_path = file_path
             else:
@@ -1179,6 +1181,8 @@ class NiftiViewer(QMainWindow):
     def on_file_loaded(self, img_data, dims, affine, is_4d, is_overlay):
         """Handle successful file loading"""
         self.progress_dialog.close()
+        thread_to_cancel = self.sender()
+        self.load_threads.remove(thread_to_cancel)
         if is_overlay:
             # Salva overlay
             self.overlay_data = img_data
@@ -1257,6 +1261,13 @@ class NiftiViewer(QMainWindow):
         """Handle file loading errors"""
         self.progress_dialog.close()
         QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
+        thread_to_cancel = self.sender()
+        self.load_threads.remove(thread_to_cancel)
+
+    def on_load_canceled(self, canceled=True):
+        self.load_threads[-1].terminate()
+        self.load_threads.pop()
+
 
     def initialize_display(self):
         """Initialize display parameters and update all views"""
