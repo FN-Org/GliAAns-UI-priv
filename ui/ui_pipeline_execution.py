@@ -1,14 +1,112 @@
+
 import os
 import json
 import sys
 
+from PyQt6.QtGui import QPen, QColor, QFont, QPainter
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QProgressBar, QPushButton,
-    QTextEdit, QFrame, QHBoxLayout, QScrollArea
+    QTextEdit, QFrame, QHBoxLayout, QScrollArea, QDialog, QListWidget, QSpacerItem, QSizePolicy, QGridLayout
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QRectF, QPropertyAnimation
 from wizard_state import WizardPage
 
+
+class CircularProgress(QWidget):
+    def __init__(self, size=120):
+        super().__init__()
+        self.value = 0
+        self.size = size
+        self.setFixedSize(size, size)
+        self.existing_files = []
+
+    def setValue(self, val: int):
+        self.value = val
+        self.update()
+
+    def paintEvent(self, event):
+        width = self.width()
+        height = self.height()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Background circle
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("#f0f0f0"))
+        painter.drawEllipse(0, 0, width, height)
+
+        # Progress arc
+        pen_width = max(6, int(self.size / 12))  # adattabile alla dimensione
+        pen = QPen(QColor("#3498DB"))
+        pen.setWidth(pen_width)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        rect = QRectF(pen_width/2, pen_width/2, width - pen_width, height - pen_width)
+        angle_span = int(360 * self.value / 100)
+        painter.drawArc(rect, -90 * 16, -angle_span * 16)
+
+        # Text
+        font_size = max(10, int(self.size / 10))
+        painter.setPen(QColor("#2C3E50"))
+        painter.setFont(QFont("Arial", font_size, QFont.Weight.Bold))
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{self.value}%")
+
+
+# Card per cartella monitorata con lampeggio
+class FolderCard(QPushButton):
+    def __init__(self, folder):
+        super().__init__(str(os.path.basename(folder)))
+        self.folder = folder
+        self.files = []
+        self.setFixedHeight(60)
+        self.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
+        self.clicked.connect(self.show_files)
+        self.animation = None
+
+    def add_files(self, new_files):
+        self.files.extend(new_files)
+        self.start_blinking()
+
+    def start_blinking(self):
+        self.animation = QPropertyAnimation(self, b"styleSheet")
+        self.animation.setDuration(800)
+        self.animation.setLoopCount(4)
+        self.animation.setKeyValueAt(0, "background-color: #2ECC71; color: white; border-radius: 8px;")
+        self.animation.setKeyValueAt(0.5, "background-color: #27AE60; color: white; border-radius: 8px;")
+        self.animation.setKeyValueAt(1, "background-color: #2ECC71; color: white; border-radius: 8px;")
+        self.animation.start()
+
+    def reset_state(self):
+        self.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
+
+    def show_files(self):
+        if not self.files:
+            return
+        dlg = FileDialog(self.folder, self.files, self)
+        dlg.exec()
+        self.files.clear()
+        self.reset_state()
+
+    def check_new_files(self):
+        current_files = set(os.listdir(self.folder))
+        new_files = current_files - self.existing_files
+        if new_files:
+            self.add_files(list(new_files))
+        self.existing_files = current_files
+
+# Dialog che mostra i file di una cartella
+class FileDialog(QDialog):
+    def __init__(self, folder, files, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Nuovi file in {folder}")
+        layout = QVBoxLayout()
+        list_widget = QListWidget()
+        for f in files:
+            list_widget.addItem(f)
+        layout.addWidget(list_widget)
+        self.setLayout(layout)
+        self.resize(400, 300)
 
 class PipelineExecutionPage(WizardPage):
     def __init__(self, context=None, previous_page=None):
@@ -71,15 +169,15 @@ class PipelineExecutionPage(WizardPage):
                 if config_id > max_id:
                     max_id = config_id
                     latest_config = config_file
+
             except (ValueError, IndexError):
                 continue
 
         return latest_config if latest_config else os.path.join(pipeline_dir, "pipeline_config.json")
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+
+        main_layout = QVBoxLayout(self)  # layout verticale principale
 
         # Header
         header = QLabel("Pipeline Execution")
@@ -90,64 +188,9 @@ class PipelineExecutionPage(WizardPage):
             margin-bottom: 10px;
         """)
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
+        main_layout.addWidget(header)
 
-        # Subtitle con informazioni sul config
-        config_info = QLabel(f"Processing configuration: {os.path.basename(self.config_path)}")
-        config_info.setStyleSheet("""
-            font-size: 14px; 
-            color: #7f8c8d; 
-            font-style: italic;
-            margin-bottom: 15px;
-        """)
-        config_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(config_info)
-
-        # Status frame
-        self.status_frame = QFrame()
-        self.status_frame.setStyleSheet("""
-            QFrame {
-                background-color: #ecf0f1;
-                border: 2px solid #bdc3c7;
-                border-radius: 10px;
-                padding: 15px;
-                margin: 10px 0px;
-            }
-        """)
-        status_layout = QVBoxLayout(self.status_frame)
-
-        # Status label
-        self.status_label = QLabel("Initializing pipeline...")
-        self.status_label.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #34495e;
-            margin-bottom: 10px;
-        """)
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_layout.addWidget(self.status_label)
-
-        # Progress bar
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(0)  # Indeterminate progress
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid #bdc3c7;
-                border-radius: 8px;
-                text-align: center;
-                font-size: 12px;
-                font-weight: bold;
-                height: 25px;
-            }
-            QProgressBar::chunk {
-                background-color: #3498db;
-                border-radius: 6px;
-            }
-        """)
-        status_layout.addWidget(self.progress_bar)
-
-        # Current operation label
+        # Current operation
         self.current_operation = QLabel("Preparing to start...")
         self.current_operation.setStyleSheet("""
             font-size: 13px;
@@ -155,9 +198,38 @@ class PipelineExecutionPage(WizardPage):
             margin-top: 8px;
         """)
         self.current_operation.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_layout.addWidget(self.current_operation)
+        main_layout.addWidget(self.current_operation)
 
-        layout.addWidget(self.status_frame)
+        # --- Contenuti principali sotto ---
+        content_layout = QGridLayout()
+        main_layout.addLayout(content_layout, stretch=1)
+
+        # Scroll area a destra
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_area.setWidget(scroll_content)
+
+        self.folder_cards = {}
+        self.watch_dirs = self.get_sub_list(self.config_path)
+        self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
+        for d in self.watch_dirs:
+            card = FolderCard(d)
+            scroll_layout.addWidget(card)
+            self.folder_cards[d] = card
+
+        # Progress bar circolare a sinistra
+        progress_size = 120
+        left_layout = QVBoxLayout()
+        left_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        self.progress_bar = CircularProgress(size=progress_size)
+        left_layout.addWidget(self.progress_bar, 0, Qt.AlignmentFlag.AlignCenter)
+        left_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+        content_layout.addLayout(left_layout, 0, 0)
+        content_layout.addWidget(scroll_area, 0, 1)
+
 
         # Log section
         log_label = QLabel("Execution Log:")
@@ -168,7 +240,7 @@ class PipelineExecutionPage(WizardPage):
             margin-top: 15px;
             margin-bottom: 5px;
         """)
-        layout.addWidget(log_label)
+        content_layout.addWidget(log_label,1,0,1,2)
 
         # Log text area
         self.log_text = QTextEdit()
@@ -185,7 +257,7 @@ class PipelineExecutionPage(WizardPage):
         """)
         self.log_text.setMaximumHeight(200)
         self.log_text.setReadOnly(True)
-        layout.addWidget(self.log_text)
+        content_layout.addWidget(self.log_text,2,0,1,2)
 
         # Buttons frame
         button_frame = QFrame()
@@ -242,7 +314,13 @@ class PipelineExecutionPage(WizardPage):
         button_layout.addWidget(self.stop_button)
         button_layout.addStretch()
 
-        layout.addWidget(button_frame)
+        content_layout.addWidget(button_frame)
+        layout = QVBoxLayout()
+        layout.addLayout(main_layout)
+        layout.addLayout(content_layout)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
 
     def _start_pipeline(self):
         """Avvia il processo della pipeline."""
@@ -258,22 +336,11 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_process.readyReadStandardError.connect(self._on_stderr_ready)
 
         # Aggiorna UI per stato "in esecuzione"
-        self.status_label.setText("Pipeline Running...")
-        self.current_operation.setText("Processing patients...")
-        self.progress_bar.setMaximum(0)  # Indeterminate
+        self.progress_bar.setValue(0)
         self.stop_button.setEnabled(True)
         self.back_button.setEnabled(False)
 
         # Aggiorna lo stile del frame di stato
-        self.status_frame.setStyleSheet("""
-            QFrame {
-                background-color: #e8f6f3;
-                border: 2px solid #1abc9c;
-                border-radius: 10px;
-                padding: 15px;
-                margin: 10px 0px;
-            }
-        """)
 
         self._log_message("Starting pipeline execution...")
 
@@ -357,7 +424,6 @@ class PipelineExecutionPage(WizardPage):
         try:
             if '/' in progress_info:
                 current, total = map(int, progress_info.split('/'))
-                self.progress_bar.setMaximum(total)
                 self.progress_bar.setValue(current)
         except ValueError:
             pass  # Ignora se non riesco a parsare il progresso
@@ -386,7 +452,6 @@ class PipelineExecutionPage(WizardPage):
     def _on_pipeline_finished(self):
         """Chiamato quando la pipeline termina con successo."""
         self.pipeline_completed = True
-        self.context["update_main_buttons"]()
 
         # Aggiorna UI per stato "completato"
         self.status_label.setText("Pipeline Completed Successfully!")
@@ -394,16 +459,6 @@ class PipelineExecutionPage(WizardPage):
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(100)
 
-        # Aggiorna lo stile del frame di stato
-        self.status_frame.setStyleSheet("""
-            QFrame {
-                background-color: #eafaf1;
-                border: 2px solid #27ae60;
-                border-radius: 10px;
-                padding: 15px;
-                margin: 10px 0px;
-            }
-        """)
 
         # Abilita i pulsanti appropriati
         self.back_button.setEnabled(True)
@@ -420,21 +475,13 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_error = error_message
 
         # Aggiorna UI per stato "errore"
-        self.status_label.setText("Pipeline Failed!")
         self.current_operation.setText("An error occurred during execution.")
-        self.progress_bar.setMaximum(100)
-        self.progress_bar.setValue(0)
-
-        # Aggiorna lo stile del frame di stato
-        self.status_frame.setStyleSheet("""
-            QFrame {
-                background-color: #fdeaea;
-                border: 2px solid #e74c3c;
-                border-radius: 10px;
-                padding: 15px;
-                margin: 10px 0px;
-            }
+        self.current_operation.setStyleSheet("""
+            color: #c0392b;
+            font-weight: bold;
         """)
+
+        self.progress_bar.setValue(0)
 
         # Abilita i pulsanti appropriati
         self.back_button.setEnabled(True)
@@ -485,17 +532,6 @@ class PipelineExecutionPage(WizardPage):
             self.progress_bar.setMaximum(100)
             self.progress_bar.setValue(0)
 
-            # Aggiorna lo stile del frame di stato
-            self.status_frame.setStyleSheet("""
-                QFrame {
-                    background-color: #fef9e7;
-                    border: 2px solid #f39c12;
-                    border-radius: 10px;
-                    padding: 15px;
-                    margin: 10px 0px;
-                }
-            """)
-
             self.back_button.setEnabled(True)
             self.stop_button.setEnabled(False)
             self.pipeline_process = None
@@ -509,13 +545,10 @@ class PipelineExecutionPage(WizardPage):
 
     def back(self):
         """Implementazione del metodo back per compatibilità."""
-        if self.previous_page:
-            self.previous_page.on_enter()
-            return self.previous_page
-        return None
+        pass
 
     def is_ready_to_go_back(self):
-        return self.pipeline_completed
+        return False
 
     def is_ready_to_advance(self):
         return self.pipeline_completed
@@ -524,6 +557,22 @@ class PipelineExecutionPage(WizardPage):
         """Implementazione del metodo next per compatibilità."""
         pass
 
+    def get_sub_list(self,json_path: str) -> list:
+        """
+        Legge un file JSON e ritorna la lista dei 'sub' trovati.
+
+        Args:
+        json_path (str): percorso al file JSON
+
+        Returns:
+        list: lista delle chiavi tipo 'sub-XX'
+        """
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # prendo tutte le chiavi che iniziano con "sub-"
+        sub_list = [key for key in data.keys() if key.startswith("sub-")]
+        return sub_list
     def __del__(self):
         """Cleanup quando l'oggetto viene distrutto."""
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
