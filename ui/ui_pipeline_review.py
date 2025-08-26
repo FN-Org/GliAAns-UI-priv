@@ -570,10 +570,25 @@ class PipelineReviewPage(WizardPage):
         """Torna alla pagina precedente."""
         if os.path.exists(self.config_path):
             try:
-                os.remove(self.config_path)
-                print(f"Removed config file: {self.config_path}")
-            except OSError as e:
-                print(f"Error removing config file {self.config_path}: {e}")
+                # Estrae l'ID dal nome del file config
+                config_filename = os.path.basename(self.config_path)
+                # Il pattern è "XX_config.json", quindi prendiamo la parte prima di "_config.json"
+                config_id = config_filename.split('_config.json')[0]
+
+                # Costruisce il path della cartella output corrispondente
+                pipeline_dir = os.path.dirname(self.config_path)
+                output_folder_path = os.path.join(pipeline_dir, f"{config_id}_output")
+
+                # Controlla se esiste la cartella output
+                if os.path.exists(output_folder_path):
+                    print(f"Output folder exists ({output_folder_path}), keeping config file: {self.config_path}")
+                else:
+                    # La cartella output non esiste, quindi possiamo cancellare il config file
+                    os.remove(self.config_path)
+                    print(f"Output folder does not exist, removed config file: {self.config_path}")
+
+            except (OSError, IndexError, ValueError) as e:
+                print(f"Error processing config file {self.config_path}: {e}")
 
         if self.previous_page:
             self.previous_page.on_enter()

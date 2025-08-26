@@ -386,6 +386,7 @@ class PipelineExecutionPage(WizardPage):
     def _on_pipeline_finished(self):
         """Chiamato quando la pipeline termina con successo."""
         self.pipeline_completed = True
+        self.context["update_main_buttons"]()
 
         # Aggiorna UI per stato "completato"
         self.status_label.setText("Pipeline Completed Successfully!")
@@ -508,10 +509,13 @@ class PipelineExecutionPage(WizardPage):
 
     def back(self):
         """Implementazione del metodo back per compatibilità."""
-        pass
+        if self.previous_page:
+            self.previous_page.on_enter()
+            return self.previous_page
+        return None
 
     def is_ready_to_go_back(self):
-        return False
+        return self.pipeline_completed
 
     def is_ready_to_advance(self):
         return self.pipeline_completed
