@@ -36,8 +36,6 @@ Version | Data | Author(s)| Notes
             1. [Class Description](#cd-description)
         2. [Object Diagram](#od)
         3. [Dynamic Models](#dm)
-5. [System Module 2](#sys-module-2)
-   1. ...
 
 ##  <a name="intro"></a>  1 Introduction
     
@@ -128,36 +126,15 @@ The GUI is structured into three main components:
 ## <a name="sys-module-1"></a>  4 Graphical User Interface
 
 ### <a name="sd"></a>  4.1 Structural Diagrams
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
 
 #### <a name="cd"></a>  4.1.1 Class diagram
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+A class diagram provides a visual representation of the classes, relationships, and interactions within a system
+TODO
 
 ##### <a name="cd-description"></a>  4.1.1.1 Class Description
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+TODO
 
 #### <a name="od"></a>  4.1.2 Object diagram
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
 
 #### <a name="dm"></a>  4.2 Dynamic Models
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+[ ACTIVITY DIAGRAM ]
