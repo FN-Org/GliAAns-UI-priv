@@ -1,17 +1,17 @@
-# Title of the project
+# GliAAns - Gliomas Automatic Analysis
 
 ## Design Requirement Specification Document
 
 DIBRIS – Università di Genova. Scuola Politecnica, Corso di Ingegneria del Software 80154
 
 
-<div align='right'> <b> Authors </b> <br> AA <br> BB  </div>
+<div align='right'> <b> Authors </b> <br> Federico Giovanni Garau <br> Nicolò Trebino  </div>
 
 ### REVISION HISTORY
 
 Version | Data | Author(s)| Notes
 ---------|------|--------|------
-1 | XX/YY/ZZ | AA <br> BB | First Versionn of the document. Document Template
+1 | 27/08/2025 | Federico G. Garau <br> Nicolò Trebino | First Versionn of the document
 
 ## Table of Content
 
@@ -40,116 +40,92 @@ Version | Data | Author(s)| Notes
    1. ...
 
 ##  <a name="intro"></a>  1 Introduction
-<details>
-    <summary> The design specification document reflects the design and provides directions to the builders and coders of the product.</summary> 
-    Through this document, designers communicate the design for the product to which the builders or coders must comply. The design specification should state how the design will meet the requirements.
-</details>
     
 ### <a name="purpose"></a> 1.1 Purpose and Scope
-<details> 
-    <summary> The goal of this section is to describe the purpose of this document and intended audience  </summary>
-    <p>This sub section should describe ...</p>
-</details>
+This DRS defines the design specifications of the Pediatric FDOPA Pipeline GUI, a cross-platform desktop application that enables medical personnel to execute and visualize the results of the FDOPA neuroimaging pipeline without requiring programming knowledge. The document is intended for software developers, system architects, and testers.
 
 ### <a name="def"></a> 1.2 Definitions
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-    
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
-    
-</details>
+Here are listed some definitions used during the project development
+| Acronym	| Definition |
+| --- | --- |
+| FDOPA	| Fluorodopa (18F), a PET radiotracer |
+| VOI	| Volume of Interest in neuroimaging |
+| BIDS	| Brain Imaging Data Structure |
+| GUI	| Graphical User Interface |
+| DICOM	| Standard format for medical imaging |
+| NIfTI	| Neuroimaging Informatics Technology Initiative format |
 
 ### <a name="overview"></a> 1.3 Document Overview
-<details> 
-    <summary> Explain how is organized the document
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+This document is structured to provide: 
+
+(1) a project description, 
+
+(2) a detailed system overview with software architecture, data, and interfaces,
+
+(3) module-specific designs with diagrams and descriptions.
 
 ### <a name="biblio"></a> 1.4 Bibliography
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+- [docs/ref/res]
+- Pediatric FDOPA Pipeline GitHub Repository
+- Clinical Paper: FDOPA in Pediatric Oncology
+- https://bids-specification.readthedocs.io/en/stable/
 
 ## <a name="description"></a> 2 Project Description
 
 ### <a name="project-intro"></a> 2.1 Project Introduction 
-<details> 
-    <summary>  Describe at an high level what is the goal of the project and a possible solution
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+The Pediatric FDOPA Pipeline GUI addresses the usability gap between the command-line pipeline and clinical workflows. It simplifies input data handling, automates processing, and provides a better user experience for result visualization and export functionalities.
 
 ### <a name="tech"></a> 2.2 Technologies used
-
-<details> 
-    <summary> Description of the overall architecture. </summary>
-    <p>Graphical representation of the system architecture.  May be composed by multiple diagrams depending on the differences in the environment
-specifications    </p>
-</details>
+- Programming language & GUI: Python with PyQt6
+- Imaging libraries: pydicom, nibabel, dcm2niix
+- Scientific computing & optimization: numpy, scipy, numba
+- Image processing & machine learning: scikit-image, scikit-learn, antspyx
+- Data handling & statistics: pandas, seaborn, JSON
+- Visualization: matplotlib
+- Deep Learning model integration: PyTorch
 
 ### <a name="constraints"></a> 2.3 Assumption and Constraint 
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+- Offline execution only (no internet connection required).
+- Cross-platform: Windows, Linux, macOS.
+- Must comply with hospital data privacy rules (no storage of identifiable data).
+- ASSUMPTION: l'utente è un medico che sa il fatto suo!
 
 ## <a name="system-overview"></a>  3 System Overview
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+In this section is shown the Use Case Model of the system:
+
+[ USE CASES DIAGRAM ]
 
 ### <a name="architecture"></a>  3.1 System Architecture
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+The system architecture is designed to be simple and entirely local, reflecting the intended use within hospital environments by medical personnel.
+- User: A clinician or medical researcher who interacts directly with the GUI.
+- Hardware environment: A standard hospital workstation (desktop or laptop) equipped with sufficient CPU and memory resources. Additionally, a GPU is required to enable efficient execution of the Deep Learning–based segmentation module. No dedicated server or network infrastructure is needed.
+- Software environment: The GUI application runs locally on the operating system (Linux, Windows, macOS) and communicates directly with the underlying processing libraries and pipeline components.
+- Execution model: All computations, image processing, and data handling are performed locally on the clinician’s computer, ensuring offline functionality and compliance with data privacy requirements.
 
 ### <a name="interfaces"></a>  3.2 System Interfaces
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+The user interacts with the system exclusively through a dedicated Graphical User Interface (GUI). 
+
+The GUI is structured into three main components:
+1. Workspace Viewer – Provides an overview of the current working environment, displaying the files and folders that the user is handling. This allows clinicians to keep track of imported datasets and organized outputs.
+2. Wizard Panel – Guides the user step by step through the different stages of the workflow. The wizard enables navigation forward and backward across multiple pages, each corresponding to a specific clinical or technical action. The final objective is to lead the clinician seamlessly toward the analysis of patient imaging data using the FDOPA pipeline.
+3. NIfTI Viewer – A specialized module that enables visualization, interaction, and modification of imported NIfTI images. This viewer supports detailed inspection and manipulation of neuroimaging data within the workspace, ensuring that clinicians can fully interact with the images before and after pipeline execution.
 
 ### <a name="data"></a>  3.3 System Data
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
 
 #### <a name="inputs"></a>  3.3.1 System Inputs
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+- DICOM series (`.dcm`)
+- NIfTI volumes (`.nii`, `.nii.gz`)
+- BIDS directory structure[https://bids-specification.readthedocs.io/en/stable/]
 
 #### <a name="outputs"></a>  3.3.2 System Ouputs
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+- CSV result tables (`.csv`)
+- NIfTI processed volumes (`.nii`, `.nii.gz`)
+- H5 files (`.h5`)
+- JSON files (`.json`)
+- GIF result files (`.gif`)
+- TXT logs (`.txt`)
 
-## <a name="sys-module-1"></a>  4 System Module 1
-<details> 
-    <summary> Put a summary of the section
-    </summary>
-    <p>This sub section should describe ...</p>
-</details>
+## <a name="sys-module-1"></a>  4 Graphical User Interface
 
 ### <a name="sd"></a>  4.1 Structural Diagrams
 <details> 
