@@ -71,6 +71,43 @@ def apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_col
                         rgba_image[y, x, ch] *= (1.0 - overlay_intensity[y, x])
     return rgba_image
 
+class SaveNiftiThread(QThread):
+    success = pyqtSignal(str,str)
+    error = pyqtSignal(str)
+
+    def __init__(self,data,affine,path,json_path,relative_path,radius,difference):
+        super().__init__()
+        self.data = data
+        self.affine = affine
+        self.path = path
+        self.relative_path = relative_path
+        self.radius = radius
+        self.difference = difference
+        self.json_path = json_path
+
+    def run(self):
+        try:
+            # Salva la NIfTI
+            nib.save(nib.Nifti1Image(self.data.astype(np.uint8), self.affine), self.path)
+
+            # Costruisci il JSON BIDS-like
+            json_dict = {
+                "Type": "ROI",
+                "Sources": [f"bids:{self.relative_path}"],
+                "Description": "Automatic ROI using intensity threshold-based region growing.",
+                "AutomaticRoiParameters": {
+                    "radius": self.radius,
+                    "difference": self.difference
+                }
+            }
+
+            with open(self.json_path, "w") as json_file:
+                json.dump(json_dict, json_file, indent=4)
+
+            self.success.emit(self.path, self.json_path)
+        except Exception as e:
+            self.error.emit(str(e))
+
 
 class ImageLoadThread(QThread):
     """Thread for loading large NIfTI files without blocking the UI - VERSIONE MODIFICATA"""
@@ -225,7 +262,7 @@ class NiftiViewer(QMainWindow):
     def __init__(self, context=None):
         super().__init__()
 
-        self.load_threads = []
+        self.threads = []
         self.context = context
 
         self.progress_dialog = None
@@ -1165,11 +1202,11 @@ class NiftiViewer(QMainWindow):
             self.progress_dialog.setMinimumDuration(0)
 
             # Start loading thread
-            self.load_threads.append(ImageLoadThread(file_path,is_overlay))
-            self.load_threads[-1].finished.connect(self.on_file_loaded)
-            self.load_threads[-1].error.connect(self.on_load_error)
-            self.load_threads[-1].progress.connect(self.progress_dialog.setValue)
-            self.load_threads[-1].start()
+            self.threads.append(ImageLoadThread(file_path,is_overlay))
+            self.threads[-1].finished.connect(self.on_file_loaded)
+            self.threads[-1].error.connect(self.on_load_error)
+            self.threads[-1].progress.connect(self.progress_dialog.setValue)
+            self.threads[-1].start()
 
             self.progress_dialog.canceled.connect(self.on_load_canceled)
 
@@ -1183,7 +1220,7 @@ class NiftiViewer(QMainWindow):
         self.progress_dialog.canceled.disconnect()
         self.progress_dialog.close()
         thread_to_cancel = self.sender()
-        self.load_threads.remove(thread_to_cancel)
+        self.threads.remove(thread_to_cancel)
         if is_overlay:
             # Salva overlay
             self.overlay_data = img_data
@@ -1263,11 +1300,11 @@ class NiftiViewer(QMainWindow):
         self.progress_dialog.close()
         QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
         thread_to_cancel = self.sender()
-        self.load_threads.remove(thread_to_cancel)
+        self.threads.remove(thread_to_cancel)
 
     def on_load_canceled(self, canceled=True):
-        self.load_threads[-1].terminate()
-        self.load_threads.pop()
+        self.threads[-1].terminate()
+        self.threads.pop()
 
 
     def initialize_display(self):
@@ -2004,38 +2041,32 @@ class NiftiViewer(QMainWindow):
             return  # Annullato
 
         os.makedirs(save_dir, exist_ok=True)
+        self.threads.append(SaveNiftiThread(self.overlay_data, self.affine,full_save_path,json_save_path,relative_path,radius,difference))
+        self.threads[-1].success.connect(self._on_automaticROI_saved)
+        self.threads[-1].error.connect(self._on_automaticROI_error)
+        self.threads[-1].start()
 
-        # Salva la NIfTI
-        nib.save(nib.Nifti1Image(self.overlay_data.astype(np.uint8), self.affine), full_save_path)
 
-        # Costruisci il JSON BIDS-like
-        json_dict = {
-            "Type": "ROI",
-            "Sources": [f"bids:{relative_path}"],
-            "Description": "Automatic ROI using intensity threshold-based region growing.",
-            "AutomaticRoiParameters": {
-                "radius": radius,
-                "difference": difference
-            }
-        }
-
-        with open(json_save_path, "w") as json_file:
-            json.dump(json_dict, json_file, indent=4)
-
-        QMessageBox.information(self, "ROI Saved", "ROI and metadata saved successfully!")
-        print(f"Automatic ROI saved to: {full_save_path}")
-        print(f"Metadata JSON saved to: {json_save_path}")
-
+    def _on_automaticROI_saved(self,path,json_path):
+        QMessageBox.information(self,
+                                "ROI Saved",
+                                f"ROI saved in:{path} and metadata saved in:{json_path} successfully!")
+    def _on_automaticROI_error(self,error):
+        QMessageBox.critical(
+            self,
+            "Error when saving ROI",
+            f"Error when saving: {error}"
+        )
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads
-        if hasattr(self, 'load_threads'):
-            for t in self.load_threads:
+        if hasattr(self, 'threads'):
+            for t in self.threads:
                 if t.isRunning():
                     t.terminate()
                     t.wait()
                 t.deleteLater()
-            self.load_threads.clear()
+            self.threads.clear()
 
         # Clear image data to free memory
         self.img_data = None
