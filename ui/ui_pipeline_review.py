@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QFrame, QGraphicsDropShadowEffect
 )
 
-from pediatric_fdopa_pipeline.pediatric_fdopa_pipeline import run_pipeline_from_config
+from ui.ui_pipeline_execution import PipelineExecutionPage
 from wizard_state import WizardPage
 
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, pyqtSignal
@@ -539,35 +539,56 @@ class PipelineReviewPage(WizardPage):
 
     def next(self, context):
         """Procede alla fase successiva avviando la pipeline."""
-        # Estrae l'ID dal nome del file config (es: "07_config.json" -> "07")
-        config_filename = os.path.basename(self.config_path)
-        try:
-            # Prende la parte prima del primo underscore
-            config_id = config_filename.split('_')[0]
+        # Verifica che tutti i pazienti con need_revision siano stati salvati
+        unsaved_patients = []
+        for patient_id, files in self.pipeline_config.items():
+            if files.get("need_revision", False):
+                unsaved_patients.append(patient_id)
 
-            # Crea la directory di output con il pattern XX_output
-            pipeline_output_dir = os.path.join(self.workspace_path, "pipeline", f"{config_id}_output")
+        if unsaved_patients:
+            # Mostra un messaggio di avviso se ci sono pazienti non salvati
+            from PyQt6.QtWidgets import QMessageBox
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("Configuration Incomplete")
+            msg.setText("Some patients still require configuration review.")
+            msg.setInformativeText(f"Please review and save configuration for: {', '.join(unsaved_patients)}")
+            msg.exec()
+            return self  # Resta sulla pagina corrente
 
-            # Crea la directory se non esiste
-            os.makedirs(pipeline_output_dir, exist_ok=True)
-
-        except (IndexError, ValueError):
-            # Fallback: se non riesce a estrarre l'ID, usa il formato originale
-            pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
-            print(
-                f"Warning: Could not extract ID from config filename {config_filename}, using default output directory")
-
-        run_pipeline_from_config(self.config_path, work_dir=self.workspace_path, out_dir=pipeline_output_dir)
-        return self.next_page
+        # Tutti i pazienti sono stati configurati, procedi alla pagina di esecuzione
+        if self.next_page:
+            self.next_page.on_enter()
+            return self.next_page
+        else:
+            self.next_page = PipelineExecutionPage(context, self)
+            self.context["history"].append(self.next_page)
+            self.next_page.on_enter()
+            return self.next_page
 
     def back(self):
         """Torna alla pagina precedente."""
         if os.path.exists(self.config_path):
             try:
-                os.remove(self.config_path)
-                print(f"Removed config file: {self.config_path}")
-            except OSError as e:
-                print(f"Error removing config file {self.config_path}: {e}")
+                # Estrae l'ID dal nome del file config
+                config_filename = os.path.basename(self.config_path)
+                # Il pattern è "XX_config.json", quindi prendiamo la parte prima di "_config.json"
+                config_id = config_filename.split('_config.json')[0]
+
+                # Costruisce il path della cartella output corrispondente
+                pipeline_dir = os.path.dirname(self.config_path)
+                output_folder_path = os.path.join(pipeline_dir, f"{config_id}_output")
+
+                # Controlla se esiste la cartella output
+                if os.path.exists(output_folder_path):
+                    print(f"Output folder exists ({output_folder_path}), keeping config file: {self.config_path}")
+                else:
+                    # La cartella output non esiste, quindi possiamo cancellare il config file
+                    os.remove(self.config_path)
+                    print(f"Output folder does not exist, removed config file: {self.config_path}")
+
+            except (OSError, IndexError, ValueError) as e:
+                print(f"Error processing config file {self.config_path}: {e}")
 
         if self.previous_page:
             self.previous_page.on_enter()
