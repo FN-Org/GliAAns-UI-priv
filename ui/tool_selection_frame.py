@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from ui.ui_fsl_frame import SkullStrippingPage
+from ui.ui_skull_stripping_frame import SkullStrippingPage
 from ui.ui_nifti_selection import NiftiSelectionPage
 from ui.ui_patient_for_pipeline import PipelinePatientSelectionPage
 from ui.ui_work_in_progress import WorkInProgressPage
