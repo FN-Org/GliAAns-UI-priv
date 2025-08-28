@@ -8,21 +8,30 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QProgressBar, QPushButton,
     QTextEdit, QFrame, QHBoxLayout, QScrollArea, QDialog, QListWidget, QSpacerItem, QSizePolicy, QGridLayout
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QRectF, QPropertyAnimation
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QRectF, QPropertyAnimation, pyqtProperty
 from wizard_state import WizardPage
 
 
 class CircularProgress(QWidget):
-    def __init__(self, size=120):
+    def __init__(self, size=120, color="#3498DB"):
         super().__init__()
         self.value = 0
         self.size = size
+        self.color = QColor(color)  # colore iniziale
         self.setFixedSize(size, size)
         self.existing_files = []
 
     def setValue(self, val: int):
         self.value = val
         self.update()
+
+    def setColor(self, color: str | QColor):
+        """Cambia il colore della progress bar"""
+        if isinstance(color, str):
+            self.color = QColor(color)
+        else:
+            self.color = color
+        self.update()  # forza il ridisegno
 
     def paintEvent(self, event):
         width = self.width()
@@ -36,8 +45,8 @@ class CircularProgress(QWidget):
         painter.drawEllipse(0, 0, width, height)
 
         # Progress arc
-        pen_width = max(6, int(self.size / 12))  # adattabile alla dimensione
-        pen = QPen(QColor("#3498DB"))
+        pen_width = max(6, int(self.size / 12))
+        pen = QPen(self.color)  # usa il colore dinamico
         pen.setWidth(pen_width)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
@@ -53,42 +62,97 @@ class CircularProgress(QWidget):
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{self.value}%")
 
 
-# Card per cartella monitorata con lampeggio
-class FolderCard(QPushButton):
+
+class FolderCard(QWidget):
     def __init__(self, folder):
-        super().__init__(str(os.path.basename(folder)))
+        super().__init__()
+
         self.folder = folder
         self.files = []
-        self.setFixedHeight(60)
-        self.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
-        self.clicked.connect(self.show_files)
+        self.existing_files = set(os.listdir(folder)) if os.path.isdir(folder) else set()
         self.animation = None
+        self._bg_color = QColor("#ecf0f1")
+        self.expanded = False
 
+        # --- Layout ---
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        # main button
+        self.button = QPushButton(os.path.basename(folder))
+        self.button.setFixedHeight(60)
+        self.button.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
+        self.button.clicked.connect(self.show_files)
+        self.layout.addWidget(self.button)
+
+        # expandable area
+        self.file_area = QScrollArea()
+        self.file_area.setWidgetResizable(True)
+        self.file_list = QWidget()
+        self.file_list_layout = QVBoxLayout(self.file_list)
+        self.file_area.setWidget(self.file_list)
+        self.file_area.setVisible(False)
+        self.layout.addWidget(self.file_area)
+
+    # --- property for animating background color ---
+    def get_bg_color(self):
+        return self._bg_color
+
+    def set_bg_color(self, color):
+        self._bg_color = color
+        self.button.setStyleSheet(
+            f"background-color: {color.name()}; color: white; border-radius: 8px;"
+        )
+
+    bgColor = pyqtProperty(QColor, fget=get_bg_color, fset=set_bg_color)
+
+    # --- logic ---
     def add_files(self, new_files):
         self.files.extend(new_files)
         self.start_blinking()
 
     def start_blinking(self):
-        self.animation = QPropertyAnimation(self, b"styleSheet")
+        if self.animation:  # already blinking
+            return
+        self.animation = QPropertyAnimation(self, b"bgColor")
         self.animation.setDuration(800)
-        self.animation.setLoopCount(4)
-        self.animation.setKeyValueAt(0, "background-color: #2ECC71; color: white; border-radius: 8px;")
-        self.animation.setKeyValueAt(0.5, "background-color: #27AE60; color: white; border-radius: 8px;")
-        self.animation.setKeyValueAt(1, "background-color: #2ECC71; color: white; border-radius: 8px;")
+        self.animation.setLoopCount(-1)  # blink until clicked
+        self.animation.setKeyValueAt(0, QColor("#2ECC71"))
+        self.animation.setKeyValueAt(0.5, QColor("#27AE60"))
+        self.animation.setKeyValueAt(1, QColor("#2ECC71"))
         self.animation.start()
 
     def reset_state(self):
-        self.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
+        if self.animation:
+            self.animation.stop()
+            self.animation = None
+        self._bg_color = QColor("#ecf0f1")
+        self.button.setStyleSheet("background-color: #ecf0f1; color: #2C3E50; border-radius: 8px;")
 
     def show_files(self):
-        if not self.files:
+        if not self.files and not self.expanded:
             return
-        dlg = FileDialog(self.folder, self.files, self)
-        dlg.exec()
-        self.files.clear()
-        self.reset_state()
+
+        if not self.expanded:
+            # expand and list files
+            for i in reversed(range(self.file_list_layout.count())):
+                w = self.file_list_layout.itemAt(i).widget()
+                if w:
+                    w.deleteLater()
+            for f in self.files:
+                self.file_list_layout.addWidget(QLabel(f))
+            self.file_area.setVisible(True)
+            self.expanded = True
+            self.files.clear()
+            self.reset_state()
+        else:
+            # collapse
+            self.file_area.setVisible(False)
+            self.expanded = False
 
     def check_new_files(self):
+        if not os.path.isdir(self.folder):
+            return
         current_files = set(os.listdir(self.folder))
         new_files = current_files - self.existing_files
         if new_files:
@@ -425,6 +489,7 @@ class PipelineExecutionPage(WizardPage):
             if '/' in progress_info:
                 current, total = map(int, progress_info.split('/'))
                 self.progress_bar.setValue(current)
+                self.check_new_files()
         except ValueError:
             pass  # Ignora se non riesco a parsare il progresso
 
@@ -454,9 +519,7 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_completed = True
 
         # Aggiorna UI per stato "completato"
-        self.status_label.setText("Pipeline Completed Successfully!")
         self.current_operation.setText("All patients processed successfully.")
-        self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(100)
 
 
@@ -481,7 +544,7 @@ class PipelineExecutionPage(WizardPage):
             font-weight: bold;
         """)
 
-        self.progress_bar.setValue(0)
+        self.progress_bar.setColor("#c0392b")
 
         # Abilita i pulsanti appropriati
         self.back_button.setEnabled(True)
@@ -527,9 +590,7 @@ class PipelineExecutionPage(WizardPage):
             self._log_message("Pipeline stopped by user.")
 
             # Resetta UI
-            self.status_label.setText("Pipeline Stopped")
             self.current_operation.setText("Execution was interrupted by user.")
-            self.progress_bar.setMaximum(100)
             self.progress_bar.setValue(0)
 
             self.back_button.setEnabled(True)
@@ -573,6 +634,11 @@ class PipelineExecutionPage(WizardPage):
         # prendo tutte le chiavi che iniziano con "sub-"
         sub_list = [key for key in data.keys() if key.startswith("sub-")]
         return sub_list
+
+    def check_new_files(self):
+        for card in self.folder_cards.values():
+            card.check_new_files()
+
     def __del__(self):
         """Cleanup quando l'oggetto viene distrutto."""
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:

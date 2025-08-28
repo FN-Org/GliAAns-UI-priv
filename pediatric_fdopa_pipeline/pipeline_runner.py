@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pediatric_fdopa_pipeline.analysis import tumor_striatum_analysis
 from pediatric_fdopa_pipeline.subject import Subject
+from pediatric_fdopa_pipeline.utils import log_progress,log_message,log_error
 
 os.environ["OMP_NUM_THREADS"] = "30"
 os.environ["OPENBLAS_NUM_THREADS"] = "30"
@@ -16,17 +17,6 @@ os.environ["NUMEXPR_NUM_THREADS"] = "30"
 import ants
 import pandas as pd
 
-def log_message(message):
-    """Stampa un messaggio di log che verrà catturato dal processo padre."""
-    print(f"LOG: {message}", flush=True)
-
-def log_error(message):
-    """Stampa un messaggio di errore che verrà catturato dal processo padre."""
-    print(f"ERROR: {message}", flush=True)
-
-def log_progress(current, total):
-    """Stampa informazioni di progresso."""
-    print(f"PROGRESS: {current}/{total}", flush=True)
 
 def run_pipeline_from_config(config_path, work_dir, out_dir):
     log_message("Loading configuration file...")
@@ -50,11 +40,14 @@ def run_pipeline_from_config(config_path, work_dir, out_dir):
     current_patient = 0
 
     log_message("Starting patient processing...")
+    log_progress(10)
+
+    progress_per_patient = int(90/total_patients)
+    current_progress = 10
 
     for patient_id, files in pipeline_config.items():
         current_patient += 1
         log_message(f"Processing patient {current_patient}/{total_patients}: {patient_id}")
-        log_progress(current_patient, total_patients)
 
         flair_tumor = files.get("tumor_mri")
         pet_file = files.get("pet")
@@ -80,11 +73,16 @@ def run_pipeline_from_config(config_path, work_dir, out_dir):
             pet_json_file=pet_json_file,
             pet4d_file=pet4d_file,
             mri_file=mri_file,
-            mri_str_file=mri_str_file
+            mri_str_file=mri_str_file,
+            progress = [current_progress,progress_per_patient]
         )
 
         log_message(f"  - Processing {patient_id}...")
         subj.process()
+        current_progress = current_progress + progress_per_patient
+
+        log_progress(current_progress)
+
         subject_list.append(subj)
         log_message(f"  - Completed processing for {patient_id}")
 

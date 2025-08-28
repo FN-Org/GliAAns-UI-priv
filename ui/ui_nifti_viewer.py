@@ -1180,6 +1180,7 @@ class NiftiViewer(QMainWindow):
 
     def on_file_loaded(self, img_data, dims, affine, is_4d, is_overlay):
         """Handle successful file loading"""
+        self.progress_dialog.canceled.disconnect()
         self.progress_dialog.close()
         thread_to_cancel = self.sender()
         self.load_threads.remove(thread_to_cancel)

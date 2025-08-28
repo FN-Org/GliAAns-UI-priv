@@ -359,4 +359,15 @@ def align(fx, mv, transform_method='SyNAggro', init=[], outprefix='', qc_filenam
 
     return output_files
 
+def log_message(message):
+    """Stampa un messaggio di log che verrà catturato dal processo padre."""
+    print(f"LOG: {message}", flush=True)
+
+def log_error(message):
+    """Stampa un messaggio di errore che verrà catturato dal processo padre."""
+    print(f"ERROR: {message}", flush=True)
+
+def log_progress(current, total = 100):
+    """Stampa informazioni di progresso."""
+    print(f"PROGRESS: {int(current)}/{total}", flush=True)
 
