@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         # File
         self.file_menu = self.menu_bar.addMenu("File")
         self.import_action = QAction("Import File", self)
-        self.export_action = QAction("Export", self)
+        self.export_action = QAction("Export File/Folder", self)
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
 
@@ -400,12 +400,18 @@ class MainWindow(QMainWindow):
             self.import_action.triggered.connect(self.context["import_frame"].open_folder_dialog)
         else:
             raise RuntimeError("Error setupping menus")
+        self.export_action.triggered.connect(self.export_file_info)
 
         # Workspace
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
         self.clear_all_action = QAction("Clear workspace", self)
+        self.export_workspace_action = QAction("Export workspace", self)
         self.workspace_menu.addAction(self.clear_all_action)
+        self.workspace_menu.addAction(self.export_workspace_action)
         self.clear_all_action.triggered.connect(self.clear_workspace)
+        self.export_workspace_action.triggered.connect(lambda:
+                                             self.export_files(self.workspace_path, is_dir=True))
+
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
@@ -612,20 +618,6 @@ class MainWindow(QMainWindow):
 
     def add_file_to_workspace(self, folder_path,is_dir):
 
-        def _including_json(file_name,file_dir):
-            answer = QMessageBox.information(
-                self,
-                "Adding Json?",
-                "You want to include the JSON file if present?",
-                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel  # <-- aggiungo due pulsanti
-            )
-            if answer == QMessageBox.StandardButton.Ok:
-                json_file_name = file_name+".json"
-                json_file_path = os.path.join(file_dir,json_file_name)
-                if os.path.isfile(json_file_path):
-                    return json_file_path
-            return ""
-
         if hasattr(self,"context"):
             dialog = QFileDialog(self.context['main_window'], "Select File")
             dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -642,9 +634,9 @@ class MainWindow(QMainWindow):
                 if ext == ".gz":
                     name2, ext2 = os.path.splitext(name)
                     if ext2 == ".nii":
-                        json_file = _including_json(name2,dir_name)
+                        json_file = self._including_json(name2,dir_name)
                 elif ext == ".nii":
-                    json_file = _including_json(name,dir_name)
+                    json_file = self._including_json(name,dir_name)
 
                 if folder_path:
                     if is_dir:
@@ -708,16 +700,36 @@ class MainWindow(QMainWindow):
             self.threads[-1].finished.connect(self.copydelete_thread_success)
             self.threads[-1].start()
 
+    def _including_json(self,file_name, file_dir):
+        answer = QMessageBox.information(
+            self,
+            "Adding Json?",
+            "You want to include the JSON file if present?",
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel  # <-- aggiungo due pulsanti
+        )
+        if answer == QMessageBox.StandardButton.Ok:
+            json_file_name = file_name + ".json"
+            json_file_path = os.path.join(file_dir, json_file_name)
+            if os.path.isfile(json_file_path):
+                return json_file_path
+        return ""
 
     def export_files(self, path, is_dir):
         dst_path = None
+        json_file = None
+        json_dst = None
         if not is_dir:
             filter = "All files (*.*)"
-            name, ext = os.path.splitext(path)
+            file_name = os.path.basename(path)
+            name, ext = os.path.splitext(file_name)
             if ext == ".gz":
-                name, ext = os.path.splitext(path)
+                name2, ext = os.path.splitext(name)
                 if ext == ".nii":
                     filter = "NIfTI compressed (*.nii.gz);;NIfTI (*.nii);;Tutti i file (*.*)"
+                    json_file = self._including_json(name2,os.path.dirname(path))
+            elif ext == ".nii":
+                filter = "NIfTI (*.nii);;Tutti i file (*.*)"
+                json_file = self._including_json(name,os.path.dirname(path))
             elif ext == ".json":
                 filter = "JSON (*.json);;Tutti i file (*.*)"
 
@@ -727,17 +739,34 @@ class MainWindow(QMainWindow):
                 "",  # directory di partenza
                 filter
             )
+
+            if json_file is not None:
+                name, ext = os.path.splitext(dst_path)
+                if ext == ".gz":
+                    name2, ext = os.path.splitext(name)
+                    if ext == ".nii":
+                        json_dst = os.path.join(os.path.dirname(dst_path), name2+'.json')
+                elif ext == ".nii":
+                    json_dst = os.path.join(os.path.dirname(dst_path), name + '.json')
         else:
             dst_path = QFileDialog.getExistingDirectory(
-                None,
+                self,
                 "Select destination folder",
             )
             dst_path = os.path.join(dst_path, os.path.basename(path))
 
-        self.threads.append(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_dir, copy=True))
-        self.threads[-1].error.connect(lambda msg: self.copydelete_thread_error(f"Error while exporting file from workspace:{msg}"))
-        self.threads[-1].finished.connect(self.copydelete_thread_success)
-        self.threads[-1].start()
+        if dst_path != "":
+            self.threads.append(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_dir, copy=True))
+            self.threads[-1].error.connect(lambda msg: self.copydelete_thread_error(f"Error while exporting file from workspace:{msg}"))
+            self.threads[-1].finished.connect(self.copydelete_thread_success)
+            self.threads[-1].start()
+        if json_file is not None and json_dst is not None:
+            self.threads.append(CopyDeleteThread(src=json_file, dst=json_dst, is_folder=False, copy=True))
+            self.threads[-1].error.connect(
+                lambda msg: self.copydelete_thread_error(f"Error while exporting file from workspace:{msg}"))
+            self.threads[-1].finished.connect(self.copydelete_thread_success)
+            self.threads[-1].start()
+
 
     def copydelete_thread_error(self, msg):
         QMessageBox.warning(
@@ -769,6 +798,14 @@ class MainWindow(QMainWindow):
                 thread.wait()
                 self.threads.remove(thread)
         event.accept()
+
+    def export_file_info(self):
+        QMessageBox.information(
+            self,
+            "Export file info",
+            "To export a file/folder, right click on it in the left view"
+        )
+
 
 if __name__ == "__main__":
     import sys
