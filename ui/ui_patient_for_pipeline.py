@@ -200,8 +200,8 @@ class PipelinePatientSelectionPage(WizardPage):
 
         # 2. Verifica Skull Stripping
         skull_strip_patterns = [
-            os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat", "*_brain.nii"),
-            os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat", "*_brain.nii.gz")
+            os.path.join(self.workspace_path, "derivatives", "skullstrips", patient_id, "anat", "*_brain.nii"),
+            os.path.join(self.workspace_path, "derivatives", "skullstrips", patient_id, "anat", "*_brain.nii.gz")
         ]
 
         skull_strip_found = False
@@ -212,7 +212,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         requirements['skull_stripping'] = skull_strip_found
         if not skull_strip_found:
-            missing_files.append("Skull stripped image (derivatives/fsl_skullstrips/.../anat/*_brain.nii[.gz])")
+            missing_files.append("Skull stripped image (derivatives/skullstrips/.../anat/*_brain.nii[.gz])")
 
         # 3. Verifica Segmentation o Manual Mask
         segmentation_patterns = [
@@ -587,8 +587,8 @@ class PipelinePatientSelectionPage(WizardPage):
 
             # MRI Skull Stripped
             mri_str_patterns = [
-                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat", "*_brain.nii"),
-                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", patient_id, "anat",
+                os.path.join(self.workspace_path, "derivatives", "skullstrips", patient_id, "anat", "*_brain.nii"),
+                os.path.join(self.workspace_path, "derivatives", "skullstrips", patient_id, "anat",
                              "*_brain.nii.gz")
             ]
             mri_str_files = []

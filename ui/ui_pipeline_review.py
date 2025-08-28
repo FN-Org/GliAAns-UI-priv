@@ -468,7 +468,7 @@ class PipelineReviewPage(WizardPage):
         categories = {
             "mri": [os.path.join(self.workspace_path, "{pid}", "anat", "*_flair.nii*")],
             "mri_str": [
-                os.path.join(self.workspace_path, "derivatives", "fsl_skullstrips", "{pid}", "anat", "*_brain.nii*")],
+                os.path.join(self.workspace_path, "derivatives", "skullstrips", "{pid}", "anat", "*_brain.nii*")],
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
             "tumor_mri": [

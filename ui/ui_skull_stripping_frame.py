@@ -1,5 +1,8 @@
+import platform
 import re
 import json
+
+
 from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,
@@ -24,12 +27,13 @@ class SkullStripThread(QThread):
     file_completed = pyqtSignal(str, bool, str)  # filename, success, error_message
     all_completed = pyqtSignal(int, list)  # success_count, failed_files
 
-    def __init__(self, files, workspace_path, parameters):
+    def __init__(self, files, workspace_path, parameters,system_info):
         super().__init__()
         self.files = files
         self.workspace_path = workspace_path
         self.parameters = parameters
         self.is_cancelled = False
+        self.system_info = system_info
 
     def cancel(self):
         """Cancella l'operazione"""
@@ -73,7 +77,7 @@ class SkullStripThread(QThread):
                 self.progress_updated.emit(f"Creating output directory for {filename}...")
                 self.progress_value_updated.emit(progress_base + 10)
 
-                output_dir = os.path.join(self.workspace_path, 'derivatives', 'fsl_skullstrips', subject_id, 'anat')
+                output_dir = os.path.join(self.workspace_path, 'derivatives', 'skullstrips', subject_id, 'anat')
                 os.makedirs(output_dir, exist_ok=True)
 
                 # Prepara i parametri di output
@@ -88,94 +92,132 @@ class SkullStripThread(QThread):
                 else:
                     base_name = filename
 
-                # Estrai il parametro f per il naming
-                f_val = self.parameters['f_val']
-                f_str = f"{f_val:.2f}"  # Formatta con 2 decimali
-                f_formatted = f"f{f_str.replace('.', '')}"  # Rimuovi il punto per il nome file
+                if self.system_info["os"] != "Windows":
+                    # Estrai il parametro f per il naming
+                    f_val = self.parameters['f_val']
+                    f_str = f"{f_val:.2f}"  # Formatta con 2 decimali
+                    f_formatted = f"f{f_str.replace('.', '')}"  # Rimuovi il punto per il nome file
 
-                # Nome del file di output
-                output_filename = f"{base_name}_{f_formatted}_brain.nii.gz"
-                output_file = os.path.join(output_dir, output_filename)
+                    # Nome del file di output
+                    output_filename = f"{base_name}_{f_formatted}_brain.nii.gz"
+                    output_file = os.path.join(output_dir, output_filename)
 
-                # Costruisci il comando BET
-                self.progress_updated.emit(f"Building BET command for {filename}...")
-                self.progress_value_updated.emit(progress_base + 30)
+                    # Costruisci il comando BET
+                    self.progress_updated.emit(f"Building BET command for {filename}...")
+                    self.progress_value_updated.emit(progress_base + 30)
 
-                cmd = ["bet", nifti_file, output_file]
+                    cmd = ["bet", nifti_file, output_file]
 
-                # Aggiungi il parametro fractional intensity
-                if f_val:
-                    cmd += ["-f", str(f_val)]
+                    # Aggiungi il parametro fractional intensity
+                    if f_val:
+                        cmd += ["-f", str(f_val)]
 
-                # Aggiungi opzioni avanzate se selezionate
-                if self.parameters.get('opt_m', False):
-                    cmd.append("-m")
-                if self.parameters.get('opt_t', False):
-                    cmd.append("-t")
-                if self.parameters.get('opt_s', False):
-                    cmd.append("-s")
-                if self.parameters.get('opt_o', False):
-                    cmd.append("-o")
+                    # Aggiungi opzioni avanzate se selezionate
+                    if self.parameters.get('opt_m', False):
+                        cmd.append("-m")
+                    if self.parameters.get('opt_t', False):
+                        cmd.append("-t")
+                    if self.parameters.get('opt_s', False):
+                        cmd.append("-s")
+                    if self.parameters.get('opt_o', False):
+                        cmd.append("-o")
 
-                # Aggiungi parametro gradient se impostato
-                g_val = self.parameters.get('g_val', 0.0)
-                if g_val != 0.0:
-                    cmd += ["-g", str(g_val)]
+                    # Aggiungi parametro gradient se impostato
+                    g_val = self.parameters.get('g_val', 0.0)
+                    if g_val != 0.0:
+                        cmd += ["-g", str(g_val)]
 
-                # Aggiungi coordinate del centro se impostate (diverse da 0,0,0)
-                c_x = self.parameters.get('c_x', 0)
-                c_y = self.parameters.get('c_y', 0)
-                c_z = self.parameters.get('c_z', 0)
-                if c_x != 0 or c_y != 0 or c_z != 0:
-                    cmd += ["-c", str(c_x), str(c_y), str(c_z)]
+                    # Aggiungi coordinate del centro se impostate (diverse da 0,0,0)
+                    c_x = self.parameters.get('c_x', 0)
+                    c_y = self.parameters.get('c_y', 0)
+                    c_z = self.parameters.get('c_z', 0)
+                    if c_x != 0 or c_y != 0 or c_z != 0:
+                        cmd += ["-c", str(c_x), str(c_y), str(c_z)]
 
-                # Se non è selezionata l'opzione "Output brain-extracted image", aggiungi -n
-                if not self.parameters.get('opt_brain_extracted', True):
-                    cmd.append("-n")
+                    # Se non è selezionata l'opzione "Output brain-extracted image", aggiungi -n
+                    if not self.parameters.get('opt_brain_extracted', True):
+                        cmd.append("-n")
 
-                # Esegui il comando
-                self.progress_updated.emit(f"Running FSL BET on {filename}... This may take a while.")
-                self.progress_value_updated.emit(progress_base + 40)
+                    # Esegui il comando
+                    self.progress_updated.emit(f"Running FSL BET on {filename}... This may take a while.")
+                    self.progress_value_updated.emit(progress_base + 40)
 
-                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
 
-                # Crea metadati
-                self.progress_updated.emit(f"Creating metadata for {filename}...")
-                self.progress_value_updated.emit(progress_base + 80)
+                    # Crea metadati
+                    self.progress_updated.emit(f"Creating metadata for {filename}...")
+                    self.progress_value_updated.emit(progress_base + 80)
 
-                # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
-                json_file = output_file.replace('.nii.gz', '.json')
-                metadata = {
-                    "SkullStripped": True,
-                    "Description": "Skull-stripped brain image",
-                    "Sources": [filename],
-                    "SkullStrippingMethod": "FSL BET",
-                    "SkullStrippingParameters": {
-                        "fractional_intensity": f_val
+                    # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
+                    json_file = output_file.replace('.nii.gz', '.json')
+                    metadata = {
+                        "SkullStripped": True,
+                        "Description": "Skull-stripped brain image",
+                        "Sources": [filename],
+                        "SkullStrippingMethod": "FSL BET",
+                        "SkullStrippingParameters": {
+                            "fractional_intensity": f_val
+                        }
                     }
-                }
 
-                # Aggiungi parametri utilizzati ai metadati
-                if g_val != 0.0:
-                    metadata["SkullStrippingParameters"]["vertical_gradient"] = g_val
-                if c_x != 0 or c_y != 0 or c_z != 0:
-                    metadata["SkullStrippingParameters"]["center_of_gravity"] = [c_x, c_y, c_z]
+                    # Aggiungi parametri utilizzati ai metadati
+                    if g_val != 0.0:
+                        metadata["SkullStrippingParameters"]["vertical_gradient"] = g_val
+                    if c_x != 0 or c_y != 0 or c_z != 0:
+                        metadata["SkullStrippingParameters"]["center_of_gravity"] = [c_x, c_y, c_z]
 
-                # Aggiungi flags utilizzati
-                flags_used = []
-                if not self.parameters.get('opt_brain_extracted', True):
-                    flags_used.append("-n (no brain image output)")
-                if self.parameters.get('opt_m', False):
-                    flags_used.append("-m (binary brain mask)")
-                if self.parameters.get('opt_t', False):
-                    flags_used.append("-t (thresholding)")
-                if self.parameters.get('opt_s', False):
-                    flags_used.append("-s (exterior skull surface)")
-                if self.parameters.get('opt_o', False):
-                    flags_used.append("-o (brain surface overlay)")
+                    # Aggiungi flags utilizzati
+                    flags_used = []
+                    if not self.parameters.get('opt_brain_extracted', True):
+                        flags_used.append("-n (no brain image output)")
+                    if self.parameters.get('opt_m', False):
+                        flags_used.append("-m (binary brain mask)")
+                    if self.parameters.get('opt_t', False):
+                        flags_used.append("-t (thresholding)")
+                    if self.parameters.get('opt_s', False):
+                        flags_used.append("-s (exterior skull surface)")
+                    if self.parameters.get('opt_o', False):
+                        flags_used.append("-o (brain surface overlay)")
 
-                if flags_used:
-                    metadata["SkullStrippingParameters"]["flags_used"] = flags_used
+                    if flags_used:
+                        metadata["SkullStrippingParameters"]["flags_used"] = flags_used
+                else:
+                    # Nome del file di output
+                    output_filename = f"{base_name}_hd-bet_brain.nii.gz"
+                    output_file = os.path.join(output_dir, output_filename)
+
+                    # Costruisci il comando HD-BET
+                    self.progress_updated.emit(f"Building HD-BET command for {filename}...")
+                    self.progress_value_updated.emit(progress_base + 30)
+
+                    cmd = ["hd-bet","-i",nifti_file,"-o",output_file]
+
+                    has_nvidia = any("NVIDIA" in gpu["name"].upper() for gpu in self.system_info["gpus"])
+
+                    if not has_nvidia:
+                        cmd += ["-device","cpu"]
+                        cmd += ["--disable_tta"]
+
+
+
+                    # Esegui il comando
+                    self.progress_updated.emit(f"Running HD-BET on {filename}... This may take a while.")
+                    self.progress_value_updated.emit(progress_base + 40)
+
+                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+                    # Crea metadati
+                    self.progress_updated.emit(f"Creating metadata for {filename}...")
+                    self.progress_value_updated.emit(progress_base + 80)
+
+                    # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
+                    json_file = output_file.replace('.nii.gz', '.json')
+                    metadata = {
+                        "SkullStripped": True,
+                        "Description": "Skull-stripped brain image",
+                        "Sources": [filename],
+                        "SkullStrippingMethod": "HD-BET",
+                    }
 
                 with open(json_file, 'w') as f:
                     json.dump(metadata, f, indent=2)
@@ -186,7 +228,19 @@ class SkullStripThread(QThread):
                 self.file_completed.emit(filename, True, "")
 
             except subprocess.CalledProcessError as e:
-                error_msg = f"BET command failed"
+                if self.system_info["os"] == "Windows":
+                    error_msg = f"HD-BET command failed"
+
+                    for fname in ["dataset.json", "plans.json", "predict_from_raw_data_args.json"]:
+                        fpath = os.path.join(output_dir, fname)
+                        try:
+                            os.remove(fpath)
+                        except FileNotFoundError:
+                            pass
+
+                else:
+                    error_msg = f"BET command failed"
+
                 if e.stderr:
                     error_msg += f": {e.stderr}"
                 self.file_completed.emit(filename, False, error_msg)
@@ -211,6 +265,8 @@ class SkullStrippingPage(WizardPage):
 
         self.selected_files = None
         self.worker = None  # Per tenere traccia del worker thread
+
+        self.system_info = self.get_system_info()
 
         self._setup_ui()
 
@@ -250,117 +306,117 @@ class SkullStrippingPage(WizardPage):
         file_selector_layout.addWidget(button_container)
 
         self.layout.addLayout(file_selector_layout)
+        if self.system_info["os"] != "Windows":
+            # Parametro principale
+            self.f_box = QGroupBox()
 
-        # Parametro principale
-        self.f_box = QGroupBox()
+            f_layout = QHBoxLayout()
+            f_label = QLabel(
+                "Fractional intensity threshold, smaller values give larger brain outline estimates")
+            f_layout.addWidget(f_label)
 
-        f_layout = QHBoxLayout()
-        f_label = QLabel(
-            "Fractional intensity threshold, smaller values give larger brain outline estimates")
-        f_layout.addWidget(f_label)
+            self.f_spinbox = QDoubleSpinBox()
+            self.f_spinbox.setRange(0.0, 1.0)
+            self.f_spinbox.setSingleStep(0.05)
+            self.f_spinbox.setValue(0.50)
+            self.f_spinbox.setDecimals(2)
+            self.f_spinbox.setMinimumWidth(60)
+            self.f_spinbox.setMaximumWidth(80)
+            f_layout.addWidget(self.f_spinbox)
 
-        self.f_spinbox = QDoubleSpinBox()
-        self.f_spinbox.setRange(0.0, 1.0)
-        self.f_spinbox.setSingleStep(0.05)
-        self.f_spinbox.setValue(0.50)
-        self.f_spinbox.setDecimals(2)
-        self.f_spinbox.setMinimumWidth(60)
-        self.f_spinbox.setMaximumWidth(80)
-        f_layout.addWidget(self.f_spinbox)
+            f_layout.addStretch()
 
-        f_layout.addStretch()
+            self.f_box.setLayout(f_layout)
+            self.layout.addWidget(self.f_box)
 
-        self.f_box.setLayout(f_layout)
-        self.layout.addWidget(self.f_box)
+            # Toggle opzioni avanzate
+            self.advanced_btn = QPushButton("Show Advanced Options")
+            self.advanced_btn.setCheckable(True)
+            self.advanced_btn.clicked.connect(self.toggle_advanced)
+            self.layout.addWidget(self.advanced_btn)
 
-        # Toggle opzioni avanzate
-        self.advanced_btn = QPushButton("Show Advanced Options")
-        self.advanced_btn.setCheckable(True)
-        self.advanced_btn.clicked.connect(self.toggle_advanced)
-        self.layout.addWidget(self.advanced_btn)
+            # Opzioni avanzate nascoste in un QGroupBox
+            self.advanced_box = QGroupBox()
+            self.advanced_layout = QVBoxLayout()
 
-        # Opzioni avanzate nascoste in un QGroupBox
-        self.advanced_box = QGroupBox()
-        self.advanced_layout = QVBoxLayout()
+            # Sezione 1: Output options (checkboxes)
+            output_label = QLabel("Advanced options:")
+            output_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+            self.advanced_layout.addWidget(output_label)
 
-        # Sezione 1: Output options (checkboxes)
-        output_label = QLabel("Advanced options:")
-        output_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
-        self.advanced_layout.addWidget(output_label)
+            self.opt_brain_extracted = QCheckBox("Output brain-extracted image")
+            self.opt_brain_extracted.setChecked(True)  # Checked by default come in FSL
+            self.advanced_layout.addWidget(self.opt_brain_extracted)
 
-        self.opt_brain_extracted = QCheckBox("Output brain-extracted image")
-        self.opt_brain_extracted.setChecked(True)  # Checked by default come in FSL
-        self.advanced_layout.addWidget(self.opt_brain_extracted)
+            self.opt_m = QCheckBox("Output binary brain mask image")
+            self.advanced_layout.addWidget(self.opt_m)
 
-        self.opt_m = QCheckBox("Output binary brain mask image")
-        self.advanced_layout.addWidget(self.opt_m)
+            self.opt_t = QCheckBox("Apply thresholding to brain and mask image")
+            self.advanced_layout.addWidget(self.opt_t)
 
-        self.opt_t = QCheckBox("Apply thresholding to brain and mask image")
-        self.advanced_layout.addWidget(self.opt_t)
+            self.opt_s = QCheckBox("Output exterior skull surface image")
+            self.advanced_layout.addWidget(self.opt_s)
 
-        self.opt_s = QCheckBox("Output exterior skull surface image")
-        self.advanced_layout.addWidget(self.opt_s)
+            self.opt_o = QCheckBox("Output brain surface overlaid onto original image")
+            self.advanced_layout.addWidget(self.opt_o)
 
-        self.opt_o = QCheckBox("Output brain surface overlaid onto original image")
-        self.advanced_layout.addWidget(self.opt_o)
+            # Sezione 2: Threshold gradient
+            threshold_layout = QHBoxLayout()
+            threshold_label = QLabel(
+                "Threshold gradient; positive values give larger brain outline at bottom, smaller at top")
+            threshold_layout.addWidget(threshold_label)
 
-        # Sezione 2: Threshold gradient
-        threshold_layout = QHBoxLayout()
-        threshold_label = QLabel(
-            "Threshold gradient; positive values give larger brain outline at bottom, smaller at top")
-        threshold_layout.addWidget(threshold_label)
+            self.g_spinbox = QDoubleSpinBox()
+            self.g_spinbox.setRange(-1.0, 1.0)
+            self.g_spinbox.setSingleStep(0.1)
+            self.g_spinbox.setValue(0.0)
+            self.g_spinbox.setDecimals(1)
+            self.g_spinbox.setMinimumWidth(60)
+            self.g_spinbox.setMaximumWidth(80)
+            threshold_layout.addWidget(self.g_spinbox)
 
-        self.g_spinbox = QDoubleSpinBox()
-        self.g_spinbox.setRange(-1.0, 1.0)
-        self.g_spinbox.setSingleStep(0.1)
-        self.g_spinbox.setValue(0.0)
-        self.g_spinbox.setDecimals(1)
-        self.g_spinbox.setMinimumWidth(60)
-        self.g_spinbox.setMaximumWidth(80)
-        threshold_layout.addWidget(self.g_spinbox)
+            threshold_layout.addStretch()
+            self.advanced_layout.addLayout(threshold_layout)
 
-        threshold_layout.addStretch()
-        self.advanced_layout.addLayout(threshold_layout)
+            # Sezione 3: Coordinates
+            coords_layout = QHBoxLayout()
+            coords_label = QLabel("Coordinates (voxels) for centre of initial brain surface sphere")
+            coords_layout.addWidget(coords_label)
 
-        # Sezione 3: Coordinates
-        coords_layout = QHBoxLayout()
-        coords_label = QLabel("Coordinates (voxels) for centre of initial brain surface sphere")
-        coords_layout.addWidget(coords_label)
+            # X coordinate
+            self.c_x_spinbox = QSpinBox()
+            self.c_x_spinbox.setRange(0, 9999)
+            self.c_x_spinbox.setValue(0)
+            self.c_x_spinbox.setMinimumWidth(50)
+            self.c_x_spinbox.setMaximumWidth(70)
+            coords_layout.addWidget(self.c_x_spinbox)
 
-        # X coordinate
-        self.c_x_spinbox = QSpinBox()
-        self.c_x_spinbox.setRange(0, 9999)
-        self.c_x_spinbox.setValue(0)
-        self.c_x_spinbox.setMinimumWidth(50)
-        self.c_x_spinbox.setMaximumWidth(70)
-        coords_layout.addWidget(self.c_x_spinbox)
+            coords_layout.addWidget(QLabel("Y"))
 
-        coords_layout.addWidget(QLabel("Y"))
+            # Y coordinate
+            self.c_y_spinbox = QSpinBox()
+            self.c_y_spinbox.setRange(0, 9999)
+            self.c_y_spinbox.setValue(0)
+            self.c_y_spinbox.setMinimumWidth(50)
+            self.c_y_spinbox.setMaximumWidth(70)
+            coords_layout.addWidget(self.c_y_spinbox)
 
-        # Y coordinate
-        self.c_y_spinbox = QSpinBox()
-        self.c_y_spinbox.setRange(0, 9999)
-        self.c_y_spinbox.setValue(0)
-        self.c_y_spinbox.setMinimumWidth(50)
-        self.c_y_spinbox.setMaximumWidth(70)
-        coords_layout.addWidget(self.c_y_spinbox)
+            coords_layout.addWidget(QLabel("Z"))
 
-        coords_layout.addWidget(QLabel("Z"))
+            # Z coordinate
+            self.c_z_spinbox = QSpinBox()
+            self.c_z_spinbox.setRange(0, 9999)
+            self.c_z_spinbox.setValue(0)
+            self.c_z_spinbox.setMinimumWidth(50)
+            self.c_z_spinbox.setMaximumWidth(70)
+            coords_layout.addWidget(self.c_z_spinbox)
 
-        # Z coordinate
-        self.c_z_spinbox = QSpinBox()
-        self.c_z_spinbox.setRange(0, 9999)
-        self.c_z_spinbox.setValue(0)
-        self.c_z_spinbox.setMinimumWidth(50)
-        self.c_z_spinbox.setMaximumWidth(70)
-        coords_layout.addWidget(self.c_z_spinbox)
+            coords_layout.addStretch()
+            self.advanced_layout.addLayout(coords_layout)
 
-        coords_layout.addStretch()
-        self.advanced_layout.addLayout(coords_layout)
-
-        self.advanced_box.setLayout(self.advanced_layout)
-        self.advanced_box.setVisible(False)
-        self.layout.addWidget(self.advanced_box)
+            self.advanced_box.setLayout(self.advanced_layout)
+            self.advanced_box.setVisible(False)
+            self.layout.addWidget(self.advanced_box)
 
         # Progress bar (inizialmente nascosta)
         self.progress_bar = QProgressBar()
@@ -371,7 +427,7 @@ class SkullStrippingPage(WizardPage):
         button_container = QHBoxLayout()
 
         # Bottone RUN
-        self.run_button = QPushButton("Run Skull Stripping (FSL BET)")
+        self.run_button = QPushButton("Run Skull Stripping")
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
         button_container.addWidget(self.run_button)
@@ -407,7 +463,7 @@ class SkullStrippingPage(WizardPage):
             return False
 
         # Costruisci il percorso dove dovrebbe essere lo skull strip
-        skull_strip_dir = os.path.join(workspace_path, 'derivatives', 'fsl_skullstrips', subject_id, 'anat')
+        skull_strip_dir = os.path.join(workspace_path, 'derivatives', 'skullstrips', subject_id, 'anat')
 
         # Controlla se la directory esiste
         if not os.path.exists(skull_strip_dir):
@@ -820,23 +876,24 @@ class SkullStrippingPage(WizardPage):
         if not hasattr(self, 'selected_files') or not self.selected_files:
             QMessageBox.warning(self, "No files", "Please select at least one NIfTI file first.")
             return
-
-        # Prepara i parametri per il worker
-        parameters = {
-            'f_val': self.f_spinbox.value(),
-            'opt_brain_extracted': self.opt_brain_extracted.isChecked(),
-            'opt_m': self.opt_m.isChecked(),
-            'opt_t': self.opt_t.isChecked(),
-            'opt_s': self.opt_s.isChecked(),
-            'opt_o': self.opt_o.isChecked(),
-            'g_val': self.g_spinbox.value(),
-            'c_x': self.c_x_spinbox.value(),
-            'c_y': self.c_y_spinbox.value(),
-            'c_z': self.c_z_spinbox.value(),
-        }
+        parameters = None
+        if self.system_info["os"] != "Windows":
+            # Prepara i parametri per il worker
+            parameters = {
+                'f_val': self.f_spinbox.value(),
+                'opt_brain_extracted': self.opt_brain_extracted.isChecked(),
+                'opt_m': self.opt_m.isChecked(),
+                'opt_t': self.opt_t.isChecked(),
+                'opt_s': self.opt_s.isChecked(),
+                'opt_o': self.opt_o.isChecked(),
+                'g_val': self.g_spinbox.value(),
+                'c_x': self.c_x_spinbox.value(),
+                'c_y': self.c_y_spinbox.value(),
+                'c_z': self.c_z_spinbox.value(),
+            }
 
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters)
+        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters,self.system_info)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
@@ -870,12 +927,16 @@ class SkullStrippingPage(WizardPage):
         self.file_button.setEnabled(not processing)
         self.clear_button.setEnabled(not processing and bool(self.selected_files))
         self.run_button.setEnabled(not processing and bool(self.selected_files))
-        self.f_spinbox.setEnabled(not processing)
-        self.advanced_btn.setEnabled(not processing)
 
-        # Disabilita tutti i controlli avanzati
-        for widget in self.advanced_box.findChildren(QWidget):
-            widget.setEnabled(not processing)
+        if hasattr(self,"f_spinbox"):
+            self.f_spinbox.setEnabled(not processing)
+        if hasattr(self,"advanced_btn"):
+            self.advanced_btn.setEnabled(not processing)
+
+        if hasattr(self,"advanced_box"):
+            # Disabilita tutti i controlli avanzati
+            for widget in self.advanced_box.findChildren(QWidget):
+                widget.setEnabled(not processing)
 
         # Mostra/nascondi pulsante cancel
         self.cancel_button.setVisible(processing)
@@ -1101,3 +1162,51 @@ class SkullStrippingPage(WizardPage):
 
         # Clear status message
         self.status_label.setText("")
+
+    def get_system_info(self):
+        """
+        Raccoglie info sul sistema operativo e GPU disponibili.
+        Usa solo librerie standard di Python + quelle che già hai.
+
+        Returns
+        -------
+        dict
+            Informazioni su sistema e GPU.
+        """
+        info = {
+            "os": platform.system(),
+            "os_version": platform.version(),
+            "machine": platform.machine(),
+            "gpus": []
+        }
+
+        os_name = info["os"]
+
+        try:
+            if os_name == "Windows":
+                result = subprocess.check_output(
+                    ["wmic", "path", "win32_VideoController", "get", "name"],
+                    shell=True
+                ).decode(errors="ignore").strip().split("\n")[1:]
+                gpus = [gpu.strip() for gpu in result if gpu.strip()]
+                info["gpus"] = [{"name": gpu} for gpu in gpus]
+
+            elif os_name == "Linux":
+                result = subprocess.check_output("lspci | grep -i vga", shell=True).decode(errors="ignore")
+                gpus = [line.strip() for line in result.splitlines() if line.strip()]
+                info["gpus"] = [{"name": gpu} for gpu in gpus]
+
+            elif os_name == "Darwin":  # macOS
+                result = subprocess.check_output(
+                    ["system_profiler", "SPDisplaysDataType"],
+                    stderr=subprocess.DEVNULL
+                ).decode(errors="ignore")
+                gpus = [line.strip().split(":")[-1].strip()
+                        for line in result.splitlines() if "Chipset Model" in line]
+                info["gpus"] = [{"name": gpu} for gpu in gpus]
+
+        except Exception:
+            info["gpus"] = []
+
+
+        return info

@@ -91,7 +91,7 @@ class FileRoleDialog(QDialog):
             derivative_extra_layout.addWidget(self.derivative_extra_label)
 
             self.derivative_extra_button_group = QButtonGroup(self)
-            self.skull_strip_btn = QRadioButton("fsl_skullstrips")
+            self.skull_strip_btn = QRadioButton("skullstrips")
             derivative_extra_layout.addWidget(self.skull_strip_btn)
             self.derivative_extra_button_group.addButton(self.skull_strip_btn)
 
@@ -113,7 +113,7 @@ class FileRoleDialog(QDialog):
             derivative_extra_layout.addWidget(self.derivative_extra_label)
 
             self.derivative_extra_button_group = QButtonGroup(self)
-            self.skull_strip_btn = QRadioButton("fsl_skullstrips")
+            self.skull_strip_btn = QRadioButton("skullstrips")
             derivative_extra_layout.addWidget(self.skull_strip_btn)
             self.derivative_extra_button_group.addButton(self.skull_strip_btn)
 
