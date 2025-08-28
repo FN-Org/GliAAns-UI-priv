@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         # File
         self.file_menu = self.menu_bar.addMenu("File")
         self.import_action = QAction("Import File", self)
-        self.export_action = QAction("Export workspace", self)
+        self.export_action = QAction("Export File/Folder", self)
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
 
@@ -400,7 +400,7 @@ class MainWindow(QMainWindow):
             self.import_action.triggered.connect(self.context["import_frame"].open_folder_dialog)
         else:
             raise RuntimeError("Error setupping menus")
-
+        self.export_action.triggered.connect(self.export_file_info)
 
         # Workspace
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
@@ -798,6 +798,14 @@ class MainWindow(QMainWindow):
                 thread.wait()
                 self.threads.remove(thread)
         event.accept()
+
+    def export_file_info(self):
+        QMessageBox.information(
+            self,
+            "Export file info",
+            "To export a file/folder, right click on it in the left view"
+        )
+
 
 if __name__ == "__main__":
     import sys
