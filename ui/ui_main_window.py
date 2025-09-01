@@ -406,12 +406,15 @@ class MainWindow(QMainWindow):
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
         self.clear_all_action = QAction("Clear workspace", self)
         self.export_workspace_action = QAction("Export workspace", self)
+        self.workspace_menu.addSeparator()
+        self.clear_outputs_action = QAction("Clear pipeline outputs", self)
         self.workspace_menu.addAction(self.clear_all_action)
         self.workspace_menu.addAction(self.export_workspace_action)
-        self.clear_all_action.triggered.connect(self.clear_workspace)
+        self.workspace_menu.addAction(self.clear_outputs_action)
+        self.clear_all_action.triggered.connect(lambda: self.clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True))
         self.export_workspace_action.triggered.connect(lambda:
                                              self.export_files(self.workspace_path, is_dir=True))
-
+        self.clear_outputs_action.triggered.connect(lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path,"pipeline"),folder_name="outputs",return_to_import=False))
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
@@ -519,27 +522,29 @@ class MainWindow(QMainWindow):
             else:
                 self.tree_view.hideColumn(i)
 
-    def clear_workspace(self):
+    def clear_folder(self,folder_path,folder_name,return_to_import):
+        message = f"Sei sicuro di voler cancellare completamente {folder_name}?\n"
+        if return_to_import:
+            message += "ATTENZIONE: Tutti i dati verranno rimossi e tornerai alla pagina di import."
         reply = QMessageBox.question(
             self,
             "Conferma eliminazione",
-            "Sei sicuro di voler cancellare completamente il workspace?\n"
-            "ATTENZIONE: Tutti i dati verranno rimossi e tornerai alla pagina di import.",
+            message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            for item in os.listdir(self.workspace_path):
-                item_path = os.path.join(self.workspace_path, item)
+            for item in os.listdir(folder_path):
+                item_path = os.path.join(folder_path, item)
                 self.threads.append(CopyDeleteThread(src=item_path, is_folder=os.path.isdir(item_path), delete=True))
                 self.threads[-1].error.connect(lambda msg,it=item: self.copydelete_thread_error(f"Error while clearing {it}:{msg}"))
                 self.threads[-1].finished.connect(lambda msg,show=False: self.copydelete_thread_success(msg,show))
                 self.threads[-1].start()
-
-            log.info("Workspace svuotato.")
-            if self.context and "return_to_import" in self.context:
-                self.context["return_to_import"]()
+            log.info(f"{folder_name} emptied")
+            if return_to_import:
+                if self.context and "return_to_import" in self.context:
+                    self.context["return_to_import"]()
 
     def set_right_widget(self, new_widget):
         if self.splitter.count() > 1:
