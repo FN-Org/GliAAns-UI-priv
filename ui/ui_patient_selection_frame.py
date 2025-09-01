@@ -8,6 +8,9 @@ import os
 
 from ui.tool_selection_frame import ToolChoicePage
 from wizard_state import WizardPage
+from logger import get_logger
+
+log = get_logger()
 
 
 class PatientSelectionPage(WizardPage):
@@ -155,9 +158,9 @@ class PatientSelectionPage(WizardPage):
                     shutil.rmtree(patient_path)
                     patient_id = os.path.basename(patient_path)
                     self.selected_patients.discard(patient_id)
-                    print(f"Deleted patient directory: {patient_path}")
+                    log.info(f"Deleted patient directory: {patient_path}")
                 except Exception as e:
-                    print(f"Failed to delete {patient_path}: {e}")
+                    log.error(f"Failed to delete {patient_path}: {e}")
 
             # Rimozione da 'derivatives'
             derivatives_root = os.path.join(self.workspace_path, "derivatives")
@@ -168,9 +171,9 @@ class PatientSelectionPage(WizardPage):
                             full_path = os.path.join(root, dir_name)
                             try:
                                 shutil.rmtree(full_path)
-                                print(f"Deleted from derivatives: {full_path}")
+                                log.info(f"Deleted from derivatives: {full_path}")
                             except Exception as e:
-                                print(f"Failed to delete from derivatives: {full_path}: {e}")
+                                log.error(f"Failed to delete from derivatives: {full_path}: {e}")
 
         if not self.next_page:
             self.next_page = ToolChoicePage(context, self)

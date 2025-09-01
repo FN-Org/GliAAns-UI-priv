@@ -7,3 +7,4 @@
 /.venv
 *.pyc
 /ui/__pycache__
+/log

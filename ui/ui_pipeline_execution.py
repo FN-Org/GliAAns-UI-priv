@@ -11,6 +11,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QRectF, QPropertyAnimation, pyqtProperty
 from wizard_state import WizardPage
+from logger import get_logger
+
+log = get_logger()
 
 
 class CircularProgress(QWidget):
@@ -203,6 +206,7 @@ class PipelineExecutionPage(WizardPage):
             self.pipeline_output_dir = os.path.join(self.workspace_path, "pipeline", f"{config_id}_output")
             os.makedirs(self.pipeline_output_dir, exist_ok=True)
         except (IndexError, ValueError):
+            log.debug(f"Failed to create pipeline_output_dir: {self.pipeline_output_dir}")
             self.pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
 
         # Crea lo script temporaneo per la pipeline
@@ -471,6 +475,7 @@ class PipelineExecutionPage(WizardPage):
                 self.progress_bar.setValue(current)
                 self.check_new_files()
         except ValueError:
+            log.warning("Failed to update progress bar")
             pass  # Ignora se non riesco a parsare il progresso
 
     def _update_current_operation(self, message):

@@ -15,12 +15,12 @@ from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup, QDesktopService
 
 from ui.ui_button import UiButton
 from wizard_controller import WizardController
+from logger import get_logger
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
 
-
-
+log = get_logger()
 
 class CopyDeleteThread(QThread):
     finished = pyqtSignal(str)
@@ -464,6 +464,7 @@ class MainWindow(QMainWindow):
                     self.context["nifti_viewer"].show()
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Impossibile aprire il file NIfTI:\n{str(e)}")
+                log.error(f"Error opening file NIfTI:\n{str(e)}")
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)
@@ -536,7 +537,7 @@ class MainWindow(QMainWindow):
                 self.threads[-1].finished.connect(lambda msg,show=False: self.copydelete_thread_success(msg,show))
                 self.threads[-1].start()
 
-            print("Workspace svuotato.")
+            log.info("Workspace svuotato.")
             if self.context and "return_to_import" in self.context:
                 self.context["return_to_import"]()
 
@@ -604,6 +605,7 @@ class MainWindow(QMainWindow):
                         "Error",
                         "Error while opening file {}, there is no default app for {}{} extension files.".format(name, ext2, ext),
                     )
+                    log.error("Error while opening file {}, there is no default app for {}{} extension files.".format(name, ext2, ext))
             else:
                 QDesktopServices.openUrl(QUrl.fromLocalFile(self.workspace_path))
         elif action == add_action:
@@ -774,6 +776,7 @@ class MainWindow(QMainWindow):
             "Error",
             msg
         )
+        log.error(msg)
         thread_to_remove = self.sender()
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
@@ -786,6 +789,7 @@ class MainWindow(QMainWindow):
                 msg
                 )
         thread_to_remove = self.sender()
+        log.debug("Success:"+msg)
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
 
