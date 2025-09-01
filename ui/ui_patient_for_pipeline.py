@@ -6,13 +6,16 @@ import glob
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
-                             QFrame, QGridLayout, QHBoxLayout, QMessageBox, QGroupBox,
+                             QFrame, QGridLayout, QHBoxLayout,
                              QTextEdit, QSplitter)
 from PyQt6.QtCore import Qt
 
 from ui.ui_pipeline_review import PipelineReviewPage
 from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
+from logger import get_logger
+
+log = get_logger()
 
 
 class PipelinePatientSelectionPage(WizardPage):
@@ -657,7 +660,7 @@ class PipelinePatientSelectionPage(WizardPage):
         # Crea la cartella pipeline se non esiste
         if not os.path.exists(pipeline_dir):
             os.makedirs(pipeline_dir)
-            print(f"Created pipeline directory: {pipeline_dir}")
+            log.info(f"Created pipeline directory: {pipeline_dir}")
 
         # Trova il prossimo numero sequenziale disponibile
         config_id = self._get_next_config_id(pipeline_dir)
@@ -670,7 +673,7 @@ class PipelinePatientSelectionPage(WizardPage):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
 
-        print(f"Pipeline configuration saved to: {output_path}")
+        log.info(f"Pipeline configuration saved to: {output_path}")
         return output_path
 
     def _get_next_config_id(self, pipeline_dir):

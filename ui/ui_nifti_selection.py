@@ -11,6 +11,9 @@ import os
 
 from ui.ui_nifti_viewer import NiftiViewer
 from wizard_state import WizardPage
+from logger import get_logger
+
+log = get_logger()
 
 
 class NiftiSelectionPage(WizardPage):
@@ -367,6 +370,7 @@ class NiftiSelectionPage(WizardPage):
             current_item = file_list.currentItem()
             if not current_item or current_item.isHidden():
                 QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
+                log.debug("No selection")
                 return
 
             selected_relative_path = current_item.text()

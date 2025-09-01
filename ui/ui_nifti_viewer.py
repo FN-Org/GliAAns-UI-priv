@@ -23,11 +23,14 @@ try:
 
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 except ImportError:
-    print("PyQt6 not available. Install with: pip install PyQt6")
+    log.error("PyQt6 not available. Install with: pip install PyQt6")
     sys.exit(1)
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.cm as cm
+from logger import get_logger
+
+log = get_logger()
 
 _t = QtCore.QCoreApplication.translate
 
@@ -1161,6 +1164,7 @@ class NiftiViewer(QMainWindow):
                 dialog.accept()
             else:
                 QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
+                log.warning("No selection")
 
         def reject():
             dialog.reject()
@@ -1184,6 +1188,7 @@ class NiftiViewer(QMainWindow):
                 _t("NIfTIViewer", "Warning"),
                 _t("NIfTIViewer", "Please load a base image first!")
             )
+            log.warning("No base image")
             return
         # If no file path provided, show file dialog
         if file_path is None:
@@ -1299,6 +1304,7 @@ class NiftiViewer(QMainWindow):
         """Handle file loading errors"""
         self.progress_dialog.close()
         QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
+        log.critical(f"Error loading NIftI file: {error_message}")
         thread_to_cancel = self.sender()
         self.threads.remove(thread_to_cancel)
 
@@ -1354,6 +1360,7 @@ class NiftiViewer(QMainWindow):
                 _t("NIfTIViewer", "Warning"),
                 _t("NIfTIViewer", "Please load a base image first!")
             )
+            log.warning("No base image")
             return
 
         # Se non fornito, chiedi file
@@ -1408,6 +1415,7 @@ class NiftiViewer(QMainWindow):
                 _t("NIfTIViewer", "Error"),
                 _t("NIfTIViewer", "Failed to load overlay") + f":\n{str(e)}"
             )
+            log.critical(f"Error loading overlay: {str(e)}")
 
     def toggle_overlay(self, enabled):
         """Toggle overlay display on/off - VERSIONE MIGLIORATA"""
@@ -1718,7 +1726,7 @@ class NiftiViewer(QMainWindow):
 
 
         except Exception as e:
-            print(f"Error updating display {plane_idx}: {e}")
+            log.error(f"Error updating display {plane_idx}: {e}")
 
     def normalize_data_matplotlib_style(self, data):
         """Normalize data using matplotlib's approach for clear image display"""
@@ -1842,7 +1850,7 @@ class NiftiViewer(QMainWindow):
             self.time_plot_canvas.draw()
 
         except Exception as e:
-            print(f"Error updating time series plot: {e}")
+            log.error(f"Error updating time series plot: {e}")
 
     def apply_colormap_matplotlib(self, data, colormap_name):
         """Apply colormap using matplotlib and return QImage"""
@@ -1856,7 +1864,7 @@ class NiftiViewer(QMainWindow):
             return colored_data
 
         except Exception as e:
-            print(f"Error applying colormap: {e}")
+            log.error(f"Error applying colormap: {e}")
             return None
 
     def update_all_displays(self):
@@ -1900,7 +1908,7 @@ class NiftiViewer(QMainWindow):
             return rgba_image_overlay
 
         except Exception as e:
-            print(f"Error creating overlay composite: {e}")
+            log.error(f"Error creating overlay composite: {e}")
             # Fallback to regular colormap
             return rgba_image
 
@@ -1999,11 +2007,13 @@ class NiftiViewer(QMainWindow):
         original_path = self.file_path
         if not original_path:
             QMessageBox.critical(self, "Error", "No file loaded.")
+            log.critical("No file loaded")
             return
 
         workspace_path = self.context.get("workspace_path")
         if not workspace_path:
             QMessageBox.critical(self, "Error", "Workspace path is not set.")
+            log.critical("Workspace path not set")
             return
 
         relative_path = os.path.relpath(original_path, workspace_path)
@@ -2012,6 +2022,7 @@ class NiftiViewer(QMainWindow):
             subject = next(part for part in parts if part.startswith("sub-"))
         except StopIteration:
             QMessageBox.critical(self, "Error", "Could not determine subject from path.")
+            log.error("Could not determine subject from path.")
             return
 
         filename = os.path.basename(original_path)
@@ -2051,12 +2062,14 @@ class NiftiViewer(QMainWindow):
         QMessageBox.information(self,
                                 "ROI Saved",
                                 f"ROI saved in:{path} and metadata saved in:{json_path} successfully!")
+        log.info(f"ROI saved in:{path} and metadata saved in:{json_path} successfully!")
     def _on_automaticROI_error(self,error):
         QMessageBox.critical(
             self,
             "Error when saving ROI",
             f"Error when saving: {error}"
         )
+        log.critical(f"Error when saving ROI: {error}")
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads
