@@ -9,12 +9,14 @@ from PyQt6.QtWidgets import (
 
 from ui.ui_pipeline_execution import PipelineExecutionPage
 from wizard_state import WizardPage
+from logger import get_logger
 
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, pyqtSignal
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QComboBox, QToolButton, QGraphicsDropShadowEffect
 from PyQt6.QtGui import QColor, QFont
 
+log = get_logger()
 
 class ClickableFrame(QFrame):
     clicked = pyqtSignal()
@@ -367,7 +369,7 @@ class PipelineReviewPage(WizardPage):
                 continue
 
         if latest_config:
-            print(f"Using latest config file: {latest_config}")
+            log.info(f"Using latest config file: {latest_config}")
             return latest_config
         else:
             # Se non è stato trovato nessun file valido, usa il path di default
@@ -513,24 +515,24 @@ class PipelineReviewPage(WizardPage):
         )
 
         if config_changed:
-            print(f"Config changed, reloading UI. New config: {os.path.basename(new_config_path)}")
+            log.info(f"Config changed, reloading UI. New config: {os.path.basename(new_config_path)}")
             self.config_path = new_config_path
             self.pipeline_config = new_pipeline_config
             self._setup_ui()
         else:
-            print("Config unchanged, keeping existing UI")
+            log.debug("Config unchanged, keeping existing UI")
 
     def _load_config_from_path(self, config_path):
         """Carica il file di configurazione da un path specifico."""
         if not os.path.exists(config_path):
-            print(f"Warning: Config file not found at {config_path}")
+            log.warning(f"Warning: Config file not found at {config_path}")
             return {}
 
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Error loading config file {config_path}: {e}")
+            log.error(f"Error loading config file {config_path}: {e}")
             return {}
 
     def _load_config(self):
@@ -581,14 +583,14 @@ class PipelineReviewPage(WizardPage):
 
                 # Controlla se esiste la cartella output
                 if os.path.exists(output_folder_path):
-                    print(f"Output folder exists ({output_folder_path}), keeping config file: {self.config_path}")
+                    log.info(f"Output folder exists ({output_folder_path}), keeping config file: {self.config_path}")
                 else:
                     # La cartella output non esiste, quindi possiamo cancellare il config file
                     os.remove(self.config_path)
-                    print(f"Output folder does not exist, removed config file: {self.config_path}")
+                    log.info(f"Output folder does not exist, removed config file: {self.config_path}")
 
             except (OSError, IndexError, ValueError) as e:
-                print(f"Error processing config file {self.config_path}: {e}")
+                log.error(f"Error processing config file {self.config_path}: {e}")
 
         if self.previous_page:
             self.previous_page.on_enter()

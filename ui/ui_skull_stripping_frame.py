@@ -15,6 +15,9 @@ import os
 import subprocess
 
 from wizard_state import WizardPage
+from logger import get_logger
+
+log = get_logger()
 
 
 class SkullStripThread(QThread):
@@ -756,6 +759,7 @@ class SkullStrippingPage(WizardPage):
 
             if not visible_selected_items:
                 QMessageBox.warning(dialog, "No selection", "Please select at least one visible NIfTI file.")
+                log.info("No selection")
                 return
 
             selected_files = []
@@ -959,7 +963,7 @@ class SkullStrippingPage(WizardPage):
         """Gestisce il completamento di un singolo file"""
         if not success and error_message:
             # Potresti voler loggare gli errori o mostrarli in una lista
-            print(f"Error processing {filename}: {error_message}")
+            log.error(f"Error processing {filename}: {error_message}")
 
     def on_all_completed(self, success_count, failed_files):
         """Gestisce il completamento di tutti i file"""
@@ -1099,6 +1103,7 @@ class SkullStrippingPage(WizardPage):
         if self.worker and self.worker.isRunning():
             QMessageBox.warning(self, "Processing in progress",
                                 "Cannot go back while skull stripping is in progress. Please wait or cancel the operation.")
+            log.warning("Processing in progress")
             return None
 
         if self.previous_page:
@@ -1206,6 +1211,7 @@ class SkullStrippingPage(WizardPage):
                 info["gpus"] = [{"name": gpu} for gpu in gpus]
 
         except Exception:
+            log.info("Failed to get system info")
             info["gpus"] = []
 
 

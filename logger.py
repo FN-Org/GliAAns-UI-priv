@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 import logging
 import os
@@ -63,26 +64,45 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
 
 
 
-def setup_logger(logger_name="GliAAns-UI",logfile=os.path.join("log","log.txt")):
+def setup_logger(console,logger_name="GliAAns-UI",logfile=os.path.join("log","log.txt"),level=logging.DEBUG, maxBytes=10*1024*1024,backupCount=5):
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(level)
 
     handler = CompressedRotatingFileHandler(
         logfile,
-        maxBytes=1024*100,   # 100 KB per esempio
-        backupCount=5       # mantieni solo 5 file compressi
+        maxBytes=maxBytes,   # 100 KB per esempio
+        backupCount=backupCount       # mantieni solo 5 file compressi
     )
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
-    handler.setFormatter(formatter)
+    file_formatter = logging.Formatter(
+        "%(asctime)s\t%(levelname)s\t%(filename)s:%(lineno)d\t%(funcName)s\t%(message)s"
+    )
+
+    handler.setFormatter(file_formatter)
     logger.addHandler(handler)
+
+    if console:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_formatter = logging.Formatter(
+            "%(levelname)s\t%(filename)s:%(lineno)d\t%(funcName)s\t%(message)s"
+        )
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
 
     return logger
 
+def get_logger(logger_name="GliAAns-UI"):
+    logger = logging.getLogger(logger_name)
+    return logger
+
+def set_log_level(level,logger_name="GliAAns-UI"):
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+
 
 if __name__ == "__main__":
-    log = setup_logger()
+    log = setup_logger(True)
 
     # genera tanti log per testare rotazione + compressione
     for i in range(2000):
-        time.sleep(0.05)
         log.info(f"Messaggio di log numero {i}")
