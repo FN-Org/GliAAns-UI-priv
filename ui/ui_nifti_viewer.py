@@ -7,6 +7,10 @@ import gc
 import json
 import numpy as np
 import nibabel as nib
+from logger import get_logger
+
+log = get_logger()
+
 from PyQt6 import QtCore
 
 try:
@@ -28,9 +32,7 @@ except ImportError:
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.cm as cm
-from logger import get_logger
 
-log = get_logger()
 
 _t = QtCore.QCoreApplication.translate
 
