@@ -11,3 +11,4 @@ seaborn
 numpy
 scipy
 dcm2niix
+hd-bet; sys_platform == "win32"
