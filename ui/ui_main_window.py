@@ -762,7 +762,9 @@ class MainWindow(QMainWindow):
             )
             dst_path = os.path.join(dst_path, os.path.basename(path))
 
-        if dst_path != "":
+        if not dst_path:
+            return
+        else:
             self.threads.append(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_dir, copy=True))
             self.threads[-1].error.connect(lambda msg: self.copydelete_thread_error(f"Error while exporting file from workspace:{msg}"))
             self.threads[-1].finished.connect(self.copydelete_thread_success)
