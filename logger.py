@@ -4,7 +4,6 @@ import logging
 import os
 import gzip
 import shutil
-import time
 from logging.handlers import BaseRotatingHandler
 from pathlib import Path
 
@@ -15,12 +14,14 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
         self.maxBytes = maxBytes
         self.backupCount = backupCount
         self.log_dir = Path(filename).parent
+
+        # crea la cartella .log se non esiste
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
         super().__init__(filename, mode, encoding=encoding, delay=delay)
 
     def shouldRollover(self, record):
-        """
-        Decide se ruotare in base alla dimensione del file.
-        """
+        """Decide se ruotare in base alla dimensione del file."""
         if self.stream is None:  # file non aperto
             self.stream = self._open()
 
@@ -32,16 +33,14 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
         return False
 
     def doRollover(self):
-        """
-        Ruota i file di log, comprime e mantiene solo gli ultimi N.
-        """
+        """Ruota i file di log, comprime e mantiene solo gli ultimi N."""
         if self.stream:
             self.stream.close()
             self.stream = None
 
         # timestamp per il nome del file
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        rotated_file = f"{self.baseFilename}.{ts}.gz"
+        rotated_file = self.log_dir / f"{Path(self.baseFilename).name}.{ts}.gz"
 
         # comprimi il file attuale
         if os.path.exists(self.baseFilename):
@@ -50,28 +49,33 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
             os.remove(self.baseFilename)
 
         # mantieni solo gli ultimi N file compressi
-        files = [os.path.join(self.log_dir, f) for f in os.listdir(self.log_dir)
-                 if f.endswith(".gz") and os.path.isfile(os.path.join(self.log_dir, f))]
+        files = sorted(
+            (f for f in self.log_dir.glob("*.gz") if f.is_file()),
+            key=lambda f: f.stat().st_mtime
+        )
 
         if len(files) > self.backupCount:
-            files.sort(key=os.path.getmtime)
             for old_file in files[:-self.backupCount]:
-                os.remove(old_file)
+                old_file.unlink()
 
         # riapri il file corrente vuoto
         if not self.delay:
             self.stream = self._open()
 
 
-
-def setup_logger(console,logger_name="GliAAns-UI",logfile=os.path.join("log","log.txt"),level=logging.DEBUG, maxBytes=10*1024*1024,backupCount=5):
+def setup_logger(console,
+                 logger_name="GliAAns-UI",
+                 logfile=Path(".log") / "log.txt",
+                 level=logging.DEBUG,
+                 maxBytes=10*1024*1024,
+                 backupCount=5):
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
 
     handler = CompressedRotatingFileHandler(
         logfile,
-        maxBytes=maxBytes,   # 100 KB per esempio
-        backupCount=backupCount       # mantieni solo 5 file compressi
+        maxBytes=maxBytes,
+        backupCount=backupCount
     )
     file_formatter = logging.Formatter(
         "%(asctime)s\t%(levelname)s\t%(filename)s:%(lineno)d\t%(funcName)s\t%(message)s"
@@ -91,13 +95,13 @@ def setup_logger(console,logger_name="GliAAns-UI",logfile=os.path.join("log","lo
 
     return logger
 
-def get_logger(logger_name="GliAAns-UI"):
-    logger = logging.getLogger(logger_name)
-    return logger
 
-def set_log_level(level,logger_name="GliAAns-UI"):
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(level)
+def get_logger(logger_name="GliAAns-UI"):
+    return logging.getLogger(logger_name)
+
+
+def set_log_level(level, logger_name="GliAAns-UI"):
+    logging.getLogger(logger_name).setLevel(level)
 
 
 if __name__ == "__main__":
