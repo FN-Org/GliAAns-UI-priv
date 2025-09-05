@@ -760,7 +760,8 @@ class MainWindow(QMainWindow):
                 self,
                 "Select destination folder",
             )
-            dst_path = os.path.join(dst_path, os.path.basename(path))
+            if dst_path:
+                dst_path = os.path.join(dst_path, os.path.basename(path))
 
         if not dst_path:
             return
