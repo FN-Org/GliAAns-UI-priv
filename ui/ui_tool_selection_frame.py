@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
+from ui.ui_patient_for_dl import DlPatientSelectionPage
 from ui.ui_skull_stripping_frame import SkullStrippingPage
 from ui.ui_nifti_selection import NiftiSelectionPage
 from ui.ui_patient_for_pipeline import PipelinePatientSelectionPage
@@ -103,7 +104,7 @@ class ToolChoicePage(WizardPage):
         page_classes = {
             0: ("next_skull_stripping", SkullStrippingPage),
             1: ("next_manual_draw", NiftiSelectionPage),
-            2: ("next_deep_learning", WorkInProgressPage),
+            2: ("next_deep_learning", DlPatientSelectionPage),
             3: ("next_pipeline", PipelinePatientSelectionPage),
         }
 

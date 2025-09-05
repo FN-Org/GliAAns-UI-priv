@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt6.QtCore import Qt
 import os
 
-from ui.tool_selection_frame import ToolChoicePage
+from ui.ui_tool_selection_frame import ToolChoicePage
 from wizard_state import WizardPage
 from logger import get_logger
 
