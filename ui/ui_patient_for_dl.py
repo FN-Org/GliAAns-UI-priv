@@ -2,8 +2,9 @@ import shutil
 import glob
 
 from PyQt6 import QtWidgets, QtGui
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
-    QMessageBox, QGroupBox
+    QMessageBox, QGroupBox, QListWidget, QDialog, QLineEdit, QDialogButtonBox, QListWidgetItem
 from PyQt6.QtCore import Qt
 import os
 
@@ -17,441 +18,631 @@ log = get_logger()
 class DlPatientSelectionPage(WizardPage):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
-
         self.context = context
         self.previous_page = previous_page
         self.next_page = None
 
-        self.workspace_path = context["workspace_path"]
+        self.selected_files = []
 
-        self.patient_buttons = {}
-        self.selected_patients = set()
-        self.patients_with_flair = {}  # Dict per tracciare i pazienti con FLAIR e i loro path
-        self.patients_status = {}  # Dict per tracciare lo status dei pazienti (True=ha FLAIR, False=non ha FLAIR)
+        self._setup_ui()
 
+    def _setup_ui(self):
         self.layout = QVBoxLayout(self)
-        self.title = QLabel("Select Patients to Analyze (FLAIR Required)")
+        self.setLayout(self.layout)
+
+        self.title = QLabel("Select NIfTI files for Deep Learning Segmentation")
         self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
 
-        # Aggiungiamo una label informativa
-        info_label = QLabel("🟢 Green: Patients with FLAIR images (selectable) | 🔴 Red: Patients without FLAIR images")
-        info_label.setStyleSheet("font-size: 12px; color: #666666; margin: 5px 0px;")
-        info_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self.layout.addWidget(info_label)
+        file_selector_layout = QHBoxLayout()
 
-        top_buttons_layout = QHBoxLayout()
+        self.file_list_widget = QListWidget()
+        self.file_list_widget.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+        self.file_list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.file_list_widget.setMaximumHeight(100)
+        file_selector_layout.addWidget(self.file_list_widget, stretch=1)
 
-        select_all_btn = QPushButton("Select All Available")
-        deselect_all_btn = QPushButton("Deselect All")
-        refresh_btn = QPushButton("Refresh Status")
+        button_container = QWidget()
+        button_layout = QVBoxLayout(button_container)
 
-        btn_style = """
-                    QPushButton {
-                        background-color: #e0e0e0;
-                        padding: 10px 20px;
-                        border-radius: 10px;
-                        border: 1px solid #bdc3c7;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #d0d0d0;
-                    }
-                """
+        button_layout.addStretch()
 
-        select_all_btn.setStyleSheet(btn_style)
-        deselect_all_btn.setStyleSheet(btn_style)
-        refresh_btn.setStyleSheet(btn_style)
+        self.file_button = QPushButton("Choose NIfTI File(s)")
+        self.file_button.clicked.connect(self.open_tree_dialog)
+        button_layout.addWidget(self.file_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        select_all_btn.clicked.connect(self._select_all_available_patients)
-        deselect_all_btn.clicked.connect(self._deselect_all_patients)
-        refresh_btn.clicked.connect(self._refresh_patient_status)
+        self.clear_button = QPushButton("Clear Selection")
+        self.clear_button.setEnabled(False)
+        self.clear_button.clicked.connect(self.clear_selected_files)
+        button_layout.addWidget(self.clear_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        top_buttons_layout.addStretch()
-        top_buttons_layout.addWidget(select_all_btn)
-        top_buttons_layout.addWidget(deselect_all_btn)
-        top_buttons_layout.addWidget(refresh_btn)
+        button_layout.addStretch()
 
-        self.layout.addLayout(top_buttons_layout)
+        file_selector_layout.addWidget(button_container)
 
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                font-size: 13px;
-                border: 1px solid #bdc3c7;
-                border-radius: 10px;
-                padding: 5px;
-            }
-        """)
-        self.scroll_content = QWidget()
-        self.grid_layout = QGridLayout(self.scroll_content)
+        self.layout.addLayout(file_selector_layout)
 
-        self.column_count = 2  # default fallback
+        # Status label
+        self.status_label = QLabel("")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.status_label)
 
-        self._load_patients()
+    def has_existing_segmentation(self, nifti_file_path, workspace_path):
+        """
+        Check if segmentation already exists for the patient of this NIfTI file.
+        """
+        # Extract patient ID from file path
+        path_parts = nifti_file_path.replace(workspace_path, '').strip(os.sep).split(os.sep)
 
-        self.scroll_area.setWidget(self.scroll_content)
-        self.layout.addWidget(self.scroll_area)
+        # Find the part that starts with 'sub-'
+        subject_id = None
+        for part in path_parts:
+            if part.startswith('sub-'):
+                subject_id = part
+                break
 
-    def _check_flair_presence(self, patient_path):
-        """Controlla se il paziente ha immagini FLAIR nel percorso sub-*/anat/*_flair.nii(.gz)"""
-        patient_id = os.path.basename(patient_path)
+        if not subject_id:
+            return False
 
-        # Pattern per cercare file FLAIR (.nii e .nii.gz)
-        flair_pattern_gz = os.path.join(patient_path, "anat", "*_flair.nii.gz")
-        flair_pattern_nii = os.path.join(patient_path, "anat", "*_flair.nii")
+        # Build the path where segmentation should be
+        seg_dir = os.path.join(workspace_path, 'derivatives', 'deep_learning_seg', subject_id, 'anat')
 
-        flair_files = glob.glob(flair_pattern_gz) + glob.glob(flair_pattern_nii)
+        # Check if directory exists
+        if not os.path.exists(seg_dir):
+            return False
 
-        if flair_files:
-            # Ritorna True e il primo file FLAIR trovato
-            return True, flair_files[0]
-        else:
-            return False, None
+        # Check if *_seg.nii.gz files exist in the directory
+        for file in os.listdir(seg_dir):
+            if file.endswith('_seg.nii.gz') or file.endswith('_seg.nii'):
+                return True
 
-    def _update_column_count(self):
-        # Margine di sicurezza per padding/bordi
-        available_width = self.scroll_area.viewport().width() - 40
-        min_card_width = 250  # Larghezza minima per un patient_frame
+        return False
 
-        new_column_count = max(1, available_width // min_card_width)
+    def open_tree_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select NIfTI files for deep learning segmentation")
+        dialog.resize(700, 650)
 
-        if new_column_count != self.column_count:
-            self.column_count = new_column_count
-            self._reload_patient_grid()
+        layout = QVBoxLayout(dialog)
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._update_column_count()
+        # === MODERN FILTERS SECTION ===
+        filter_group = QGroupBox("Filters")
+        filter_layout = QGridLayout(filter_group)
 
-    def _reload_patient_grid(self):
-        # Salva la selezione
-        selected = self.selected_patients.copy()
+        # Text search (improved)
+        search_bar = QLineEdit()
+        search_bar.setPlaceholderText("Search files (FLAIR, T1, T2, etc.)")
+        search_bar.setClearButtonEnabled(True)  # X button to clear
+        filter_layout.addWidget(QLabel("Search:"), 0, 0)
+        filter_layout.addWidget(search_bar, 0, 1, 1, 3)
 
-        # Pulisci la griglia
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.setParent(None)
-                widget.deleteLater()
+        # Subject/patient filter
+        from PyQt6.QtWidgets import QComboBox, QCheckBox, QPushButton
+        subject_combo = QComboBox()
+        subject_combo.setEditable(True)  # Allows custom typing
+        subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
+        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
+        filter_layout.addWidget(subject_combo, 1, 1)
 
-        # Ricarica con lo stesso layout adattato
-        self._load_patients()
-        self.selected_patients = selected
+        # Session filter
+        session_combo = QComboBox()
+        session_combo.setEditable(True)
+        session_combo.lineEdit().setPlaceholderText("All sessions...")
+        filter_layout.addWidget(QLabel("Session:"), 1, 2)
+        filter_layout.addWidget(session_combo, 1, 3)
 
-    def on_enter(self):
-        # Cancella solo i widget, ma mantieni le selezioni
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        # Modality filter (T1, T2, FLAIR, etc.)
+        modality_combo = QComboBox()
+        modality_combo.setEditable(True)
+        modality_combo.lineEdit().setPlaceholderText("All modalities...")
+        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
+        filter_layout.addWidget(modality_combo, 2, 1)
 
-        # Ricarica i pazienti mantenendo le selezioni
-        self._load_patients()
+        # Data type filter (anatomical, functional, etc.)
+        datatype_combo = QComboBox()
+        datatype_combo.addItems(["All types", "anat", "func", "dwi", "fmap", "perf"])
+        filter_layout.addWidget(QLabel("Data type:"), 2, 2)
+        filter_layout.addWidget(datatype_combo, 2, 3)
 
-    def is_ready_to_advance(self):
-        return len(self.selected_patients) > 0
+        # Checkbox to show only files without segmentation
+        no_seg_checkbox = QCheckBox("Show only files without existing segmentations")
+        filter_layout.addWidget(no_seg_checkbox, 3, 0, 1, 2)
 
-    def is_ready_to_go_back(self):
-        return True
+        # Checkbox to show only files with segmentation
+        with_seg_checkbox = QCheckBox("Show only files with existing segmentations")
+        filter_layout.addWidget(with_seg_checkbox, 3, 2, 1, 2)
 
-    def next(self, context):
-        # Aggiungiamo le informazioni sui file FLAIR al context
-        selected_flair_files = {}
-        for patient_id in self.selected_patients:
-            if patient_id in self.patients_with_flair:
-                selected_flair_files[patient_id] = self.patients_with_flair[patient_id]
+        layout.addWidget(filter_group)
 
-        # Salviamo i dati nel context per la prossima pagina
-        context["selected_flair_files"] = selected_flair_files
-        context["selected_patients"] = list(self.selected_patients)
+        # === FILE COLLECTION AND PARSING ===
+        all_nii_files = []
+        relative_to_absolute = {}
+        files_with_segmentations = set()
+        subjects_set = set()
+        sessions_set = set()
+        modalities_set = set()
 
-        # Vai alla pagina successiva (che puoi sostituire con la tua nuova pagina)
-        if not self.next_page:
-            self.next_page = WorkInProgressPage(context, self)
-            self.context["history"].append(self.next_page)
+        for root, dirs, files in os.walk(self.context["workspace_path"]):
+            # Ignore 'derivatives' folder and all its subfolders
+            dirs[:] = [d for d in dirs if d != "derivatives"]
 
-        self.next_page.on_enter()
-        return self.next_page
+            for f in files:
+                if f.endswith((".nii", ".nii.gz")):
+                    full_path = os.path.join(root, f)
+                    relative_path = os.path.relpath(full_path, self.context["workspace_path"])
+                    all_nii_files.append(relative_path)
+                    relative_to_absolute[relative_path] = full_path
+
+                    # Extract BIDS info from path
+                    path_parts = relative_path.split(os.sep)
+
+                    # Extract subject
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subjects_set.add(part)
+                            break
+
+                    # Extract session
+                    for part in path_parts:
+                        if part.startswith('ses-'):
+                            sessions_set.add(part)
+                            break
+
+                    # Extract modality
+                    filename = os.path.basename(f)
+                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # removes .nii.gz or .nii
+                    parts = filename_noext.split("_")
+                    # Modality is usually the last part of the name
+                    possible_modality = parts[-1]
+                    modality = possible_modality if possible_modality else "Unknown"
+
+                    modalities_set.add(modality)
+
+                    # Mark files that already have segmentation
+                    if self.has_existing_segmentation(full_path, self.context["workspace_path"]):
+                        files_with_segmentations.add(relative_path)
+
+        # === POPULATE DROPDOWNS ===
+        subject_combo.addItem("All subjects")
+        subject_combo.addItems(sorted(subjects_set))
+
+        session_combo.addItem("All sessions")
+        session_combo.addItems(sorted(sessions_set))
+
+        modality_combo.addItem("All modalities")
+        modality_combo.addItems(sorted(modalities_set))
+
+        # === INFO LABEL ===
+        info_label = QLabel()
+
+        def update_info_label(visible_count):
+            info_text = f"Showing {visible_count} of {len(all_nii_files)} files"
+            if files_with_segmentations:
+                info_text += f" ({len(files_with_segmentations)} total with existing segmentations)"
+            info_label.setText(info_text)
+            info_label.setStyleSheet("color: gray; font-size: 10px;")
+
+        update_info_label(len(all_nii_files))
+        layout.addWidget(info_label)
+
+        # === FILE LIST ===
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QBrush, QColor
+
+        file_list = QListWidget()
+        file_list.setEditTriggers(QListWidget.EditTrigger.NoEditTriggers)
+        file_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)  # Allows multiple selection
+        file_list.setAlternatingRowColors(True)  # Alternating row colors
+
+        # Add all files with differentiated colors
+        def populate_file_list():
+            file_list.clear()
+            for relative_path in sorted(all_nii_files):
+                item = QListWidgetItem(relative_path)
+
+                # If file already has segmentation, color it yellow
+                if relative_path in files_with_segmentations:
+                    item.setForeground(QBrush(QColor(255, 193, 7)))  # Yellow (Bootstrap warning color)
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n✓ This patient already has a segmentation")
+                else:
+                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n○ No existing segmentation")
+
+                file_list.addItem(item)
+
+        populate_file_list()
+        layout.addWidget(file_list)
+
+        # === ADVANCED FILTER FUNCTION ===
+        def apply_filters():
+            search_text = search_bar.text().lower()
+            selected_subject = subject_combo.currentText()
+            selected_session = session_combo.currentText()
+            selected_modality = modality_combo.currentText()
+            selected_datatype = datatype_combo.currentText()
+
+            show_only_no_seg = no_seg_checkbox.isChecked()
+            show_only_with_seg = with_seg_checkbox.isChecked()
+
+            visible_count = 0
+
+            for i in range(file_list.count()):
+                item = file_list.item(i)
+                relative_path = item.text()
+                should_show = True
+
+                # Text search filter
+                if search_text and search_text not in relative_path.lower():
+                    should_show = False
+
+                # Subject filter
+                if selected_subject != "All subjects" and selected_subject:
+                    if selected_subject not in relative_path:
+                        should_show = False
+
+                # Session filter
+                if selected_session != "All sessions" and selected_session:
+                    if selected_session not in relative_path:
+                        should_show = False
+
+                # Modality filter
+                if selected_modality != "All modalities" and selected_modality:
+                    if selected_modality not in relative_path:
+                        should_show = False
+
+                # Data type filter
+                if selected_datatype != "All types":
+                    if f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
+                        should_show = False
+
+                # Filter for presence/absence of segmentation
+                has_seg = relative_path in files_with_segmentations
+                if show_only_no_seg and has_seg:
+                    should_show = False
+                if show_only_with_seg and not has_seg:
+                    should_show = False
+
+                item.setHidden(not should_show)
+                if should_show:
+                    visible_count += 1
+
+            update_info_label(visible_count)
+
+        # === EVENT CONNECTIONS ===
+        search_bar.textChanged.connect(apply_filters)
+        subject_combo.currentTextChanged.connect(apply_filters)
+        session_combo.currentTextChanged.connect(apply_filters)
+        modality_combo.currentTextChanged.connect(apply_filters)
+        datatype_combo.currentTextChanged.connect(apply_filters)
+        no_seg_checkbox.toggled.connect(apply_filters)
+        with_seg_checkbox.toggled.connect(apply_filters)
+
+        # Prevent both checkboxes from being selected together
+        def on_no_seg_toggled(checked):
+            if checked:
+                with_seg_checkbox.setChecked(False)
+
+        def on_with_seg_toggled(checked):
+            if checked:
+                no_seg_checkbox.setChecked(False)
+
+        no_seg_checkbox.toggled.connect(on_no_seg_toggled)
+        with_seg_checkbox.toggled.connect(on_with_seg_toggled)
+
+        # === BUTTONS ===
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+
+        # Reset filters button
+        reset_button = QPushButton("Reset Filters")
+
+        def reset_filters():
+            search_bar.clear()
+            subject_combo.setCurrentIndex(0)
+            session_combo.setCurrentIndex(0)
+            modality_combo.setCurrentIndex(0)
+            datatype_combo.setCurrentIndex(0)
+            no_seg_checkbox.setChecked(False)
+            with_seg_checkbox.setChecked(False)
+
+        reset_button.clicked.connect(reset_filters)
+        buttons.addButton(reset_button, QDialogButtonBox.ButtonRole.ResetRole)
+
+        # Select all visible files button
+        select_all_button = QPushButton("Select All Visible")
+
+        def select_all_visible():
+            for i in range(file_list.count()):
+                item = file_list.item(i)
+                if not item.isHidden():
+                    item.setSelected(True)
+
+        select_all_button.clicked.connect(select_all_visible)
+        buttons.addButton(select_all_button, QDialogButtonBox.ButtonRole.ActionRole)
+
+        # Deselect all button
+        deselect_all_button = QPushButton("Deselect All")
+
+        def deselect_all():
+            file_list.clearSelection()
+
+        deselect_all_button.clicked.connect(deselect_all)
+        buttons.addButton(deselect_all_button, QDialogButtonBox.ButtonRole.ActionRole)
+
+        layout.addWidget(buttons)
+
+        # === ACCEPTANCE LOGIC ===
+        def accept():
+            selected_items = file_list.selectedItems()
+            # Filter only visible (not hidden) items
+            visible_selected_items = [item for item in selected_items if not item.isHidden()]
+
+            if not visible_selected_items:
+                QMessageBox.warning(dialog, "No selection", "Please select at least one visible NIfTI file.")
+                log.info("No selection")
+                return
+
+            selected_files = []
+            files_with_warnings = []
+
+            # Process each selected file
+            for item in visible_selected_items:
+                selected_relative_path = item.text()
+                selected_absolute_path = relative_to_absolute[selected_relative_path]
+
+                # If selected file already has segmentation, add to warnings list
+                if selected_relative_path in files_with_segmentations:
+                    files_with_warnings.append((selected_absolute_path, selected_relative_path))
+
+                selected_files.append(selected_absolute_path)
+
+            # If there are files with warnings, show message
+            if files_with_warnings:
+                if len(files_with_warnings) == 1:
+                    # Single file with warning
+                    selected_absolute_path, selected_relative_path = files_with_warnings[0]
+
+                    # Extract patient ID
+                    path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(os.sep).split(
+                        os.sep)
+                    subject_id = None
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subject_id = part
+                            break
+
+                    if subject_id:
+                        subject_display = subject_id
+                    else:
+                        subject_display = "this patient"
+
+                    msg = QMessageBox(dialog)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("Existing Segmentation Detected")
+                    msg.setText(f"A deep learning segmentation already exists for {subject_display}.")
+                    msg.setInformativeText(
+                        f"File: {os.path.basename(selected_absolute_path)}\n\n"
+                        "You can still proceed to create additional segmentations for this patient.\n"
+                        "Do you want to continue with this selection?"
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                    if msg.exec() == QMessageBox.StandardButton.No:
+                        return
+                else:
+                    # Multiple files with warnings
+                    subjects_with_segs = set()
+                    for selected_absolute_path, _ in files_with_warnings:
+                        path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(
+                            os.sep).split(os.sep)
+                        for part in path_parts:
+                            if part.startswith('sub-'):
+                                subjects_with_segs.add(part)
+                                break
+
+                    msg = QMessageBox(dialog)
+                    msg.setIcon(QMessageBox.Icon.Warning)
+                    msg.setWindowTitle("Existing Segmentations Detected")
+                    msg.setText(f"Deep learning segmentations already exist for {len(subjects_with_segs)} patients:")
+
+                    subject_list = ", ".join(sorted(subjects_with_segs))
+                    msg.setInformativeText(
+                        f"Patients: {subject_list}\n\n"
+                        "You can still proceed to create additional segmentations for these patients.\n"
+                        "Do you want to continue with this selection?"
+                    )
+                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                    if msg.exec() == QMessageBox.StandardButton.No:
+                        return
+
+            # Proceed with selection
+            self.set_selected_files(selected_files)
+            dialog.accept()
+
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.reject)
+
+        dialog.exec()
+
+    def set_selected_files(self, file_paths):
+        self.selected_files = file_paths
+        self.file_list_widget.clear()
+
+        for path in file_paths:
+            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
+            item.setToolTip(path)
+            self.file_list_widget.addItem(item)
+
+        self.clear_button.setEnabled(bool(file_paths))
+
+        # Update context with selected files for next page
+        if self.context:
+            self.context["selected_segmentation_files"] = file_paths
+            if "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
+
+    def clear_selected_files(self):
+        self.selected_files = []
+        self.file_list_widget.clear()
+        self.clear_button.setEnabled(False)
+
+        # Clear from context
+        if self.context:
+            self.context["selected_segmentation_files"] = []
+            if "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
+
+    def update_selected_files(self, files):
+        """
+        Update selected files and show warnings if segmentations exist for patients.
+        """
+        selected_files = []
+        files_with_warnings = []
+
+        # Check all NIfTI files in the list
+        for path in files:
+            if path.endswith(".nii") or path.endswith(".nii.gz"):
+                # Check if segmentation already exists for this patient
+                if self.has_existing_segmentation(path, self.context["workspace_path"]):
+                    files_with_warnings.append(path)
+
+                selected_files.append(path)
+
+        # If there are files with warnings, show message
+        if files_with_warnings:
+            if len(files_with_warnings) == 1:
+                path = files_with_warnings[0]
+                path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
+                subject_id = None
+                for part in path_parts:
+                    if part.startswith('sub-'):
+                        subject_id = part
+                        break
+
+                if subject_id:
+                    subject_display = subject_id
+                else:
+                    subject_display = "this patient"
+
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("Existing Segmentation Detected")
+                msg.setText(f"A deep learning segmentation already exists for {subject_display}.")
+                msg.setInformativeText(
+                    f"File: {os.path.basename(path)}\n\n"
+                    "You can still proceed to create additional segmentations for this patient.\n"
+                    "Do you want to continue with this selection?"
+                )
+                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                if msg.exec() == QMessageBox.StandardButton.No:
+                    self.selected_files = []
+                    self.file_list_widget.clear()
+                    self.clear_button.setEnabled(False)
+                    if self.context:
+                        self.context["selected_segmentation_files"] = []
+                        if "update_main_buttons" in self.context:
+                            self.context["update_main_buttons"]()
+                    return
+            else:
+                subjects_with_segs = set()
+                for path in files_with_warnings:
+                    path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
+                    for part in path_parts:
+                        if part.startswith('sub-'):
+                            subjects_with_segs.add(part)
+                            break
+
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Icon.Warning)
+                msg.setWindowTitle("Existing Segmentations Detected")
+                msg.setText(f"Deep learning segmentations already exist for {len(subjects_with_segs)} patients:")
+
+                subject_list = ", ".join(sorted(subjects_with_segs))
+                msg.setInformativeText(
+                    f"Patients: {subject_list}\n\n"
+                    "You can still proceed to create additional segmentations for these patients.\n"
+                    "Do you want to continue with this selection?"
+                )
+                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+                if msg.exec() == QMessageBox.StandardButton.No:
+                    self.selected_files = []
+                    self.file_list_widget.clear()
+                    self.clear_button.setEnabled(False)
+                    if self.context:
+                        self.context["selected_segmentation_files"] = []
+                        if "update_main_buttons" in self.context:
+                            self.context["update_main_buttons"]()
+                    return
+
+        # Proceed with normal selection
+        self.selected_files = selected_files
+        self.file_list_widget.clear()
+
+        for path in selected_files:
+            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
+            item.setToolTip(path)
+            self.file_list_widget.addItem(item)
+
+        self.clear_button.setEnabled(bool(selected_files))
+
+        # Update context
+        if self.context:
+            self.context["selected_segmentation_files"] = selected_files
+            if "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
 
     def back(self):
         if self.previous_page:
             self.previous_page.on_enter()
             return self.previous_page
-
         return None
 
-    def _load_patients(self):
-        patient_dirs = self._find_patient_dirs()
-        patient_dirs.sort()
+    def next(self, context):
+        """
+        Salva i file selezionati nel contesto e avanza alla pagina successiva.
+        """
+        # Mettiamo i file selezionati nel contesto
+        if self.context is not None:
+            self.context["selected_segmentation_files"] = self.selected_files
 
-        self.patient_buttons.clear()
-        self.patients_with_flair.clear()
-        self.patients_status.clear()
+        # Se la pagina successiva non è ancora stata creata, la instanziamo
+        if not self.next_page:
+            self.next_page = WorkInProgressPage(self.context, self)
+            if "history" in self.context:
+                self.context["history"].append(self.next_page)
 
-        for i, patient_path in enumerate(patient_dirs):
-            patient_id = os.path.basename(patient_path)
+        # Prepariamo la prossima pagina
+        self.next_page.on_enter()
+        return self.next_page
 
-            # Controlla se il paziente ha file FLAIR
-            has_flair, flair_path = self._check_flair_presence(patient_path)
-            self.patients_status[patient_id] = has_flair
+    def on_enter(self):
+        self.status_label.setText("")
 
-            if has_flair:
-                self.patients_with_flair[patient_id] = flair_path
+    def is_ready_to_advance(self):
+        return len(self.selected_files) > 0
 
-            # Frame principale del paziente (il "card")
-            patient_frame = QFrame()
-            patient_frame.setObjectName("patientCard")
-
-            # Stile diverso per pazienti eligible/non-eligible
-            if has_flair:
-                frame_style = """
-                    QFrame#patientCard {
-                        border: 2px solid #4CAF50;
-                        border-radius: 10px;
-                        background-color: #f0fff0;
-                        padding: 10px;
-                        margin: 2px;
-                    }
-                """
-            else:
-                frame_style = """
-                    QFrame#patientCard {
-                        border: 2px solid #f44336;
-                        border-radius: 10px;
-                        background-color: #fff0f0;
-                        padding: 10px;
-                        margin: 2px;
-                    }
-                """
-
-            patient_frame.setStyleSheet(frame_style)
-
-            # Layout principale orizzontale
-            patient_layout = QHBoxLayout(patient_frame)
-
-            # Sezione profilo (sinistra)
-            profile_frame = QFrame()
-            profile_layout = QVBoxLayout(profile_frame)
-            profile_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-
-            # Immagine
-            image = QLabel()
-            pixmap = QtGui.QPixmap("./resources/user.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
-                                                                  Qt.TransformationMode.SmoothTransformation)
-            image.setPixmap(pixmap)
-            image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            # ID del paziente
-            patient_label = QLabel(f"{patient_id}")
-            patient_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            patient_label.setStyleSheet("font-weight: bold; font-size: 12px;")
-
-            # Status label
-            if has_flair:
-                status_label = QLabel("✓ Ready for Pipeline")
-                status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
-            else:
-                status_label = QLabel("✗ Missing Requirements")
-                status_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 10px;")
-
-            status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            profile_layout.addWidget(image)
-            profile_layout.addWidget(patient_label)
-            profile_layout.addWidget(status_label)
-
-            # Sezione dettagli (centro)
-            details_frame = QFrame()
-            details_layout = QVBoxLayout(details_frame)
-            details_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-            # Indicatori dei requisiti
-            # Per ora mostriamo solo FLAIR, ma si può estendere facilmente
-            flair_indicator = QLabel()
-            if has_flair:
-                flair_indicator.setText("✓ FLAIR")
-                flair_indicator.setStyleSheet("color: #4CAF50; font-size: 10px; padding: 1px;")
-            else:
-                flair_indicator.setText("✗ FLAIR")
-                flair_indicator.setStyleSheet("color: #f44336; font-size: 10px; padding: 1px;")
-
-            details_layout.addWidget(flair_indicator)
-
-            # Pulsante di selezione (destra)
-            button = QPushButton("Select")
-            button.setCheckable(True)
-
-            if has_flair:
-                button.setStyleSheet("""
-                    QPushButton {
-                        border-radius: 12px;
-                        padding: 8px 16px;
-                        background-color: #DADADA;
-                        font-weight: bold;
-                        min-width: 80px;
-                    }
-                    QPushButton:checked {
-                        background-color: #4CAF50;
-                        color: white;
-                    }
-                    QPushButton:hover {
-                        background-color: #c0c0c0;
-                    }
-                    QPushButton:checked:hover {
-                        background-color: #45a049;
-                    }
-                """)
-
-                # Mantieni la selezione precedente se presente
-                is_selected = patient_id in self.selected_patients
-                button.setChecked(is_selected)
-                button.setText("Selected" if is_selected else "Select")
-
-                button.clicked.connect(
-                    lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
-            else:
-                button.setText("Not Eligible")
-                button.setEnabled(False)
-                button.setStyleSheet("""
-                    QPushButton {
-                        border-radius: 12px;
-                        padding: 8px 16px;
-                        background-color: #f0f0f0;
-                        color: #888888;
-                        font-weight: bold;
-                        min-width: 80px;
-                    }
-                """)
-
-            self.patient_buttons[patient_id] = button
-
-            # Assemblaggio del layout
-            patient_layout.addWidget(profile_frame)
-            patient_layout.addWidget(details_frame)
-            patient_layout.addStretch()
-            patient_layout.addWidget(button)
-
-            # Inserimento nella griglia
-            self.grid_layout.addWidget(patient_frame, i // self.column_count, i % self.column_count)
-
-    def _refresh_patient_status(self):
-        """Ricarica lo stato di tutti i pazienti mantenendo le selezioni valide"""
-        # Salva le selezioni correnti
-        current_selections = self.selected_patients.copy()
-
-        # Pulisci la griglia
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.setParent(None)
-                widget.deleteLater()
-
-        # Ricarica tutto da zero
-        self._load_patients()
-
-        # Ripristina le selezioni valide (solo pazienti che hanno ancora FLAIR)
-        valid_selections = set()
-        for patient_id in current_selections:
-            if (patient_id in self.patients_status and
-                    self.patients_status[patient_id] and  # Ha FLAIR
-                    patient_id in self.patient_buttons):
-                valid_selections.add(patient_id)
-                button = self.patient_buttons[patient_id]
-                button.setChecked(True)
-                button.setText("Selected")
-
-        self.selected_patients = valid_selections
-
-        # Aggiorna i pulsanti principali se disponibili
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-        log.info(f"Patient status refreshed. {len(valid_selections)} patients remain selected.")
-
-    def _select_all_available_patients(self):
-        """Seleziona tutti i pazienti che hanno FLAIR"""
-        for patient_id, button in self.patient_buttons.items():
-            if self.patients_status.get(patient_id, False) and not button.isChecked():
-                button.setChecked(True)
-                button.setText("Selected")
-                self.selected_patients.add(patient_id)
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-    def _deselect_all_patients(self):
-        for patient_id, button in self.patient_buttons.items():
-            if button.isChecked():
-                button.setChecked(False)
-                button.setText("Select")
-                self.selected_patients.discard(patient_id)
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-    def _find_patient_dirs(self):
-        patient_dirs = []
-
-        for root, dirs, files in os.walk(self.workspace_path):
-            # Salta la cartella 'derivatives'
-            if "derivatives" in dirs:
-                dirs.remove("derivatives")
-
-            if "pipeline" in dirs:
-                dirs.remove("pipeline")
-
-            for dir_name in dirs:
-                if dir_name.startswith("sub-"):
-                    full_path = os.path.join(root, dir_name)
-                    patient_dirs.append(full_path)
-
-            # Esclude le sottocartelle dei sub-*
-            dirs[:] = [d for d in dirs if not d.startswith("sub-")]
-
-        return patient_dirs
-
-    def _toggle_patient(self, patient_id, is_selected, button):
-        """Toggle selezione paziente - solo per pazienti con FLAIR"""
-        if self.patients_status.get(patient_id, False):  # Solo se ha FLAIR
-            if is_selected:
-                self.selected_patients.add(patient_id)
-                button.setText("Selected")
-            else:
-                self.selected_patients.discard(patient_id)
-                button.setText("Select")
-            if self.context and "update_main_buttons" in self.context:
-                self.context["update_main_buttons"]()
-
-    def get_selected_patients(self):
-        return list(self.selected_patients)
-
-    def get_selected_flair_files(self):
-        """Restituisce un dizionario con i file FLAIR dei pazienti selezionati"""
-        selected_flair = {}
-        for patient_id in self.selected_patients:
-            if patient_id in self.patients_with_flair:
-                selected_flair[patient_id] = self.patients_with_flair[patient_id]
-        return selected_flair
+    def is_ready_to_go_back(self):
+        return True
 
     def reset_page(self):
-        # Pulisce la griglia
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+        """Resets the page to its initial state, clearing all selections"""
+        # Clear selected files
+        self.selected_files = []
+        self.file_list_widget.clear()
 
-        # Resetta tutte le strutture dati
-        self.selected_patients.clear()
-        self.patient_buttons.clear()
-        self.patients_with_flair.clear()
-        self.patients_status.clear()
+        # Reset buttons state
+        self.clear_button.setEnabled(False)
 
-        # Ricarica i pazienti da zero
-        self._load_patients()
+        # Clear status message
+        self.status_label.setText("")
+
+        # Clear from context
+        if self.context:
+            self.context["selected_segmentation_files"] = []
