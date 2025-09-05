@@ -2,7 +2,7 @@ import shutil
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
-    QMessageBox, QGroupBox
+    QMessageBox, QGroupBox, QSizePolicy
 from PyQt6.QtCore import Qt
 import os
 
@@ -155,6 +155,7 @@ class PatientSelectionPage(WizardPage):
             # If reply == Yes
             for patient_path in to_delete:
                 try:
+
                     shutil.rmtree(patient_path)
                     patient_id = os.path.basename(patient_path)
                     self.selected_patients.discard(patient_id)
@@ -209,6 +210,9 @@ class PatientSelectionPage(WizardPage):
                     padding: 6px;
                 }
             """)
+            # Adattabile in verticale ma con un limite
+            patient_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+            patient_frame.setMaximumHeight(200)
 
             # Usa QHBoxLayout invece di QVBoxLayout per allineare orizzontalmente
             patient_layout = QHBoxLayout(patient_frame)
