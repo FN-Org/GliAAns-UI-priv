@@ -7,6 +7,7 @@ import json
 import sys
 import tempfile
 import signal
+from random import shuffle
 
 from PyQt6.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -49,13 +50,16 @@ class ImportThread(QThread):
                 if self._is_bids_folder(folder_path):
                     log.debug(f"BIDS structure detected in: {folder_path}")
 
+                    if self._is_canceled:
+                        return
                     self.current_progress = 50
                     self.progress.emit(self.current_progress)
 
                     new_sub_id = self._get_next_sub_id()  # es: "sub-03"
                     dest = os.path.join(self.workspace_path, new_sub_id)
                     shutil.copytree(folder_path, dest, dirs_exist_ok=True)
-
+                    if self._is_canceled:
+                        return
                     self.current_progress = 100
                     self.progress.emit(self.current_progress)
 
@@ -76,7 +80,8 @@ class ImportThread(QThread):
 
                         # Processa l'intera root come UN solo paziente (PET+MR ecc.)
                         self._process_single_patient_folder(folder_path)
-
+                        if self._is_canceled:
+                            return
                         self.progress.emit(100)
                         self.finished.emit()
                         return
@@ -91,9 +96,13 @@ class ImportThread(QThread):
                         if self._is_canceled:
                             return
                         self._handle_import(subfolder)
+                        if self._is_canceled:
+                            return
                         self.current_progress += progress_for_folder
                         self.progress.emit(self.current_progress)
 
+                    if self._is_canceled:
+                        return
                     self.progress.emit(100)
                     self.finished.emit()
                     return
@@ -183,7 +192,8 @@ class ImportThread(QThread):
     def _handle_import(self, folder_path):
         if not os.path.isdir(folder_path):
             return
-
+        if self._is_canceled:
+            return
         log.debug(f"Processing folder: {folder_path}")
 
         # Se è una cartella BIDS, copiala direttamente
@@ -193,8 +203,6 @@ class ImportThread(QThread):
             dest = os.path.join(self.workspace_path, new_sub_id)
             shutil.copytree(folder_path, dest, dirs_exist_ok=True)
             log.debug(f"BIDS folder copied as {new_sub_id}.")
-            if self.context and "update_main_buttons" in self.context:
-                self.context["update_main_buttons"]()
             return
 
         # Prima verifica: ci sono file DICOM o NIfTI direttamente nella cartella?
@@ -205,35 +213,39 @@ class ImportThread(QThread):
                 if self._is_nifti_file(file) or self._is_dicom_file(file_path):
                     has_direct_medical_files = True
                     break
-
-        # Se ha file medici diretti, processala come singolo paziente
+        if self._is_canceled:
+            return
+            # Se ha file medici diretti, processala come singolo paziente
         if has_direct_medical_files:
             log.debug(f"Direct medical files found, processing as single patient: {folder_path}")
             self._process_single_patient_folder(folder_path)
             return
-
-        # Ottieni le sottocartelle
+        if self._is_canceled:
+            return
+            # Ottieni le sottocartelle
         subfolders = [os.path.join(folder_path, d) for d in os.listdir(folder_path) if
                       os.path.isdir(os.path.join(folder_path, d))]
-
         if not subfolders:
             log.debug(f"No subfolders found in: {folder_path}")
             return
-
-        # Verifica se le sottocartelle sono serie DICOM dello stesso paziente
+        if self._is_canceled:
+            return
+            # Verifica se le sottocartelle sono serie DICOM dello stesso paziente
         if self._are_dicom_series_of_same_patient(subfolders):
             log.debug(f"DICOM series of same patient detected: {folder_path}")
             self._process_single_patient_folder(folder_path)
             return
-
-        # Verifica se sono pazienti diversi basandosi sui nomi delle cartelle
+        if self._is_canceled:
+            return
+            # Verifica se sono pazienti diversi basandosi sui nomi delle cartelle
         if self._subfolders_look_like_different_patients(subfolders):
             log.debug(f"Multiple patients detected by folder names: {folder_path}")
             for subfolder in subfolders:
                 self._handle_import(subfolder)
             return
-
-        # Default: tratta come singolo paziente
+        if self._is_canceled:
+            return
+            # Default: tratta come singolo paziente
         log.debug(f"Default: treating as single patient: {folder_path}")
         self._process_single_patient_folder(folder_path)
 
@@ -262,7 +274,8 @@ class ImportThread(QThread):
                         break
                 if has_dicom_in_subfolder:
                     break
-
+            if self._is_canceled:
+                return
             if has_dicom_in_subfolder:
                 dicom_folders_count += 1
                 log.debug(f"    Found DICOM files in: {os.path.basename(subfolder)}")
@@ -272,8 +285,9 @@ class ImportThread(QThread):
                     dcm = pydicom.dcmread(first_dicom_file, stop_before_pixels=True)
                     patient_id = getattr(dcm, 'PatientID', None)
                     patient_name = getattr(dcm, 'PatientName', None)
+                    masked_patient_name = f"{patient_name[:2]}...{patient_name[-2:]}"
 
-                    log.debug(f"    Patient ID: {patient_id}, Patient Name: {patient_name}")
+                    log.debug(f"    Patient ID: {patient_id}, Patient Name: {masked_patient_name}")
 
                     if patient_id:
                         patient_ids.add(patient_id)
@@ -313,6 +327,8 @@ class ImportThread(QThread):
         """
         Processa una cartella di un singolo paziente (può avere multiple serie DICOM).
         """
+        if self._is_canceled:
+            return
         log.debug(f"Processing single patient folder: {folder_path}")
 
         nifti_files = []
@@ -325,6 +341,9 @@ class ImportThread(QThread):
         temp_base_dir = os.path.join(temp_dir, base_folder_name)
 
         for root, _, files in os.walk(folder_path):
+            if self._is_canceled:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                return
             for file in files:
 
                 if self._is_canceled:
@@ -342,6 +361,8 @@ class ImportThread(QThread):
                 elif self._is_dicom_file(file_path):
                     dicom_files.append(file_path)
                 else:
+                    if self._is_canceled:
+                        return
                     shutil.copy2(file_path, os.path.join(dest_dir, file))
                     log.debug(f"Imported other file: {os.path.join(relative_path, file)}")
 
@@ -350,6 +371,9 @@ class ImportThread(QThread):
             return
         # Copia i file NIfTI
         for src, dest in nifti_files:
+            if self._is_canceled:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                return
             shutil.copy2(src, dest)
             log.debug(f"Imported NIfTI file: {os.path.relpath(dest, temp_base_dir)}")
 
@@ -385,6 +409,8 @@ class ImportThread(QThread):
     def _convert_dicom_folder_to_nifti(self, dicom_folder, output_folder):
         if os.path.isdir(output_folder):
             for filename in os.listdir(output_folder):
+                if self._is_canceled:
+                    return
                 file_path = os.path.join(output_folder, filename)
                 try:
                     if os.path.isfile(file_path) or os.path.islink(file_path):
@@ -395,6 +421,10 @@ class ImportThread(QThread):
                     log.debug(f"Errore durante la rimozione di {file_path}: {e}")
         else:
             os.makedirs(output_folder, exist_ok=True)
+
+        if self._is_canceled:
+            shutil.rmtree(output_folder, ignore_errors=True)
+            return
         self.current_progress += 10
         self.progress.emit(self.current_progress)
         try:
@@ -461,6 +491,8 @@ class ImportThread(QThread):
         Converte un dataset contenente file NIfTI + JSON in struttura BIDS.
         Funziona anche se i file sono nella stessa cartella, senza sottocartelle per paziente.
         """
+        if self._is_canceled:
+            return
         all_json_files = []
         for root, _, files in os.walk(input_folder):
             for file in files:
@@ -645,6 +677,8 @@ class ImportThread(QThread):
         self._is_canceled = True
         if hasattr(self, 'process') and self.process is not None:
             self.process.terminate()
+            self.process.wait(1)
+            self.process.kill()
         log.info("Import Canceled.")
 
 class ImportFrame(WizardPage):
@@ -655,6 +689,8 @@ class ImportFrame(WizardPage):
         self.context = context
         self.next_page = None
         self.workspace_path = context["workspace_path"]
+        self.threads = []
+        self.progress_dialogs = []
 
         self.setAcceptDrops(True)
         self.setEnabled(True)
@@ -734,43 +770,58 @@ class ImportFrame(WizardPage):
 
     def _handle_import(self, folders_path):
 
-        self.progress_dialog = QProgressDialog("Importing files...","Cancel",
-                                               0, 100, self.context["main_window"])
-        self.progress_dialog.setWindowModality(Qt.WindowModality.NonModal)
-        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialogs.append(QProgressDialog("Importing files...","Cancel",
+                                               0, 100, self.context["main_window"]))
+        self.progress_dialogs[-1].setWindowModality(Qt.WindowModality.NonModal)
+        self.progress_dialogs[-1].setMinimumDuration(0)
 
         # Start importing thread
-        self.import_thread = ImportThread(self.context, folders_path, self.workspace_path)
-        self.import_thread.finished.connect(self.on_file_loaded)
-        self.import_thread.error.connect(self.on_load_error)
-        self.import_thread.progress.connect(self.progress_dialog.setValue)
-        self.import_thread.start()
+        self.threads.append(ImportThread(self.context, folders_path, self.workspace_path))
+        self.threads[-1].finished.connect(self.on_import_finished)
+        self.threads[-1].error.connect(self.on_import_error)
+        self.threads[-1].progress.connect(self.progress_dialogs[-1].setValue)
+        self.threads[-1].start()
 
-        self.progress_dialog.canceled.connect(self.on_import_canceled)
+        self.progress_dialogs[-1].canceled.connect(self.on_import_canceled)
 
-    def on_load_error(self, error):
+    def on_import_error(self, error):
         """Handle file loading errors"""
-        self.progress_dialog.close()
+        thread = self.sender()
+        index = self.threads.index(thread)
+
+        self.progress_dialogs[index].close()
         QMessageBox.critical(self.context["main_window"], "Error Importing Files", "Failed to import files"+ f":\n{error}")
         log.error(f"Error Importing Files: {error}")
 
-    def on_file_loaded(self):
-        self.progress_dialog.close()
+    def on_import_finished(self):
+        thread = self.sender()
+        index = self.threads.index(thread)
+        self.threads.remove(thread)
+
+        self.progress_dialogs[index].close()
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
         log.info("Import completed.")
 
     def on_import_canceled(self):
-        if hasattr(self, 'import_thread') and self.import_thread.isRunning():
-            self.import_thread.cancel()
+        dialog = self.sender()
+        index = self.progress_dialogs.index(dialog)
+
+        if len(self.threads)>index:
+            thread = self.threads[index]
+            thread.cancel()
+            thread.terminate()
+            thread.wait()
+            self.threads.remove(thread)
 
     def closeEvent(self, event):
         """Clean up on application exit"""
-        # Clean up any running threads
-        self.on_import_canceled()
-        self.import_thread.wait()
-        self.import_thread.deleteLater()
-        self.import_thread = None
+        for dialog in self.progress_dialogs:
+            dialog.destroy()
+            self.progress_dialogs.remove(dialog)
+        for thread in self.threads:
+            thread.cancel()
+            self.threads.remove(thread)
 
         gc.collect()
 
