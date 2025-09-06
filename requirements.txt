@@ -11,4 +11,5 @@ seaborn
 numpy
 scipy
 dcm2niix
+nipreps-synthstrip
 hd-bet; sys_platform == "win32"

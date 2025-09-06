@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt6.QtCore import Qt
 import os
 
+from ui.ui_dl_execution import DlExecutionPage
 from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 from logger import get_logger
@@ -614,7 +615,7 @@ class DlPatientSelectionPage(WizardPage):
 
         # Se la pagina successiva non è ancora stata creata, la instanziamo
         if not self.next_page:
-            self.next_page = WorkInProgressPage(self.context, self)
+            self.next_page = DlExecutionPage(self.context, self)
             if "history" in self.context:
                 self.context["history"].append(self.next_page)
 
