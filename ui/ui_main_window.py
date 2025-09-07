@@ -273,15 +273,18 @@ class MainWindow(QMainWindow):
         self.right_panel = new_widget  # utile per riferimenti futuri
 
     def open_tree_context_menu(self, position):
+
         index = self.tree_view.indexAt(position)
         file_path = None
         is_dir = False
         menu = QMenu()
         open_action = None
+        open_integrated_action = None
         add_action = None
         export_action = None
         remove_action = None
         action = None
+        is_nifty = False
 
         if not index.isValid():
             open_action = menu.addAction("Open workspace in explorer")
@@ -289,7 +292,7 @@ class MainWindow(QMainWindow):
         else:
             file_path = self.tree_model.filePath(index)
             is_dir = self.tree_model.isDir(index)
-
+            is_nifty = file_path.endswith(".nii.gz") or file_path.endswith(".nii")
 
             if is_dir:
                 # Folder actions
@@ -301,6 +304,8 @@ class MainWindow(QMainWindow):
             else:
                 # File actions
                 open_action = menu.addAction("Open with system predefined")
+                if is_nifty:
+                    open_integrated_action = menu.addAction("Open Nifti File")
                 menu.addSeparator()
                 add_action = menu.addAction("Add File")
                 remove_action = menu.addAction("Remove File from Workspace")
@@ -332,6 +337,10 @@ class MainWindow(QMainWindow):
             self.remove_from_workspace(file_path)
         elif action == export_action:
             self.export_files(file_path, is_dir)
+        elif is_nifty and action == open_integrated_action:
+            if "nifti_viewer" in self.context and self.context["nifti_viewer"]:
+                self.context["nifti_viewer"].open_file(file_path)
+                self.context["nifti_viewer"].show()
 
         # ---- Actions ----
 
