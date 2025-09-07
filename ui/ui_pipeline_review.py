@@ -26,6 +26,77 @@ class ClickableFrame(QFrame):
         self.clicked.emit()
 
 
+class CollapsibleInfoFrame(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("info_frame")
+        self.setStyleSheet("""
+            QFrame#info_frame {
+                background-color: #e3f2fd;
+                border: 1px solid #2196f3;
+                border-radius: 6px;
+                margin: 6px 0;
+            }
+        """)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(8, 6, 8, 6)
+        self.layout.setSpacing(4)
+
+        # Toggle button
+        self.toggle_button = QPushButton("Configuration Instructions")
+        self.toggle_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                color: #1976d2;
+                background: none;
+                border: none;
+                text-align: left;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #bbdefb;
+                border-radius: 4px;
+            }
+        """)
+        self.toggle_button.clicked.connect(self.toggle_content)
+        self.layout.addWidget(self.toggle_button)
+
+        # Content frame (initially visible)
+        self.content_frame = QFrame()
+        self.content_layout = QVBoxLayout(self.content_frame)
+        self.content_layout.setContentsMargins(8, 4, 8, 4)
+        self.content_layout.setSpacing(4)
+
+        info_text = QLabel("""
+            <style>
+                .info-list { margin: 0; padding-left: 1rem; }
+                .info-list li { margin-bottom: 0.3rem; line-height: 1.3; }
+            </style>
+            <ul class="info-list" role="list">
+              <li><strong>Yellow frames</strong> indicate patients with <strong>multiple files</strong>. 
+                <br> Requires <strong>medical review</strong> and manual selection.</li>
+              <li><strong>White frames</strong> show patients with auto-selected files.</li>
+            </ul>
+        """)
+        info_text.setStyleSheet("""
+            color: #000000;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 2px 0;
+        """)
+        info_text.setWordWrap(True)
+        self.content_layout.addWidget(info_text)
+        self.layout.addWidget(self.content_frame)
+        self.is_collapsed = False
+
+    def toggle_content(self):
+        self.is_collapsed = not self.is_collapsed
+        self.content_frame.setVisible(not self.is_collapsed)
+        self.toggle_button.setText(
+            "Configuration Instructions" if not self.is_collapsed else "Configuration Instructions"
+        )
+
 class CollapsiblePatientFrame(QFrame):
     def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, parent=None,
                  save_callback=None):
@@ -316,6 +387,7 @@ class CollapsiblePatientFrame(QFrame):
         self.locked = True
         self._apply_style()
         self._populate_content()
+        
 
 
 class PipelineReviewPage(WizardPage):
@@ -377,91 +449,60 @@ class PipelineReviewPage(WizardPage):
 
     def _setup_ui(self):
         layout = self.main_layout
-        # prima svuota
+        # Clear existing layout
         while layout.count():
             item = layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
 
+        # Header
         header = QLabel("Pipeline Configuration Review")
-        header.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+        header.setStyleSheet("""
+            font-size: 16px;
+            font-weight: bold;
+            margin: 6px 0;
+        """)
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(header)
 
-        # Mostra quale config file si sta utilizzando
+        # Config file info
         config_info = QLabel(f"Reviewing: {os.path.basename(self.config_path)}")
-        config_info.setStyleSheet("font-size: 12px; color: #666; font-style: italic;")
+        config_info.setStyleSheet("""
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 6px;
+        """)
         config_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        config_info.setWordWrap(True)
         layout.addWidget(config_info)
 
-        # Informative message for the doctor
-        info_frame = QFrame()
-        info_frame.setObjectName("info_frame")
-        info_frame.setStyleSheet("""
-            QFrame#info_frame {
-                background-color: #e3f2fd;
-                border: 1px solid #2196f3;
-                border-radius: 8px;
-                padding: 12px;
-                margin: 8px 0px;
-            }
-        """)
-        info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(12, 10, 12, 10)
-        info_layout.setSpacing(6)
-
-        info_title = QLabel("Configuration Instructions")
-        info_title.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #1976d2; 
-            margin-bottom: 5px;
-        """)
-
-        info_text = QLabel("""
-            <style>
-                  .info-list { margin: 0; padding-left: 1.25rem; }
-                  .info-list li { margin-bottom: 0.5rem; line-height: 1.4; }
-            </style>
-            <ul class="info-list" role="list">
-              <li><strong>Yellow frames</strong> indicate patients with <strong>multiple files found</strong> for one or more categories. 
-                <br> These patients require <strong>medical review and manual selection</strong> of the appropriate files.
-              </li>
-              <li><strong>White frames</strong> show patients with files automatically selected (only one option available).</li>
-            </ul>
-        """
-                           )
-        info_text.setStyleSheet("""
-            color: #000000;
-            font-size: 13px;
-            line-height: 30px;
-            padding: 4px 0px;
-        """)
-        info_text.setWordWrap(True)
-
-        info_layout.addWidget(info_title)
-        info_layout.addWidget(info_text)
+        # Collapsible instructions
+        info_frame = CollapsibleInfoFrame()
         layout.addWidget(info_frame)
 
         # Info label
         info_label = QLabel(
-            "<strong>Click</strong> on any frame to expand and <strong>review</strong> the file selection for that patient, and <strong>save the configuration</strong> for each yellow frame after making your selections."
+            "<strong>Click</strong> a frame to review file selections. <strong>Save</strong> yellow frames after selection."
         )
-        info_label.setStyleSheet("color: #666; font-size: 13px;")
+        info_label.setStyleSheet("""
+            color: #666;
+            font-size: 12px;
+            margin: 6px 0;
+        """)
         info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
 
+        # Scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("QScrollArea { border: none; }")
-
         content = QWidget()
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(8, 8, 8, 8)
-        content_layout.setSpacing(10)
-
+        content_layout.setContentsMargins(6, 6, 6, 6)
+        content_layout.setSpacing(8)
         scroll.setWidget(content)
         layout.addWidget(scroll)
 
@@ -482,10 +523,7 @@ class PipelineReviewPage(WizardPage):
                 cat: [pat.format(pid=patient_id) for pat in pats]
                 for cat, pats in categories.items()
             }
-
-            # Usa direttamente il flag salvato nel JSON
             multiple_choice = bool(files.get("need_revision", False))
-
             frame = CollapsiblePatientFrame(
                 patient_id, files, self.workspace_path,
                 patient_patterns, multiple_choice,

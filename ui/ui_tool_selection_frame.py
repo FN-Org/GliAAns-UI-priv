@@ -44,7 +44,7 @@ class ToolChoicePage(WizardPage):
             }
         """)
         self.radio_group_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
+        self.radio_group_box.setMaximumHeight(400)
         radio_layout = QVBoxLayout()
         radio_layout.setSpacing(20)
         radio_layout.setContentsMargins(10, 10, 10, 10)
