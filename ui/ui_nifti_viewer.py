@@ -9,6 +9,7 @@ import numpy as np
 import nibabel as nib
 
 from components.crosshair_graphic_view import CrosshairGraphicsView
+from components.nifti_file_selector import NiftiFileDialog
 from logger import get_logger
 from threads.nifti_utils_threads import ImageLoadThread, SaveNiftiThread
 
@@ -791,211 +792,17 @@ class NiftiViewer(QMainWindow):
             view.coordinate_changed.connect(self.update_coordinates)
 
     def show_workspace_nii_dialog(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Select a NIfTI file from workspace")
-        dialog.resize(700, 600)
+        result = NiftiFileDialog.get_files(
+            self,
+            self.context["workspace_path"],
+            allow_multiple=False,
+            has_existing_func=False,
+            label="NiftiViewer",
+        )
+        if result:
+            self.open_file(result[0])
 
-        layout = QVBoxLayout(dialog)
 
-        # === FILTRI UI ===
-        filter_group = QGroupBox("Filters")
-        filter_layout = QGridLayout(filter_group)
-
-        search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search files (T1, FLAIR, dwi, func, etc.)")
-        search_bar.setClearButtonEnabled(True)
-        filter_layout.addWidget(QLabel("Search:"), 0, 0)
-        filter_layout.addWidget(search_bar, 0, 1, 1, 5)
-
-        subject_combo = QComboBox()
-        subject_combo.setEditable(True)
-        subject_combo.lineEdit().setPlaceholderText("All subjects")
-        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
-        filter_layout.addWidget(subject_combo, 1, 1)
-
-        session_combo = QComboBox()
-        session_combo.setEditable(True)
-        session_combo.lineEdit().setPlaceholderText("All sessions")
-        filter_layout.addWidget(QLabel("Session:"), 1, 2)
-        filter_layout.addWidget(session_combo, 1, 3)
-
-        datatype_combo = QComboBox()
-        datatype_combo.setEditable(True)
-        datatype_combo.lineEdit().setPlaceholderText("All datatypes")
-        datatype_combo.addItems(["All datatypes", "anat", "func", "dwi", "fmap", "perf"])
-        filter_layout.addWidget(QLabel("Datatype:"), 1, 4)
-        filter_layout.addWidget(datatype_combo, 1, 5)
-
-        modality_combo = QComboBox()
-        modality_combo.setEditable(True)
-        modality_combo.lineEdit().setPlaceholderText("All modalities")
-        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
-        filter_layout.addWidget(modality_combo, 2, 1, 1, 2)
-
-        pipeline_combo = QComboBox()
-        pipeline_combo.setEditable(True)
-        pipeline_combo.lineEdit().setPlaceholderText("All pipelines")
-        filter_layout.addWidget(QLabel("derivatives/<pipeline>:"), 2, 3)
-        filter_layout.addWidget(pipeline_combo, 2, 4, 1, 2)
-
-        layout.addWidget(filter_group)
-
-        # === SCANSIONE WORKSPACE ===
-        workspace_path = self.context["workspace_path"]
-        all_nii_files = []
-        relative_to_absolute = {}
-        file_metadata = []
-
-        subjects_set = set()
-        sessions_set = set()
-        modalities_set = set()
-        pipelines_set = set()
-
-        for root, dirs, files in os.walk(workspace_path):
-            for f in files:
-                if f.endswith((".nii", ".nii.gz")):
-                    full_path = os.path.join(root, f)
-                    rel_path = os.path.relpath(full_path, workspace_path)
-                    relative_to_absolute[rel_path] = full_path
-                    all_nii_files.append(rel_path)
-
-                    # === DATI PER FILTRI ===
-                    parts = rel_path.split(os.sep)
-
-                    subject = next((p for p in parts if p.startswith("sub-")), None)
-                    session = next((p for p in parts if p.startswith("ses-")), None)
-                    datatype = next((p for p in parts if p in ["anat", "func", "dwi", "fmap", "perf"]), None)
-
-                    pipeline = None
-                    if "derivatives" in parts:
-                        derivatives_idx = parts.index("derivatives")
-                        if len(parts) > derivatives_idx + 1:
-                            pipeline = parts[derivatives_idx + 1]
-                            pipelines_set.add(pipeline)
-                        else:
-                            pipeline = "Unknown"
-                    else:
-                        pipeline = "workspace"
-
-                    subjects_set.add(subject) if subject else None
-                    sessions_set.add(session) if session else None
-
-                    # === MODALITY (dal JSON o nome file) ===
-                    filename = os.path.basename(f)
-                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # rimuove .nii.gz o .nii
-                    parts = filename_noext.split("_")
-                    # La modalità è in genere l'ultima parte del nome
-                    possible_modality = parts[-1]
-                    modality = possible_modality if possible_modality else "Unknown"
-
-                    modalities_set.add(modality)
-
-                    file_metadata.append({
-                        "path": rel_path,
-                        "subject": subject,
-                        "session": session,
-                        "datatype": datatype,
-                        "modality": modality,
-                        "pipeline": pipeline,
-                    })
-
-        # === POPOLA COMBOBOX ===
-        subject_combo.addItem("All subjects")
-        subject_combo.addItems(sorted(s for s in subjects_set if s))
-        session_combo.addItem("All sessions")
-        session_combo.addItems(sorted(s for s in sessions_set if s))
-        modality_combo.addItem("All modalities")
-        modality_combo.addItems(sorted(modalities_set))
-        pipeline_combo.addItem("All pipelines")
-        pipeline_combo.addItems(sorted(pipelines_set.union({"workspace"})))
-
-        # === LISTA FILE ===
-        info_label = QLabel()
-        layout.addWidget(info_label)
-
-        def update_info_label(count):
-            total = len(all_nii_files)
-            info_label.setText(f"Showing {count} of {total} files")
-            info_label.setStyleSheet("color: gray; font-size: 10px;")
-
-        file_list = QListWidget()
-        file_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-        layout.addWidget(file_list)
-
-        def populate_file_list():
-            file_list.clear()
-            for f in file_metadata:
-                item = QListWidgetItem(f["path"])
-                file_list.addItem(item)
-
-        populate_file_list()
-        update_info_label(len(file_metadata))
-
-        def apply_filters():
-            text = search_bar.text().lower()
-            subj = subject_combo.currentText()
-            sess = session_combo.currentText()
-            dtype = datatype_combo.currentText()
-            mod = modality_combo.currentText()
-            pipe = pipeline_combo.currentText()
-
-            visible = 0
-            for i, f in enumerate(file_metadata):
-                item = file_list.item(i)
-                show = True
-
-                if text and text not in f["path"].lower():
-                    show = False
-                if subj != "All subjects" and f["subject"] != subj:
-                    show = False
-                if sess != "All sessions" and f["session"] != sess:
-                    show = False
-                if dtype != "All datatypes" and f["datatype"] != dtype:
-                    show = False
-                if mod != "All modalities" and f["modality"] != mod:
-                    show = False
-                if pipe != "All pipelines" and f["pipeline"] != pipe:
-                    show = False
-
-                item.setHidden(not show)
-                if show:
-                    visible += 1
-
-            update_info_label(visible)
-
-        # Connetti eventi
-        search_bar.textChanged.connect(apply_filters)
-        subject_combo.currentTextChanged.connect(apply_filters)
-        session_combo.currentTextChanged.connect(apply_filters)
-        datatype_combo.currentTextChanged.connect(apply_filters)
-        modality_combo.currentTextChanged.connect(apply_filters)
-        pipeline_combo.currentTextChanged.connect(apply_filters)
-
-        # === PULSANTI ===
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        layout.addWidget(buttons)
-
-        selected_file = None
-
-        def accept():
-            nonlocal selected_file
-            item = file_list.currentItem()
-            if item and not item.isHidden():
-                selected_file = relative_to_absolute[item.text()]
-                dialog.accept()
-            else:
-                QMessageBox.warning(dialog, "No selection", "Please select a visible NIfTI file.")
-                log.warning("No selection")
-
-        def reject():
-            dialog.reject()
-
-        buttons.accepted.connect(accept)
-        buttons.rejected.connect(reject)
-
-        if dialog.exec():
-            return selected_file
-        return None
 
     def open_file(self, file_path=None, is_overlay = False):
         """Open a NIfTI file with progress dialog
