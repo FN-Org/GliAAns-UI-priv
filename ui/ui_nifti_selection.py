@@ -123,7 +123,7 @@ class NiftiSelectionPage(WizardPage):
             label="mask"
         )
         if result:
-            self.set_selected_file(result)
+            self.set_selected_file(result[0])
 
 
     def set_selected_file(self, file_path):

@@ -212,7 +212,7 @@ class PatientSelectionPage(WizardPage):
             """)
             # Adattabile in verticale ma con un limite
             patient_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-            patient_frame.setMaximumHeight(200)
+            patient_frame.setMaximumHeight(150)
 
             # Usa QHBoxLayout invece di QVBoxLayout per allineare orizzontalmente
             patient_layout = QHBoxLayout(patient_frame)
