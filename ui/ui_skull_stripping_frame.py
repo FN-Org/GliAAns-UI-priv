@@ -24,11 +24,13 @@ log = get_logger()
 class SkullStrippingPage(WizardPage):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
+        self.canceled = False
         self.context = context
         self.previous_page = previous_page
         self.next_page = None
 
         self.selected_files = None
+        self.context["selected_files_signal"].connect(self.set_selected_files)
         self.worker = None  # Per tenere traccia del worker thread
 
         self.system_info = self.get_system_info()
@@ -253,6 +255,7 @@ class SkullStrippingPage(WizardPage):
             self.set_selected_files(results)
 
     def set_selected_files(self, file_paths):
+        file_paths = [file for file in file_paths if os.path.exists(file) and not os.path.isdir(file) and (file.endswith('.nii.gz') or file.endswith('.nii'))]
         self.selected_files = file_paths
         self.file_list_widget.clear()
 
@@ -325,6 +328,7 @@ class SkullStrippingPage(WizardPage):
 
     def cancel_processing(self):
         """Cancella il processing in corso"""
+        self.canceled = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.status_label.setText("Cancelling...")

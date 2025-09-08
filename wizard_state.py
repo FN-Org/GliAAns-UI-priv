@@ -25,7 +25,3 @@ class WizardPage(QWidget):
 
     def back(self):
         pass
-
-    def update_selected_files(self, files):
-        """Optional: override to react to external file selections"""
-        pass

@@ -24,6 +24,8 @@ class NiftiSelectionPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
+        self.context["selected_files_signal"].connect(self.set_selected_file)
+
         self.selected_file = None
 
         self.layout = QVBoxLayout(self)
@@ -123,24 +125,30 @@ class NiftiSelectionPage(WizardPage):
             label="mask"
         )
         if result:
-            self.set_selected_file(result[0])
+            self.set_selected_file([result[0]])
 
 
     def set_selected_file(self, file_path):
         """
         Imposta il file selezionato (il warning è ora gestito nel dialog di selezione).
         """
+        if not file_path:
+            return
+        file_path = file_path[-1]
+
         self.selected_file = file_path
         self.file_list_widget.clear()
-        item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(file_path))
-        item.setToolTip(file_path)
-        self.file_list_widget.addItem(item)
+        if file_path.endswith('.nii.gz') or file_path.endswith('.nii'):
+            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(file_path))
+            item.setToolTip(file_path)
+            self.file_list_widget.addItem(item)
 
-        self.clear_button.setEnabled(True)
-        self.viewer_button.setEnabled(True)
+            self.clear_button.setEnabled(True)
+            self.viewer_button.setEnabled(True)
 
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
+            if self.context and "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
+
 
     def clear_selected_file(self):
         self.selected_file = None
@@ -215,15 +223,7 @@ class NiftiSelectionPage(WizardPage):
         pass
 
     def open_nifti_viewer(self):
-        if "nifti_viewer" in self.context and self.context["nifti_viewer"]:
-            self.context["nifti_viewer"].open_file(self.selected_file)
-            self.context["nifti_viewer"].show()
-            pass
-        else:
-            self.context["nifti_viewer"] = NiftiViewer(self.context)
-            self.context["nifti_viewer"].open_file(self.selected_file)
-            self.context["nifti_viewer"].show()
-            pass
+        self.context["open_nifti_viewer"](self.selected_file)
 
     def back(self):
         if self.previous_page:
