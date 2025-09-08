@@ -81,13 +81,14 @@ class WorkspaceTreeView(QTreeView):
         is_dir = False
         is_nifty = False
 
-        if self.selected_files and len(self.selected_files) == 1:
+        if self.selected_files and len(self.selected_files) == 1 and not index.isValid():
             file_path = self.selected_files[0]
             is_dir = self.tree_model.isDir(index) if index.isValid() else False
             is_nifty = file_path.endswith((".nii", ".nii.gz"))
         else:
             if index.isValid():
                 file_path = self.tree_model.filePath(index)
+                is_dir = self.tree_model.isDir(index)
 
 
         menu = QMenu(self)
@@ -97,7 +98,7 @@ class WorkspaceTreeView(QTreeView):
 
         if not index.isValid() and not self.selected_files:
             actions.update(self._add_workspace_actions(menu))
-        elif index.isValid() and file_path:
+        elif index.isValid() and file_path and len(self.selected_files) <= 1 :
             if is_dir:
                 actions.update(self._add_folder_actions(menu, file_path))
             else:
@@ -301,11 +302,11 @@ class WorkspaceTreeView(QTreeView):
                 return
         if len(paths)<2:
             is_dir = os.path.isdir(paths[0])
-            item_type = "this folder: " if is_dir else "file:"
+            item_type = "this folder: " if is_dir else "this file:"
         else: item_type = "these files"
 
         item_name = os.path.basename(paths[0]) if len(paths) == 1 else ""
-        message = f"Are you sure you want to remove this {item_type} {item_name}?"
+        message = f"Are you sure you want to remove {item_type} {item_name}?"
 
         reply = QMessageBox.question(
             self,

@@ -227,7 +227,6 @@ class MainWindow(QMainWindow):
         log.debug("Success:"+msg)
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
-        log.debug("Success while copy/deleting:"+msg)
 
 
     def closeEvent(self, event):
