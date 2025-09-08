@@ -1,18 +1,16 @@
 import os
 import json
-import re
+
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal, Qt, QUrl
+from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow,
-    QTreeView, QVBoxLayout,
-    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QMenu, QFileDialog, QDialog, QLabel, QRadioButton,
-    QButtonGroup, QFrame, QWidget, QDialogButtonBox, QGroupBox, QComboBox
+    QApplication, QMainWindow,QVBoxLayout,
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox,
 )
-from PyQt6.QtGui import QFileSystemModel, QAction, QActionGroup, QDesktopServices
+from PyQt6.QtGui import QAction, QActionGroup
 
-from components.ui_button import UiButton
+
 from components.workspace_tree_view import WorkspaceTreeView
 from threads.utils_threads import CopyDeleteThread
 from logger import get_logger
@@ -24,12 +22,11 @@ log = get_logger()
 
 class MainWindow(QMainWindow):
 
-    language_changed = pyqtSignal(str)
 
     def __init__(self,context):
         super().__init__()
         self.context = context
-        self.translator = QTranslator()
+        self.context["language_changed"].connect(self._retranslate_ui)
         self.language_actions = {}
         self.workspace_path = self.context["workspace_path"]
 
@@ -39,9 +36,7 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_menus()
 
-
-        saved_lang = self._load_saved_language()
-        self.set_language(saved_lang)
+        self._retranslate_ui()
 
     # --------------------------
     # UI SETUP
@@ -137,28 +132,19 @@ class MainWindow(QMainWindow):
         self.language_menu.addAction(action)
         action.triggered.connect(lambda: self.set_language(code))
         self.language_actions[code] = action
+        if self.context["language"] == code:
+            self.language_actions[code].setChecked(True)
 
-    def _load_saved_language(self):
-        if os.path.exists(LANG_CONFIG_PATH):
-            with open(LANG_CONFIG_PATH, "r") as f:
-                return json.load(f).get("lang", "en")
-        return "en"
 
-    def save_language(self, lang_code):
-        with open(LANG_CONFIG_PATH, "w") as f:
-            json.dump({"lang": lang_code}, f)
+
 
     def set_language(self, lang_code):
-        self.save_language(lang_code)
-
-        if self.translator.load(f"{TRANSLATIONS_DIR}/{lang_code}.qm"):
-            QApplication.instance().installTranslator(self.translator)
+        self.context["language_changed"].emit(lang_code)
 
         if lang_code in self.language_actions:
             self.language_actions[lang_code].setChecked(True)
 
-        self._retranslate_ui()
-        self.language_changed.emit(lang_code)
+
 
     def _retranslate_ui(self):
         _ = QtCore.QCoreApplication.translate

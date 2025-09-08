@@ -63,14 +63,16 @@ class NiftiSelectionPage(WizardPage):
         list_button_layout.addWidget(button_container)
         self.layout.addLayout(list_button_layout)
 
+        # Aggiungi uno stretch solo alla fine se vuoi che tutto sia in alto
+        self.layout.addStretch()
+
         # Bottone open NIfTI viewer
         self.viewer_button = QPushButton("Open NIfTI file")
         self.viewer_button.setEnabled(False)
         self.viewer_button.clicked.connect(self.open_nifti_viewer)
         self.layout.addWidget(self.viewer_button)
 
-        # Aggiungi uno stretch solo alla fine se vuoi che tutto sia in alto
-        self.layout.addStretch()
+
 
     def has_existing_mask(self, nifti_file_path, workspace_path):
         """
