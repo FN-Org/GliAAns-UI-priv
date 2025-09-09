@@ -29,6 +29,7 @@ class ToolChoicePage(WizardPage):
         # Titolo principale
         self.title = QLabel("Select the Next Processing Step")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.layout.addWidget(self.title)
 
