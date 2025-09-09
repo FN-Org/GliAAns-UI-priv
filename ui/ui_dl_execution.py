@@ -50,7 +50,7 @@ class NIfTICoregistration:
         self.log_callback("=== Avvio coregistrazione MRI → Atlas ===")
 
         # Esegue la registrazione
-        warpedmovout, warpedfixout, fwdtransforms, invtransforms = align(
+        stx_space_mri, mri_space_stx, stx2mri_tfm, mri2stx_tfm = align(
             fx=self.mri,
             mv=self.stx,
             transform_method='SyNAggro',
@@ -62,28 +62,28 @@ class NIfTICoregistration:
             prefix=self.prefix,
             fx=self.stx,
             mv=self.mri_str,
-            tfm=fwdtransforms,
+            tfm=mri2stx_tfm,
             clobber=self.clobber
         )
 
         # Applica la trasformazione alla MRI originale
-        mri_in_atlas = transform(
-            prefix=self.prefix,
-            fx=self.stx,
-            mv=self.mri,
-            tfm=fwdtransforms,
-            clobber=self.clobber
-        )
+        # mri_in_atlas = transform(
+        #     prefix=self.prefix,
+        #     fx=self.stx,
+        #     mv=self.mri,
+        #     tfm=mri2stx_tfm,
+        #     clobber=self.clobber
+        # )
 
         self.log_callback("✓ Coregistrazione completata")
 
         # Restituiamo tutti i path utili in un dizionario
         return {
-            "warped_moving": warpedmovout,          # Atlas → MRI
-            "warped_fixed": warpedfixout,           # MRI → Atlas
-            "forward_transform": fwdtransforms,     # file .h5 MRI<-Atlas
-            "inverse_transform": invtransforms,     # file .h5 Atlas<-MRI
-            "mri_in_atlas": mri_in_atlas,           # MRI allineata allo spazio atlas
+            # "warped_moving": stx_space_mri,          # Atlas → MRI
+            # "warped_fixed": mri_space_stx,           # MRI → Atlas
+            # "forward_transform": stx2mri_tfm,     # file .h5 MRI<-Atlas
+            # "inverse_transform": mri2stx_tfm,     # file .h5 Atlas<-MRI
+            # "mri_in_atlas": mri_in_atlas,           # MRI allineata allo spazio atlas
             "brain_in_atlas": brain_in_atlas        # Brain mask allineata
         }
 
@@ -189,7 +189,7 @@ class SynthStripCoregistrationWorker(QThread):
             else:
                 # Recupera il file allineato dalla coregistrazione
                 if hasattr(self, 'coreg_results') and self.coreg_results:
-                    aligned_file = self.coreg_results.get("mri_in_atlas")
+                    aligned_file = self.coreg_results.get("brain_in_atlas")
                     if aligned_file and os.path.exists(aligned_file):
                         self.file_progress_updated.emit(input_basename, "✓ Coregistrazione completata")
                         self.log_updated.emit(f"File allineato creato: {os.path.basename(aligned_file)}")
@@ -197,144 +197,100 @@ class SynthStripCoregistrationWorker(QThread):
                         self.log_updated.emit(f"⚠️ File allineato non trovato: {aligned_file}")
                         aligned_file = None
 
-        # === FASE 3: ORIENTAMENTO MATRICE AFFINE ===
+        # === FASE 3: RIORIENTAZIONE MATRICE AFFINE ===
         if aligned_file and os.path.exists(aligned_file):
-            self.file_progress_updated.emit(input_basename, "🔄 Reorientazione...")
+            self.file_progress_updated.emit(input_basename, "🔄 Riorientazione...")
 
-            try:
-                # File di riferimento per l'orientamento (atlas)
-                reference_file = self.atlas_path
-
-                # Carica le immagini
-                aligned_img = nib.load(aligned_file)
-                reference_img = nib.load(reference_file)
-
-                # Ottieni gli orientamenti
-                aligned_affine = aligned_img.affine
-                reference_affine = reference_img.affine
-
-                aligned_ornt = io_orientation(aligned_affine)
-                reference_ornt = io_orientation(reference_affine)
-
-                self.log_updated.emit(f"Orientamento file allineato: {aff2axcodes(aligned_affine)}")
-                self.log_updated.emit(f"Orientamento riferimento: {aff2axcodes(reference_affine)}")
-
-                # Controlla se serve reorientazione
-                if not (aligned_ornt == reference_ornt).all():
-                    self.log_updated.emit("Orientamenti diversi: applico trasformazione...")
-
-                    # Calcola la trasformazione di orientamento
-                    transform = ornt_transform(aligned_ornt, reference_ornt)
-
-                    # Applica la trasformazione ai dati
-                    reoriented_data = apply_orientation(aligned_img.get_fdata(), transform)
-
-                    # Crea la nuova immagine con la matrice affine di riferimento
-                    reoriented_img = nib.Nifti1Image(
-                        reoriented_data,
-                        affine=reference_affine,
-                        header=reference_img.header
-                    )
-
-                    # Salva il file reorientato
-                    reoriented_file = os.path.join(
-                        self.output_dir,
-                        f"{base_name}_aligned_reoriented.nii.gz"
-                    )
-                    nib.save(reoriented_img, reoriented_file)
-
-                    self.log_updated.emit(f"✓ Reorientazione completata: {os.path.basename(reoriented_file)}")
-                    self.file_progress_updated.emit(input_basename, "✓ Reorientazione completata")
-
-                    # Verifica finale
-                    final_img = nib.load(reoriented_file)
-                    final_ornt = aff2axcodes(final_img.affine)
-                    self.log_updated.emit(f"Orientamento finale: {final_ornt}")
-                    self.log_updated.emit(f"Dimensioni finali: {final_img.shape}")
-
-                else:
-                    self.log_updated.emit("✓ Orientamento già coerente, nessuna trasformazione necessaria")
-                    self.file_progress_updated.emit(input_basename, "✓ Orientamento verificato")
-
-                    # Salva comunque una copia con nome standardizzato
-                    reoriented_file = os.path.join(
-                        self.output_dir,
-                        f"{base_name}_aligned_reoriented.nii.gz"
-                    )
-                    # Copia il file già corretto
-                    import shutil
-                    shutil.copy2(aligned_file, reoriented_file)
-                    self.log_updated.emit(f"✓ File copiato come: {os.path.basename(reoriented_file)}")
-
-            except Exception as e:
-                self.log_updated.emit(f"✗ Errore durante reorientazione: {str(e)}")
-                self.file_progress_updated.emit(input_basename, f"✗ Errore reorientazione: {str(e)}")
-                return False
-
-        else:
-            # Se non c'è coregistrazione, applica comunque la reorientazione al file skull-stripped
-            if os.path.exists(skull_stripped_file):
-                self.file_progress_updated.emit(input_basename, "🔄 Reorientazione (solo skull-stripped)...")
-
-                try:
-                    # File di riferimento per l'orientamento (atlas)
-                    reference_file = self.atlas_path if self.atlas_path and os.path.exists(self.atlas_path) else None
-
-                    if reference_file:
-                        # Carica le immagini
-                        skull_img = nib.load(skull_stripped_file)
-                        reference_img = nib.load(reference_file)
-
-                        # Ottieni gli orientamenti
-                        skull_affine = skull_img.affine
-                        reference_affine = reference_img.affine
-
-                        skull_ornt = io_orientation(skull_affine)
-                        reference_ornt = io_orientation(reference_affine)
-
-                        self.log_updated.emit(f"Orientamento skull-stripped: {aff2axcodes(skull_affine)}")
-                        self.log_updated.emit(f"Orientamento riferimento: {aff2axcodes(reference_affine)}")
-
-                        # Controlla se serve reorientazione
-                        if not (skull_ornt == reference_ornt).all():
-                            self.log_updated.emit("Orientamenti diversi: applico trasformazione...")
-
-                            # Calcola la trasformazione di orientamento
-                            transform = ornt_transform(skull_ornt, reference_ornt)
-
-                            # Applica la trasformazione ai dati
-                            reoriented_data = apply_orientation(skull_img.get_fdata(), transform)
-
-                            # Crea la nuova immagine con la matrice affine di riferimento
-                            reoriented_img = nib.Nifti1Image(
-                                reoriented_data,
-                                affine=reference_affine,
-                                header=reference_img.header
-                            )
-
-                            # Salva il file reorientato
-                            reoriented_file = os.path.join(
-                                self.output_dir,
-                                f"{base_name}_skull_stripped_reoriented.nii.gz"
-                            )
-                            nib.save(reoriented_img, reoriented_file)
-
-                            self.log_updated.emit(f"✓ Reorientazione completata: {os.path.basename(reoriented_file)}")
-                            self.file_progress_updated.emit(input_basename, "✓ Reorientazione completata")
-
-                        else:
-                            self.log_updated.emit("✓ Orientamento già coerente")
-                            self.file_progress_updated.emit(input_basename, "✓ Orientamento verificato")
-
-                    else:
-                        self.log_updated.emit("⚠️ Nessun file di riferimento per reorientazione")
-
-                except Exception as e:
-                    self.log_updated.emit(f"✗ Errore durante reorientazione: {str(e)}")
-                    return False
+            if not self.run_reorientation(aligned_file, input_basename):
+                self.log_updated.emit(f"⚠️ Riorientazione fallita per {input_basename}")
+            else:
+                self.file_progress_updated.emit(input_basename, "✓ Riorientazione completata")
 
         self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
         return True
+
+    def run_reorientation(self, brain_in_atlas_file, original_basename):
+        """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
+        try:
+            self.log_updated.emit(f"Avvio riorientazione: {os.path.basename(brain_in_atlas_file)}")
+
+            # Percorso del file BraTS di riferimento
+            brats_reference_path = os.path.join("pediatric_fdopa_pipeline", "atlas", "BraTS-GLI-01-001.nii")
+
+            # Verifica esistenza file BraTS di riferimento
+            if not os.path.exists(brats_reference_path):
+                self.log_updated.emit(f"⚠️ File BraTS di riferimento non trovato: {brats_reference_path}")
+                return False
+
+            # Carica il file brain_in_atlas (file da riorientare)
+            my_img = nib.load(brain_in_atlas_file)
+
+            # Carica il file BraTS di riferimento
+            brats_img = nib.load(brats_reference_path)
+
+            # Ottieni le matrici affini
+            my_affine = my_img.affine
+            brats_affine = brats_img.affine
+
+            # Ottieni gli orientamenti
+            my_ornt = io_orientation(my_affine)
+            brats_ornt = io_orientation(brats_affine)
+
+            self.log_updated.emit(f"Orientamento brain_in_atlas: {my_ornt}")
+            self.log_updated.emit(f"Orientamento BraTS riferimento: {brats_ornt}")
+
+            # Controlla se è necessaria la riorientazione
+            if not (my_ornt == brats_ornt).all():
+                self.log_updated.emit("Orientamenti diversi - eseguo riorientazione...")
+
+                # Calcola la trasformazione necessaria
+                transform = ornt_transform(my_ornt, brats_ornt)
+
+                # Applica la riorientazione ai dati
+                reoriented_data = apply_orientation(my_img.get_fdata(), transform)
+
+                self.log_updated.emit("✓ Dati riorientati")
+            else:
+                reoriented_data = my_img.get_fdata()
+                self.log_updated.emit("✓ Orientamento già coerente con BraTS")
+
+            # Crea il nuovo file NIfTI con la matrice affine di BraTS
+            reoriented_img = nib.Nifti1Image(reoriented_data, affine=brats_affine)
+
+            # Determina il percorso di output per il file riorientato
+            output_filename = f"{original_basename.replace('.nii.gz', '').replace('.nii', '')}_reoriented.nii.gz"
+            reoriented_output_path = os.path.join(self.output_dir, "reoriented", output_filename)
+
+            # Crea la directory se non esiste
+            os.makedirs(os.path.dirname(reoriented_output_path), exist_ok=True)
+
+            # Salva il file riorientato
+            nib.save(reoriented_img, reoriented_output_path)
+
+            self.log_updated.emit(f"✓ File riorientato salvato: {os.path.basename(reoriented_output_path)}")
+            self.log_updated.emit(f"✓ Matrice affine BraTS applicata")
+
+            # Verifica finale
+            final_img = nib.load(reoriented_output_path)
+            final_ornt = aff2axcodes(final_img.affine)
+            brats_ornt_codes = aff2axcodes(brats_affine)
+
+            self.log_updated.emit(f"Orientamento finale: {final_ornt}")
+            self.log_updated.emit(f"Orientamento BraTS: {brats_ornt_codes}")
+
+            # Verifica dimensioni
+            final_shape = final_img.get_fdata().shape
+            brats_shape = brats_img.get_fdata().shape
+            self.log_updated.emit(f"Dimensioni file riorientato: {final_shape}")
+            self.log_updated.emit(f"Dimensioni BraTS riferimento: {brats_shape}")
+
+            return True
+
+        except Exception as e:
+            self.log_updated.emit(f"✗ Errore durante riorientazione: {str(e)}")
+            import traceback
+            self.log_updated.emit(f"Traceback: {traceback.format_exc()}")
+            return False
 
     def run_synthstrip(self, input_file, output_file):
         """Esegue SynthStrip su un file"""
