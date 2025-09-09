@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import ants
+import numpy as np
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
@@ -13,8 +14,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QCheckBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 
+from pediatric_fdopa_pipeline.utils import align, transform
 from wizard_state import WizardPage
 from logger import get_logger
+
+# --- nuovi import per reorientazione ---
+import nibabel as nib
+from nibabel.orientations import aff2axcodes, io_orientation, ornt_transform, apply_orientation
 
 log = get_logger()
 
@@ -22,9 +28,7 @@ log = get_logger()
 class NIfTICoregistration:
     """Classe per la coregistrazione NIfTI con atlas usando ANTs"""
 
-    def __init__(self, input_nifti, atlas_path, output_dir, clobber=False, log_callback=None):
-        self.input_nifti = input_nifti
-        self.atlas_path = atlas_path
+    def __init__(self, input_nifti, brain_nifti, atlas_path, output_dir, clobber=False, log_callback=None):
         self.output_dir = Path(output_dir)
         self.clobber = clobber
         self.log_callback = log_callback or (lambda x: print(x))
@@ -32,148 +36,56 @@ class NIfTICoregistration:
         # Crea la directory di output se non esiste
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Imposta i prefissi per i file di output
+        # Prefissi per i file di output
         input_basename = Path(input_nifti).stem.replace('.nii', '')
         self.prefix = str(self.output_dir / f"{input_basename}_")
 
-        # Variabili per i file trasformati
-        self.mri = input_nifti
-        self.stx = atlas_path  # Atlas stereotassico
-        self.mri_str = str(self.output_dir / f"{input_basename}_to_atlas.nii.gz")
-        self.mri2stx_tfm = None
-        self.brain = None
-        self.stx_space_pet = None
+        # File input
+        self.mri = input_nifti       # MRI FLAIR scelta dal medico
+        self.mri_str = brain_nifti   # Skull-stripped output di SynthStrip
+        self.stx = atlas_path        # Atlas stereotassico
 
-    def align(self, fx, mv, transform_method='SyNAggro', init=[], outprefix=''):
-        """Allinea due immagini usando ANTs registration"""
-        warpedmovout = outprefix + 'fwd.nii.gz'
-        warpedfixout = outprefix + 'inv.nii.gz'
-        fwdtransforms = outprefix + 'Composite.h5'
-        invtransforms = outprefix + 'InverseComposite.h5'
+    def run_coregistration(self):
+        """Esegue la registrazione MRI → Atlas (SyN) e ritorna i file di output"""
+        self.log_callback("=== Avvio coregistrazione MRI → Atlas ===")
 
-        self.log_callback(f"Allineamento: {os.path.basename(mv)} → {os.path.basename(fx)}")
-        self.log_callback(f"Trasformazione: {transform_method}")
-
-        output_files = warpedmovout, warpedfixout, fwdtransforms, invtransforms
-
-        if False in [os.path.exists(fn) for fn in output_files] or self.clobber:
-            self.log_callback("Eseguendo registrazione ANTs...")
-            try:
-                out = ants.registration(
-                    fixed=ants.image_read(fx),
-                    moving=ants.image_read(mv),
-                    type_of_transform=transform_method,
-                    initial_transform=init,
-                    verbose=True,
-                    outprefix=outprefix,
-                    write_composite_transform=True
-                )
-
-                ants.image_write(out['warpedmovout'], warpedmovout)
-                ants.image_write(out['warpedfixout'], warpedfixout)
-
-                self.log_callback("✓ Registrazione completata")
-
-            except Exception as e:
-                self.log_callback(f"✗ Errore nella registrazione: {str(e)}")
-                raise e
-        else:
-            self.log_callback("File di registrazione già esistenti")
-
-        return output_files
-
-    def transform(self, prefix, fx, mv, tfm, interpolator='linear'):
-        """Applica trasformazioni a un'immagine"""
-        self.log_callback(f"Applicando trasformazioni a: {os.path.basename(mv)}")
-
-        out_fn = prefix + re.sub('.nii.gz', '_rsl.nii.gz', os.path.basename(mv))
-
-        if not os.path.exists(out_fn) or self.clobber:
-            try:
-                self.log_callback(f"Trasformazione in corso...")
-                img_rsl = ants.apply_transforms(
-                    fixed=ants.image_read(fx),
-                    moving=ants.image_read(mv),
-                    transformlist=tfm,
-                    interpolator=interpolator,
-                    verbose=True
-                )
-                ants.image_write(img_rsl, out_fn)
-                self.log_callback(f"✓ Trasformazione salvata: {os.path.basename(out_fn)}")
-            except Exception as e:
-                self.log_callback(f"✗ Errore nella trasformazione: {str(e)}")
-                raise e
-        else:
-            self.log_callback(f"File trasformato già esistente: {os.path.basename(out_fn)}")
-
-        return out_fn
-
-    def stx2mri(self):
-        """Allinea il template stereotassico alla MRI con trasformazione SyN"""
-        self.log_callback("=== Allineamento Template → MRI ===")
-        outprefix = self.prefix + "stx2mri_"
-
-        # Esegui l'allineamento
-        warpedmovout, warpedfixout, fwdtransforms, invtransforms = self.align(
-            fx=self.mri,  # MRI come target fisso
-            mv=self.stx,  # Atlas come immagine mobile
+        # Esegue la registrazione
+        warpedmovout, warpedfixout, fwdtransforms, invtransforms = align(
+            fx=self.mri,
+            mv=self.stx,
             transform_method='SyNAggro',
-            outprefix=outprefix
+            outprefix=f'{self.prefix}_stx2mri_SyN_'
         )
 
-        # Salva le trasformazioni per uso successivo
-        self.mri2stx_tfm = [fwdtransforms]
-
-        return warpedmovout, warpedfixout, fwdtransforms, invtransforms
-
-    def apply_transformations(self):
-        """Applica le trasformazioni calcolate"""
-        if self.mri2stx_tfm is None:
-            raise ValueError("Devi prima eseguire stx2mri()")
-
-        self.log_callback("=== Applicazione Trasformazioni ===")
-
-        # Brain mask
-        self.log_callback("Creando brain mask...")
-        self.brain = self.transform(
+        # Applica la trasformazione al brain mask skull-stripped
+        brain_in_atlas = transform(
             prefix=self.prefix,
             fx=self.stx,
-            mv=self.mri_str if os.path.exists(self.mri_str) else self.mri,
-            tfm=self.mri2stx_tfm
+            mv=self.mri_str,
+            tfm=fwdtransforms,
+            clobber=self.clobber
         )
 
-        # Template trasformato
-        self.log_callback("Trasformando template stereotassico...")
-        self.stx_space_pet = self.transform(
+        # Applica la trasformazione alla MRI originale
+        mri_in_atlas = transform(
             prefix=self.prefix,
             fx=self.stx,
             mv=self.mri,
-            tfm=self.mri2stx_tfm
+            tfm=fwdtransforms,
+            clobber=self.clobber
         )
 
-        return self.brain, self.stx_space_pet
+        self.log_callback("✓ Coregistrazione completata")
 
-    def run_coregistration(self):
-        """Esegue l'intera pipeline di coregistrazione"""
-        self.log_callback("=== AVVIO COREGISTRAZIONE ===")
-
-        # Step 1: Allinea template a MRI
-        alignment_files = self.stx2mri()
-
-        # Step 2: Applica trasformazioni
-        brain_mask, template_transformed = self.apply_transformations()
-
-        results = {
-            'aligned_forward': alignment_files[0],
-            'aligned_inverse': alignment_files[1],
-            'forward_transform': alignment_files[2],
-            'inverse_transform': alignment_files[3],
-            'brain_mask': brain_mask,
-            'template_transformed': template_transformed
+        # Restituiamo tutti i path utili in un dizionario
+        return {
+            "warped_moving": warpedmovout,          # Atlas → MRI
+            "warped_fixed": warpedfixout,           # MRI → Atlas
+            "forward_transform": fwdtransforms,     # file .h5 MRI<-Atlas
+            "inverse_transform": invtransforms,     # file .h5 Atlas<-MRI
+            "mri_in_atlas": mri_in_atlas,           # MRI allineata allo spazio atlas
+            "brain_in_atlas": brain_in_atlas        # Brain mask allineata
         }
-
-        self.log_callback("=== COREGISTRAZIONE COMPLETATA ===")
-        return results
 
 
 class SynthStripCoregistrationWorker(QThread):
@@ -186,6 +98,7 @@ class SynthStripCoregistrationWorker(QThread):
 
     def __init__(self, input_files, output_dir, atlas_path=None, enable_coregistration=True):
         super().__init__()
+        self.coreg_results = None
         self.input_files = input_files
         self.output_dir = output_dir
         self.atlas_path = atlas_path
@@ -249,7 +162,7 @@ class SynthStripCoregistrationWorker(QThread):
             self.finished.emit(False, f"Errore generale: {str(e)}")
 
     def process_single_file(self, input_file):
-        """Processa un singolo file con SynthStrip + Coregistrazione"""
+        """Processa un singolo file con SynthStrip + Coregistrazione + Reorientazione"""
         input_basename = os.path.basename(input_file)
         base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
 
@@ -267,13 +180,160 @@ class SynthStripCoregistrationWorker(QThread):
             self.log_updated.emit(f"File skull-stripped già esistente: {os.path.basename(skull_stripped_file)}")
 
         # === FASE 2: COREGISTRAZIONE ===
+        aligned_file = None
         if self.enable_coregistration and self.atlas_path and os.path.exists(self.atlas_path):
             self.file_progress_updated.emit(input_basename, "🔄 Coregistrazione...")
 
-            if not self.run_coregistration(skull_stripped_file, input_basename):
+            if not self.run_coregistration(input_file, skull_stripped_file, input_basename):
                 self.log_updated.emit(f"⚠️ Coregistrazione fallita per {input_basename}, ma skull stripping completato")
-                # Non consideriamo errore totale se almeno skull stripping è riuscito
+            else:
+                # Recupera il file allineato dalla coregistrazione
+                if hasattr(self, 'coreg_results') and self.coreg_results:
+                    aligned_file = self.coreg_results.get("mri_in_atlas")
+                    if aligned_file and os.path.exists(aligned_file):
+                        self.file_progress_updated.emit(input_basename, "✓ Coregistrazione completata")
+                        self.log_updated.emit(f"File allineato creato: {os.path.basename(aligned_file)}")
+                    else:
+                        self.log_updated.emit(f"⚠️ File allineato non trovato: {aligned_file}")
+                        aligned_file = None
 
+        # === FASE 3: ORIENTAMENTO MATRICE AFFINE ===
+        if aligned_file and os.path.exists(aligned_file):
+            self.file_progress_updated.emit(input_basename, "🔄 Reorientazione...")
+
+            try:
+                # File di riferimento per l'orientamento (atlas)
+                reference_file = self.atlas_path
+
+                # Carica le immagini
+                aligned_img = nib.load(aligned_file)
+                reference_img = nib.load(reference_file)
+
+                # Ottieni gli orientamenti
+                aligned_affine = aligned_img.affine
+                reference_affine = reference_img.affine
+
+                aligned_ornt = io_orientation(aligned_affine)
+                reference_ornt = io_orientation(reference_affine)
+
+                self.log_updated.emit(f"Orientamento file allineato: {aff2axcodes(aligned_affine)}")
+                self.log_updated.emit(f"Orientamento riferimento: {aff2axcodes(reference_affine)}")
+
+                # Controlla se serve reorientazione
+                if not (aligned_ornt == reference_ornt).all():
+                    self.log_updated.emit("Orientamenti diversi: applico trasformazione...")
+
+                    # Calcola la trasformazione di orientamento
+                    transform = ornt_transform(aligned_ornt, reference_ornt)
+
+                    # Applica la trasformazione ai dati
+                    reoriented_data = apply_orientation(aligned_img.get_fdata(), transform)
+
+                    # Crea la nuova immagine con la matrice affine di riferimento
+                    reoriented_img = nib.Nifti1Image(
+                        reoriented_data,
+                        affine=reference_affine,
+                        header=reference_img.header
+                    )
+
+                    # Salva il file reorientato
+                    reoriented_file = os.path.join(
+                        self.output_dir,
+                        f"{base_name}_aligned_reoriented.nii.gz"
+                    )
+                    nib.save(reoriented_img, reoriented_file)
+
+                    self.log_updated.emit(f"✓ Reorientazione completata: {os.path.basename(reoriented_file)}")
+                    self.file_progress_updated.emit(input_basename, "✓ Reorientazione completata")
+
+                    # Verifica finale
+                    final_img = nib.load(reoriented_file)
+                    final_ornt = aff2axcodes(final_img.affine)
+                    self.log_updated.emit(f"Orientamento finale: {final_ornt}")
+                    self.log_updated.emit(f"Dimensioni finali: {final_img.shape}")
+
+                else:
+                    self.log_updated.emit("✓ Orientamento già coerente, nessuna trasformazione necessaria")
+                    self.file_progress_updated.emit(input_basename, "✓ Orientamento verificato")
+
+                    # Salva comunque una copia con nome standardizzato
+                    reoriented_file = os.path.join(
+                        self.output_dir,
+                        f"{base_name}_aligned_reoriented.nii.gz"
+                    )
+                    # Copia il file già corretto
+                    import shutil
+                    shutil.copy2(aligned_file, reoriented_file)
+                    self.log_updated.emit(f"✓ File copiato come: {os.path.basename(reoriented_file)}")
+
+            except Exception as e:
+                self.log_updated.emit(f"✗ Errore durante reorientazione: {str(e)}")
+                self.file_progress_updated.emit(input_basename, f"✗ Errore reorientazione: {str(e)}")
+                return False
+
+        else:
+            # Se non c'è coregistrazione, applica comunque la reorientazione al file skull-stripped
+            if os.path.exists(skull_stripped_file):
+                self.file_progress_updated.emit(input_basename, "🔄 Reorientazione (solo skull-stripped)...")
+
+                try:
+                    # File di riferimento per l'orientamento (atlas)
+                    reference_file = self.atlas_path if self.atlas_path and os.path.exists(self.atlas_path) else None
+
+                    if reference_file:
+                        # Carica le immagini
+                        skull_img = nib.load(skull_stripped_file)
+                        reference_img = nib.load(reference_file)
+
+                        # Ottieni gli orientamenti
+                        skull_affine = skull_img.affine
+                        reference_affine = reference_img.affine
+
+                        skull_ornt = io_orientation(skull_affine)
+                        reference_ornt = io_orientation(reference_affine)
+
+                        self.log_updated.emit(f"Orientamento skull-stripped: {aff2axcodes(skull_affine)}")
+                        self.log_updated.emit(f"Orientamento riferimento: {aff2axcodes(reference_affine)}")
+
+                        # Controlla se serve reorientazione
+                        if not (skull_ornt == reference_ornt).all():
+                            self.log_updated.emit("Orientamenti diversi: applico trasformazione...")
+
+                            # Calcola la trasformazione di orientamento
+                            transform = ornt_transform(skull_ornt, reference_ornt)
+
+                            # Applica la trasformazione ai dati
+                            reoriented_data = apply_orientation(skull_img.get_fdata(), transform)
+
+                            # Crea la nuova immagine con la matrice affine di riferimento
+                            reoriented_img = nib.Nifti1Image(
+                                reoriented_data,
+                                affine=reference_affine,
+                                header=reference_img.header
+                            )
+
+                            # Salva il file reorientato
+                            reoriented_file = os.path.join(
+                                self.output_dir,
+                                f"{base_name}_skull_stripped_reoriented.nii.gz"
+                            )
+                            nib.save(reoriented_img, reoriented_file)
+
+                            self.log_updated.emit(f"✓ Reorientazione completata: {os.path.basename(reoriented_file)}")
+                            self.file_progress_updated.emit(input_basename, "✓ Reorientazione completata")
+
+                        else:
+                            self.log_updated.emit("✓ Orientamento già coerente")
+                            self.file_progress_updated.emit(input_basename, "✓ Orientamento verificato")
+
+                    else:
+                        self.log_updated.emit("⚠️ Nessun file di riferimento per reorientazione")
+
+                except Exception as e:
+                    self.log_updated.emit(f"✗ Errore durante reorientazione: {str(e)}")
+                    return False
+
+        self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
         return True
 
     def run_synthstrip(self, input_file, output_file):
@@ -310,7 +370,7 @@ class SynthStripCoregistrationWorker(QThread):
             self.log_updated.emit(f"✗ Eccezione SynthStrip: {str(e)}")
             return False
 
-    def run_coregistration(self, skull_stripped_file, original_basename):
+    def run_coregistration(self, input_file, skull_stripped_file, original_basename):
         """Esegue coregistrazione con atlas"""
         try:
             self.log_updated.emit(f"Avvio coregistrazione: {os.path.basename(skull_stripped_file)}")
@@ -321,7 +381,8 @@ class SynthStripCoregistrationWorker(QThread):
 
             # Inizializza coregistrazione
             coregistration = NIfTICoregistration(
-                input_nifti=skull_stripped_file,
+                input_nifti=input_file,
+                brain_nifti=skull_stripped_file,
                 atlas_path=self.atlas_path,
                 output_dir=coreg_dir,
                 clobber=False,
@@ -329,7 +390,7 @@ class SynthStripCoregistrationWorker(QThread):
             )
 
             # Esegui coregistrazione
-            results = coregistration.run_coregistration()
+            self.coreg_results = coregistration.run_coregistration()
 
             self.log_updated.emit(f"✓ Coregistrazione completata per {original_basename}")
             return True
@@ -492,31 +553,7 @@ class DlExecutionPage(WizardPage):
 
     def on_enter(self):
         """Chiamata quando si entra nella pagina"""
-        self.load_selected_files()
         self.reset_processing_state()
-
-    def load_selected_files(self):
-        """Carica i file selezionati dal contesto"""
-        self.files_list.clear()
-
-        if not self.context or "selected_segmentation_files" not in self.context:
-            self.status_label.setText("Nessun file selezionato")
-            return
-
-        selected_files = self.context["selected_segmentation_files"]
-
-        if not selected_files:
-            self.status_label.setText("Nessun file selezionato")
-            return
-
-        # Aggiungi file alla lista
-        for file_path in selected_files:
-            item = QListWidgetItem()
-            item.setText(f"📄 {os.path.basename(file_path)}")
-            item.setToolTip(file_path)
-            self.files_list.addItem(item)
-
-        self.status_label.setText(f"Pronti {len(selected_files)} file per il processamento")
 
     def start_processing(self):
         """Avvia il processamento"""
