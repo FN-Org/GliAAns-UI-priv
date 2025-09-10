@@ -101,15 +101,15 @@ class MainWindow(QMainWindow):
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
         self.clear_all_action = QAction("Clear workspace", self)
         self.export_workspace_action = QAction("Export workspace", self)
-        self.workspace_menu.addSeparator()
-        self.clear_outputs_action = QAction("Clear pipeline outputs", self)
+        self.clear_pipeline_outputs_action = QAction("Clear pipeline outputs", self)
         self.workspace_menu.addAction(self.clear_all_action)
         self.workspace_menu.addAction(self.export_workspace_action)
-        self.workspace_menu.addAction(self.clear_outputs_action)
+        self.workspace_menu.addSeparator()
+        self.workspace_menu.addAction(self.clear_pipeline_outputs_action)
         self.clear_all_action.triggered.connect(lambda: self.clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True))
         self.export_workspace_action.triggered.connect(lambda:
                                              self.tree_view.export_files(self.workspace_path, is_dir=True))
-        self.clear_outputs_action.triggered.connect(lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path,"pipeline"),folder_name="outputs",return_to_import=False))
+        self.clear_pipeline_outputs_action.triggered.connect(lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path,"pipeline"),folder_name="outputs",return_to_import=False))
 
         # Settings
         self.settings_menu = self.menu_bar.addMenu("Settings")
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
 
-        self.debug_log_action = QAction("Debug Mode", self)
+        self.debug_log_action = QAction("Debug Log", self)
         self.debug_log_action.setCheckable(True)
 
         # Ripristina stato salvato (default False se non esiste)

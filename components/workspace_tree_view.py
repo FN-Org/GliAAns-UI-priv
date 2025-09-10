@@ -114,14 +114,14 @@ class WorkspaceTreeView(QTreeView):
     # --- Context Menu Action Groups ---
     def _add_workspace_actions(self, menu):
         return {
-            menu.addAction("Open workspace in explorer"): lambda *_: self._open_in_explorer(self.workspace_path),
-            menu.addAction("Add File to workspace"): lambda *_: self.add_file_to_workspace(None, False),
+            menu.addAction("Open Workspace in Explorer"): lambda *_: self._open_in_explorer(self.workspace_path),
+            menu.addAction("Add single File to Workspace"): lambda *_: self.add_file_to_workspace(None, False),
         }
 
     def _add_folder_actions(self, menu, file_path):
-        open_action = menu.addAction("Open folder in explorer")
+        open_action = menu.addAction("Open Folder in Explorer")
         menu.addSeparator()
-        add_action = menu.addAction("Add File to folder")
+        add_action = menu.addAction("Add single File to Folder")
         remove_action = menu.addAction("Remove Folder from Workspace")
         export_action = menu.addAction("Export Folder")
 
@@ -141,7 +141,7 @@ class WorkspaceTreeView(QTreeView):
             actions[nifti_action] = lambda *_: self._open_nifti(file_path)
 
         menu.addSeparator()
-        add_action = menu.addAction("Add File")
+        add_action = menu.addAction("Add single File")
         remove_action = menu.addAction("Remove File from Workspace")
         export_action = menu.addAction("Export File")
 
