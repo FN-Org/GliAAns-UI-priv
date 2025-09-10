@@ -70,6 +70,7 @@ class ToolChoicePage(WizardPage):
                     border: 1px solid #bdc3c7;
                     border-radius: 8px;
                     background-color: white;
+                    spacing: 10px;
                 }
                 QRadioButton::hover {
                     background-color: #dff9fb;

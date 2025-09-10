@@ -1,7 +1,7 @@
 import json
 import os
 
-from PyQt6.QtCore import pyqtSignal, QObject, QTranslator
+from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication
 
 from components.ui_button import UiButton
@@ -22,10 +22,10 @@ class WizardController(QObject):
         self.next_button = None
 
         self.translator = QTranslator()
-        self.saved_lang = self._load_saved_language()
-
+        self.settings = QSettings("GliAAns")
+        self.saved_lang = self.settings.value("language", "en", type=str)#self._load_saved_language()
+        self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
-        self.saved_lang = self._load_saved_language()
 
         self.workspace_path = os.path.join(os.getcwd(), ".workspace")
         if not os.path.exists(self.workspace_path):
@@ -41,7 +41,7 @@ class WizardController(QObject):
             "create_buttons"            :   self.create_buttons,
             "selected_files_signal"     :   self.selected_files_signal,
             "open_nifti_viewer"         :   self.open_nifti_viewer,
-            "language"                  :   self.saved_lang,
+            "settings"                  :   self.settings
         }
         self.context["import_frame"] = ImportFrame(self.context)
         self.context["main_window"] = MainWindow(self.context)
@@ -109,8 +109,6 @@ class WizardController(QObject):
 
     def set_language(self, lang_code):
         self.save_language(lang_code)
-        self.saved_lang = lang_code
-        self.context["language"] = self.saved_lang
 
         if self.translator.load(f"{TRANSLATIONS_DIR}/{lang_code}.qm"):
             QApplication.instance().installTranslator(self.translator)
@@ -122,5 +120,4 @@ class WizardController(QObject):
         return "en"
 
     def save_language(self, lang_code):
-        with open(LANG_CONFIG_PATH, "w") as f:
-            json.dump({"lang": lang_code}, f)
+        self.settings.setValue("language", lang_code)

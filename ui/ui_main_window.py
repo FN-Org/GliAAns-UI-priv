@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 
@@ -8,14 +9,12 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow,QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox,
 )
-from PyQt6.QtGui import QAction, QActionGroup
-
+from PyQt6.QtGui import QAction, QActionGroup, QIcon
 
 from components.workspace_tree_view import WorkspaceTreeView
 from threads.utils_threads import CopyDeleteThread
-from logger import get_logger
+from logger import get_logger,set_log_level
 
-LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
 
 log = get_logger()
@@ -25,10 +24,12 @@ class MainWindow(QMainWindow):
 
     def __init__(self,context):
         super().__init__()
+
         self.context = context
         self.context["language_changed"].connect(self._retranslate_ui)
-        self.language_actions = {}
+        self.settings = self.context["settings"]
         self.workspace_path = self.context["workspace_path"]
+        self.language_actions = {}
 
         self.threads = []
 
@@ -119,12 +120,21 @@ class MainWindow(QMainWindow):
         self._add_language_option("English", "en")
         self._add_language_option("Italiano", "it")
 
+        self.debug_log_action = QAction("Debug Mode", self)
+        self.debug_log_action.setCheckable(True)
+
+        # Ripristina stato salvato (default False se non esiste)
+        debug_enabled = self.settings.value("debug_log", False, type=bool)
+        self.debug_log_action.setChecked(debug_enabled)
+
+        self.debug_log_action.toggled.connect(self.toggle_debug_log)
+
+        self.settings_menu.addAction(self.debug_log_action)
+
         self.help_menu = self.menu_bar.addMenu("Help")
 
+        self.debug_log_action = QAction("Debug log", self)
 
-    # --------------------------
-    # WORKSPACE & TREEVIEW
-    # --------------------------
 
     def _add_language_option(self, name, code):
         action = QAction(name, self, checkable=True)
@@ -132,7 +142,7 @@ class MainWindow(QMainWindow):
         self.language_menu.addAction(action)
         action.triggered.connect(lambda: self.set_language(code))
         self.language_actions[code] = action
-        if self.context["language"] == code:
+        if self.settings.value("language","en",type=str) == code:
             self.language_actions[code].setChecked(True)
 
 
@@ -148,7 +158,7 @@ class MainWindow(QMainWindow):
 
     def _retranslate_ui(self):
         _ = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_("MainWindow", "Glioma Patient Data Importer"))
+        self.setWindowTitle(_("MainWindow", "GliAAns UI"))
         self.file_menu.setTitle(_("MainWindow", "File"))
         self.workspace_menu.setTitle(_("MainWindow", "Workspace"))
         self.settings_menu.setTitle(_("MainWindow", "Settings"))
@@ -251,6 +261,13 @@ class MainWindow(QMainWindow):
             lambda msg: self.copydelete_thread_error(f"Error :{msg}"))
         self.threads[-1].finished.connect(self.copydelete_thread_success)
         self.threads[-1].start()
+
+    def toggle_debug_log(self,checked):
+        self.settings.setValue("debug_log",checked)
+        if checked:
+            set_log_level(logging.DEBUG)
+        else:
+            set_log_level(logging.ERROR)
 
 
 if __name__ == "__main__":
