@@ -12,4 +12,5 @@ numpy
 scipy
 dcm2niix
 nipreps-synthstrip
+monai
 hd-bet; sys_platform == "win32"

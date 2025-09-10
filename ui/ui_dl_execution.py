@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 import ants
 import numpy as np
@@ -12,7 +13,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QMessageBox, QGroupBox, QListWidget, QProgressBar,
                              QListWidgetItem, QTextEdit, QSplitter, QFileDialog,
                              QCheckBox)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QProcess
 
 from pediatric_fdopa_pipeline.utils import align, transform
 from wizard_state import WizardPage
@@ -86,7 +87,6 @@ class NIfTICoregistration:
             # "mri_in_atlas": mri_in_atlas,           # MRI allineata allo spazio atlas
             "brain_in_atlas": brain_in_atlas        # Brain mask allineata
         }
-
 
 class SynthStripCoregistrationWorker(QThread):
     """Worker thread per processare file NIfTI con SynthStrip + Coregistrazione"""
@@ -205,6 +205,33 @@ class SynthStripCoregistrationWorker(QThread):
                 self.log_updated.emit(f"⚠️ Riorientazione fallita per {input_basename}")
             else:
                 self.file_progress_updated.emit(input_basename, "✓ Riorientazione completata")
+
+        # === FASE 4: PREPARE ===
+
+
+        # === FASE 5: PREPROCESS ===
+        data_path = os.path.join(self.output_dir, "reoriented")
+        results_path = os.path.join(self.output_dir, "preprocess")
+
+        self.dl_preprocess = QProcess()
+
+        # Connetti i segnali del processo
+        # self.dl_preprocess.finished.connect(self._on_process_finished)
+        # self.dl_preprocess.errorOccurred.connect(self._on_process_error)
+        # self.dl_preprocess.readyReadStandardOutput.connect(self._on_stdout_ready)
+        # self.dl_preprocess.readyReadStandardError.connect(self._on_stderr_ready)
+
+        # Prepara gli argomenti per il processo
+        python_executable = sys.executable  # Usa lo stesso interprete Python
+        args = [
+            "deep_learning/preprocess.py",
+            '--data', data_path,
+            '--results', results_path,
+            '--ohe'
+        ]
+
+        # Avvia il processo
+        self.dl_preprocess.start(python_executable, args)
 
         self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
         return True
