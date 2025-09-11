@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 import ants
 import numpy as np
@@ -96,11 +97,12 @@ class SynthStripCoregistrationWorker(QThread):
     log_updated = pyqtSignal(str)  # Messaggi di log
     finished = pyqtSignal(bool, str)  # (success, message)
 
-    def __init__(self, input_files, output_dir, atlas_path=None, enable_coregistration=True):
+    def __init__(self, input_files, workspace_path, atlas_path=None, enable_coregistration=True):
         super().__init__()
+        self.output_dir = None
+        self.temp_dir = None
         self.coreg_results = None
         self.input_files = input_files
-        self.output_dir = output_dir
         self.atlas_path = atlas_path
         self.enable_coregistration = enable_coregistration
         self.is_cancelled = False
@@ -108,7 +110,7 @@ class SynthStripCoregistrationWorker(QThread):
     def run(self):
         """Processa tutti i file NIfTI con SynthStrip + Coregistrazione"""
         try:
-            os.makedirs(self.output_dir, exist_ok=True)
+            # os.makedirs(self.output_dir, exist_ok=True)
 
             total_files = len(self.input_files)
             processed_files = 0
@@ -166,6 +168,10 @@ class SynthStripCoregistrationWorker(QThread):
         input_basename = os.path.basename(input_file)
         base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
 
+        # cartella temporanea
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.output_dir = self.temp_dir.name  # tutte le fasi intermedie scrivono qui
+
         # === FASE 1: SKULL STRIPPING ===
         self.log_updated.emit(f"=== PROCESSAMENTO: {input_basename} ===")
         self.file_progress_updated.emit(input_basename, "🔄 Skull Stripping...")
@@ -206,14 +212,11 @@ class SynthStripCoregistrationWorker(QThread):
             else:
                 self.file_progress_updated.emit(input_basename, "✓ Riorientazione completata")
 
-        # === FASE 4: PREPARE ===
-
-
-        # === FASE 5: PREPROCESS ===
+        # === FASE 4: PREPARE & FASE 5: PREPROCESS ===
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
 
-        self.dl_preprocess = QProcess()
+        dl_preprocess = QProcess()
 
         # Connetti i segnali del processo
         # self.dl_preprocess.finished.connect(self._on_process_finished)
@@ -231,7 +234,40 @@ class SynthStripCoregistrationWorker(QThread):
         ]
 
         # Avvia il processo
-        self.dl_preprocess.start(python_executable, args)
+        dl_preprocess.start(python_executable, args)
+
+        # === FASE 6: DEEP LEARNING ===
+        dl_preprocess.waitForFinished()
+        dl_process = QProcess()
+
+        args = [
+            "deep_learning/deep_learning_runner.py",
+            '--depth 6'
+            '--filters 64 96 128 192 256 384 512',
+            '--min_fmap 2',
+            '--gpus 1',
+            '--amp',
+            '--save_preds',
+            '--exec_mode predict',
+            '--data', f'{self.output_dir}/preprocess/val_3d/test',
+            '--ckpt_path', 'deep_learning/checkpoints/fold3/epoch=146-dice=88.05.ckpt',
+            '--tta',
+            '--ckpt_store_dir', f'{self.output_dir}/dl_results'
+        ]
+
+        dl_process.start(python_executable, args)
+
+        # === FASE 7: POST PROCESS ===
+        dl_preprocess.waitForFinished()
+        dl_postprocess = QProcess()
+
+        args = [
+            "deep_learning/postprocess.py",
+            '-i', f'{self.output_dir}/dl_results',
+            '-o', '.workspace/outputs/nifti_dl_results'
+        ]
+
+        dl_process.start(python_executable, args)
 
         self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
         return True
@@ -568,7 +604,7 @@ class DlExecutionPage(WizardPage):
         # Avvia worker thread
         self.worker = SynthStripCoregistrationWorker(
             input_files=selected_files,
-            output_dir=output_dir,
+            workspace_path=self.context["workspace_path"],
             atlas_path=self.atlas_path if self.enable_coregistration.isChecked() else None,
             enable_coregistration=self.enable_coregistration.isChecked()
         )
