@@ -14,3 +14,11 @@ dcm2niix
 nipreps-synthstrip
 monai
 hd-bet; sys_platform == "win32"
+
+joblib==1.4.2
+pytorch-lightning==2.5.0.post0
+rich==13.9.4
+torchinfo==1.7.0
+torch==2.6.0
+torchvision==0.21.0
+torchtext==0.18.0

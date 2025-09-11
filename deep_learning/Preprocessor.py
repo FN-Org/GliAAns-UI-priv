@@ -1,4 +1,5 @@
 import glob
+import shutil
 from os import mkdir
 
 import numpy as np
@@ -65,7 +66,7 @@ class Preprocessor:
         )
 
         # make directory for results
-        run(["rm", "-rf", self.results])
+        shutil.rmtree(self.results, ignore_errors=True)
         os.makedirs(self.results)
         print(f"Preprocessing {self.args.data}")
         if self.verbose:

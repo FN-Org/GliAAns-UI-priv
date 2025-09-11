@@ -99,7 +99,7 @@ class SynthStripCoregistrationWorker(QThread):
 
     def __init__(self, input_files, workspace_path, atlas_path=None, enable_coregistration=True):
         super().__init__()
-        self.output_dir = None
+        self.output_dir = f"{workspace_path}/outputs"
         self.temp_dir = None
         self.coreg_results = None
         self.input_files = input_files
@@ -107,10 +107,14 @@ class SynthStripCoregistrationWorker(QThread):
         self.enable_coregistration = enable_coregistration
         self.is_cancelled = False
 
+        self.dl_preprocess = QProcess(self)
+        self.dl_process = QProcess(self)
+        self.dl_postprocess = QProcess(self)
+
     def run(self):
         """Processa tutti i file NIfTI con SynthStrip + Coregistrazione"""
         try:
-            # os.makedirs(self.output_dir, exist_ok=True)
+            os.makedirs(self.output_dir, exist_ok=True)
 
             total_files = len(self.input_files)
             processed_files = 0
@@ -169,8 +173,8 @@ class SynthStripCoregistrationWorker(QThread):
         base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
 
         # cartella temporanea
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.output_dir = self.temp_dir.name  # tutte le fasi intermedie scrivono qui
+        # self.temp_dir = tempfile.TemporaryDirectory()
+        # self.output_dir = self.temp_dir.name  # tutte le fasi intermedie scrivono qui
 
         # === FASE 1: SKULL STRIPPING ===
         self.log_updated.emit(f"=== PROCESSAMENTO: {input_basename} ===")
@@ -212,11 +216,11 @@ class SynthStripCoregistrationWorker(QThread):
             else:
                 self.file_progress_updated.emit(input_basename, "✓ Riorientazione completata")
 
+        print("FASE 3 completata, entro in FASE 4&5")
+
         # === FASE 4: PREPARE & FASE 5: PREPROCESS ===
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
-
-        dl_preprocess = QProcess()
 
         # Connetti i segnali del processo
         # self.dl_preprocess.finished.connect(self._on_process_finished)
@@ -234,11 +238,19 @@ class SynthStripCoregistrationWorker(QThread):
         ]
 
         # Avvia il processo
-        dl_preprocess.start(python_executable, args)
+        self.dl_preprocess.start(python_executable, args)
+
+        stdout = self.dl_preprocess.readAllStandardOutput().data().decode()
+        stderr = self.dl_preprocess.readAllStandardError().data().decode()
+
+        self.dl_preprocess.waitForFinished()
+
+        print(f"[PREPROCESS STDOUT]\n{stdout}")
+        print(f"[PREPROCESS STDERR]\n{stderr}")
+
+        print("FASE 5 completata, entro in FASE 6")
 
         # === FASE 6: DEEP LEARNING ===
-        dl_preprocess.waitForFinished()
-        dl_process = QProcess()
 
         args = [
             "deep_learning/deep_learning_runner.py",
@@ -255,11 +267,11 @@ class SynthStripCoregistrationWorker(QThread):
             '--ckpt_store_dir', f'{self.output_dir}/dl_results'
         ]
 
-        dl_process.start(python_executable, args)
+        self.dl_process.start(python_executable, args)
+
+        self.dl_process.waitForFinished()
 
         # === FASE 7: POST PROCESS ===
-        dl_preprocess.waitForFinished()
-        dl_postprocess = QProcess()
 
         args = [
             "deep_learning/postprocess.py",
@@ -267,7 +279,8 @@ class SynthStripCoregistrationWorker(QThread):
             '-o', '.workspace/outputs/nifti_dl_results'
         ]
 
-        dl_process.start(python_executable, args)
+        self.dl_postprocess.start(python_executable, args)
+        self.dl_postprocess.waitForFinished()
 
         self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
         return True
@@ -363,6 +376,7 @@ class SynthStripCoregistrationWorker(QThread):
             "nipreps-synthstrip",
             "-i", input_file,
             "-o", output_file,
+            "-g",
             "--model", "synthstrip.infant.1.pt"
         ]
 
