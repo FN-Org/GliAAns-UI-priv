@@ -1,8 +1,8 @@
-
+import logging
 import os
 import torch
 import argparse
-# torch.serialization.add_safe_globals([argparse.Namespace])
+torch.serialization.add_safe_globals([argparse.Namespace])
 
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary, RichProgressBar
@@ -94,6 +94,7 @@ if __name__ == "__main__":
         strategy="ddp" if args.gpus > 1 else "auto",
     )
 
+    print(f"Save preds {args.save_preds}")
     if args.exec_mode == "train":
         # do not load whole state under transfer learning
         trainer.fit(nnunet, datamodule=data_module, ckpt_path=None if args.freeze >= 0 else ckpt_path)
@@ -106,6 +107,7 @@ if __name__ == "__main__":
             if args.tta:
                 dir_name += "_tta"
             save_dir = os.path.join(args.results, dir_name)
+            print(f"Saving predictions to {save_dir}")
             nnunet.save_dir = save_dir
             make_empty_dir(save_dir)
 

@@ -43,9 +43,9 @@ class NIfTICoregistration:
         self.prefix = str(self.output_dir / f"{input_basename}_")
 
         # File input
-        self.mri = input_nifti       # MRI FLAIR scelta dal medico
-        self.mri_str = brain_nifti   # Skull-stripped output di SynthStrip
-        self.stx = atlas_path        # Atlas stereotassico
+        self.mri = input_nifti  # MRI FLAIR scelta dal medico
+        self.mri_str = brain_nifti  # Skull-stripped output di SynthStrip
+        self.stx = atlas_path  # Atlas stereotassico
 
     def run_coregistration(self):
         """Esegue la registrazione MRI → Atlas (SyN) e ritorna i file di output"""
@@ -68,373 +68,12 @@ class NIfTICoregistration:
             clobber=self.clobber
         )
 
-        # Applica la trasformazione alla MRI originale
-        # mri_in_atlas = transform(
-        #     prefix=self.prefix,
-        #     fx=self.stx,
-        #     mv=self.mri,
-        #     tfm=mri2stx_tfm,
-        #     clobber=self.clobber
-        # )
-
         self.log_callback("✓ Coregistrazione completata")
 
         # Restituiamo tutti i path utili in un dizionario
         return {
-            # "warped_moving": stx_space_mri,          # Atlas → MRI
-            # "warped_fixed": mri_space_stx,           # MRI → Atlas
-            # "forward_transform": stx2mri_tfm,     # file .h5 MRI<-Atlas
-            # "inverse_transform": mri2stx_tfm,     # file .h5 Atlas<-MRI
-            # "mri_in_atlas": mri_in_atlas,           # MRI allineata allo spazio atlas
-            "brain_in_atlas": brain_in_atlas        # Brain mask allineata
+            "brain_in_atlas": brain_in_atlas  # Brain mask allineata
         }
-
-class SynthStripCoregistrationWorker(QThread):
-    """Worker thread per processare file NIfTI con SynthStrip + Coregistrazione"""
-
-    progress_updated = pyqtSignal(int)  # Progresso generale (0-100)
-    file_progress_updated = pyqtSignal(str, str)  # (filename, status)
-    log_updated = pyqtSignal(str)  # Messaggi di log
-    finished = pyqtSignal(bool, str)  # (success, message)
-
-    def __init__(self, input_files, workspace_path, atlas_path=None, enable_coregistration=True):
-        super().__init__()
-        self.output_dir = f"{workspace_path}/outputs"
-        self.temp_dir = None
-        self.coreg_results = None
-        self.input_files = input_files
-        self.atlas_path = atlas_path
-        self.enable_coregistration = enable_coregistration
-        self.is_cancelled = False
-
-        self.dl_preprocess = QProcess(self)
-        self.dl_process = QProcess(self)
-        self.dl_postprocess = QProcess(self)
-
-    def run(self):
-        """Processa tutti i file NIfTI con SynthStrip + Coregistrazione"""
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
-
-            total_files = len(self.input_files)
-            processed_files = 0
-            failed_files = []
-
-            for i, input_file in enumerate(self.input_files):
-                if self.is_cancelled:
-                    break
-
-                try:
-                    success = self.process_single_file(input_file)
-                    if success:
-                        processed_files += 1
-                        self.file_progress_updated.emit(
-                            os.path.basename(input_file),
-                            "✓ Completato"
-                        )
-                    else:
-                        failed_files.append(os.path.basename(input_file))
-                        self.file_progress_updated.emit(
-                            os.path.basename(input_file),
-                            "✗ Fallito"
-                        )
-
-                except Exception as e:
-                    failed_files.append(os.path.basename(input_file))
-                    self.file_progress_updated.emit(
-                        os.path.basename(input_file),
-                        f"✗ Errore: {str(e)}"
-                    )
-                    log.error(f"Errore processando {input_file}: {e}")
-
-                # Aggiorna progresso generale
-                progress = int((i + 1) * 100 / total_files)
-                self.progress_updated.emit(progress)
-
-            # Risultato finale
-            if self.is_cancelled:
-                self.finished.emit(False, "Processamento cancellato dall'utente.")
-            elif failed_files:
-                message = f"Processamento completato con errori.\n"
-                message += f"Processati: {processed_files}/{total_files}\n"
-                message += f"Falliti: {', '.join(failed_files)}"
-                self.finished.emit(True, message)
-            else:
-                message = f"Tutti i {total_files} file processati con successo!"
-                self.finished.emit(True, message)
-
-        except Exception as e:
-            log.error(f"Errore generale nel worker: {e}")
-            self.finished.emit(False, f"Errore generale: {str(e)}")
-
-    def process_single_file(self, input_file):
-        """Processa un singolo file con SynthStrip + Coregistrazione + Reorientazione"""
-        input_basename = os.path.basename(input_file)
-        base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
-
-        # cartella temporanea
-        # self.temp_dir = tempfile.TemporaryDirectory()
-        # self.output_dir = self.temp_dir.name  # tutte le fasi intermedie scrivono qui
-
-        # === FASE 1: SKULL STRIPPING ===
-        self.log_updated.emit(f"=== PROCESSAMENTO: {input_basename} ===")
-        self.file_progress_updated.emit(input_basename, "🔄 Skull Stripping...")
-
-        # Nome file skull stripped
-        skull_stripped_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
-
-        if not os.path.exists(skull_stripped_file):
-            if not self.run_synthstrip(input_file, skull_stripped_file):
-                return False
-        else:
-            self.log_updated.emit(f"File skull-stripped già esistente: {os.path.basename(skull_stripped_file)}")
-
-        # === FASE 2: COREGISTRAZIONE ===
-        aligned_file = None
-        if self.enable_coregistration and self.atlas_path and os.path.exists(self.atlas_path):
-            self.file_progress_updated.emit(input_basename, "🔄 Coregistrazione...")
-
-            if not self.run_coregistration(input_file, skull_stripped_file, input_basename):
-                self.log_updated.emit(f"⚠️ Coregistrazione fallita per {input_basename}, ma skull stripping completato")
-            else:
-                # Recupera il file allineato dalla coregistrazione
-                if hasattr(self, 'coreg_results') and self.coreg_results:
-                    aligned_file = self.coreg_results.get("brain_in_atlas")
-                    if aligned_file and os.path.exists(aligned_file):
-                        self.file_progress_updated.emit(input_basename, "✓ Coregistrazione completata")
-                        self.log_updated.emit(f"File allineato creato: {os.path.basename(aligned_file)}")
-                    else:
-                        self.log_updated.emit(f"⚠️ File allineato non trovato: {aligned_file}")
-                        aligned_file = None
-
-        # === FASE 3: RIORIENTAZIONE MATRICE AFFINE ===
-        if aligned_file and os.path.exists(aligned_file):
-            self.file_progress_updated.emit(input_basename, "🔄 Riorientazione...")
-
-            if not self.run_reorientation(aligned_file, input_basename):
-                self.log_updated.emit(f"⚠️ Riorientazione fallita per {input_basename}")
-            else:
-                self.file_progress_updated.emit(input_basename, "✓ Riorientazione completata")
-
-        print("FASE 3 completata, entro in FASE 4&5")
-
-        # === FASE 4: PREPARE & FASE 5: PREPROCESS ===
-        data_path = os.path.join(self.output_dir, "reoriented")
-        results_path = os.path.join(self.output_dir, "preprocess")
-
-        # Connetti i segnali del processo
-        # self.dl_preprocess.finished.connect(self._on_process_finished)
-        # self.dl_preprocess.errorOccurred.connect(self._on_process_error)
-        # self.dl_preprocess.readyReadStandardOutput.connect(self._on_stdout_ready)
-        # self.dl_preprocess.readyReadStandardError.connect(self._on_stderr_ready)
-
-        # Prepara gli argomenti per il processo
-        python_executable = sys.executable  # Usa lo stesso interprete Python
-        args = [
-            "deep_learning/preprocess.py",
-            '--data', data_path,
-            '--results', results_path,
-            '--ohe'
-        ]
-
-        # Avvia il processo
-        self.dl_preprocess.start(python_executable, args)
-
-        stdout = self.dl_preprocess.readAllStandardOutput().data().decode()
-        stderr = self.dl_preprocess.readAllStandardError().data().decode()
-
-        self.dl_preprocess.waitForFinished()
-
-        print(f"[PREPROCESS STDOUT]\n{stdout}")
-        print(f"[PREPROCESS STDERR]\n{stderr}")
-
-        print("FASE 5 completata, entro in FASE 6")
-
-        # === FASE 6: DEEP LEARNING ===
-
-        args = [
-            "deep_learning/deep_learning_runner.py",
-            '--depth 6'
-            '--filters 64 96 128 192 256 384 512',
-            '--min_fmap 2',
-            '--gpus 1',
-            '--amp',
-            '--save_preds',
-            '--exec_mode predict',
-            '--data', f'{self.output_dir}/preprocess/val_3d/test',
-            '--ckpt_path', 'deep_learning/checkpoints/fold3/epoch=146-dice=88.05.ckpt',
-            '--tta',
-            '--ckpt_store_dir', f'{self.output_dir}/dl_results'
-        ]
-
-        self.dl_process.start(python_executable, args)
-
-        self.dl_process.waitForFinished()
-
-        # === FASE 7: POST PROCESS ===
-
-        args = [
-            "deep_learning/postprocess.py",
-            '-i', f'{self.output_dir}/dl_results',
-            '-o', '.workspace/outputs/nifti_dl_results'
-        ]
-
-        self.dl_postprocess.start(python_executable, args)
-        self.dl_postprocess.waitForFinished()
-
-        self.log_updated.emit(f"=== COMPLETATO: {input_basename} ===\n")
-        return True
-
-    def run_reorientation(self, brain_in_atlas_file, original_basename):
-        """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
-        try:
-            self.log_updated.emit(f"Avvio riorientazione: {os.path.basename(brain_in_atlas_file)}")
-
-            # Percorso del file BraTS di riferimento
-            brats_reference_path = os.path.join("pediatric_fdopa_pipeline", "atlas", "BraTS-GLI-01-001.nii")
-
-            # Verifica esistenza file BraTS di riferimento
-            if not os.path.exists(brats_reference_path):
-                self.log_updated.emit(f"⚠️ File BraTS di riferimento non trovato: {brats_reference_path}")
-                return False
-
-            # Carica il file brain_in_atlas (file da riorientare)
-            my_img = nib.load(brain_in_atlas_file)
-
-            # Carica il file BraTS di riferimento
-            brats_img = nib.load(brats_reference_path)
-
-            # Ottieni le matrici affini
-            my_affine = my_img.affine
-            brats_affine = brats_img.affine
-
-            # Ottieni gli orientamenti
-            my_ornt = io_orientation(my_affine)
-            brats_ornt = io_orientation(brats_affine)
-
-            self.log_updated.emit(f"Orientamento brain_in_atlas: {my_ornt}")
-            self.log_updated.emit(f"Orientamento BraTS riferimento: {brats_ornt}")
-
-            # Controlla se è necessaria la riorientazione
-            if not (my_ornt == brats_ornt).all():
-                self.log_updated.emit("Orientamenti diversi - eseguo riorientazione...")
-
-                # Calcola la trasformazione necessaria
-                transform = ornt_transform(my_ornt, brats_ornt)
-
-                # Applica la riorientazione ai dati
-                reoriented_data = apply_orientation(my_img.get_fdata(), transform)
-
-                self.log_updated.emit("✓ Dati riorientati")
-            else:
-                reoriented_data = my_img.get_fdata()
-                self.log_updated.emit("✓ Orientamento già coerente con BraTS")
-
-            # Crea il nuovo file NIfTI con la matrice affine di BraTS
-            reoriented_img = nib.Nifti1Image(reoriented_data, affine=brats_affine)
-
-            # Determina il percorso di output per il file riorientato
-            output_filename = f"{original_basename.replace('.nii.gz', '').replace('.nii', '')}_reoriented.nii.gz"
-            reoriented_output_path = os.path.join(self.output_dir, "reoriented", output_filename)
-
-            # Crea la directory se non esiste
-            os.makedirs(os.path.dirname(reoriented_output_path), exist_ok=True)
-
-            # Salva il file riorientato
-            nib.save(reoriented_img, reoriented_output_path)
-
-            self.log_updated.emit(f"✓ File riorientato salvato: {os.path.basename(reoriented_output_path)}")
-            self.log_updated.emit(f"✓ Matrice affine BraTS applicata")
-
-            # Verifica finale
-            final_img = nib.load(reoriented_output_path)
-            final_ornt = aff2axcodes(final_img.affine)
-            brats_ornt_codes = aff2axcodes(brats_affine)
-
-            self.log_updated.emit(f"Orientamento finale: {final_ornt}")
-            self.log_updated.emit(f"Orientamento BraTS: {brats_ornt_codes}")
-
-            # Verifica dimensioni
-            final_shape = final_img.get_fdata().shape
-            brats_shape = brats_img.get_fdata().shape
-            self.log_updated.emit(f"Dimensioni file riorientato: {final_shape}")
-            self.log_updated.emit(f"Dimensioni BraTS riferimento: {brats_shape}")
-
-            return True
-
-        except Exception as e:
-            self.log_updated.emit(f"✗ Errore durante riorientazione: {str(e)}")
-            import traceback
-            self.log_updated.emit(f"Traceback: {traceback.format_exc()}")
-            return False
-
-    def run_synthstrip(self, input_file, output_file):
-        """Esegue SynthStrip su un file"""
-        self.log_updated.emit(f"Avvio SynthStrip: {os.path.basename(input_file)}")
-
-        cmd = [
-            "nipreps-synthstrip",
-            "-i", input_file,
-            "-o", output_file,
-            "-g",
-            "--model", "synthstrip.infant.1.pt"
-        ]
-
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-
-            if result.stdout:
-                self.log_updated.emit(f"SynthStrip stdout: {result.stdout}")
-            if result.stderr:
-                self.log_updated.emit(f"SynthStrip stderr: {result.stderr}")
-
-            if result.returncode != 0:
-                self.log_updated.emit(f"✗ SynthStrip fallito (code: {result.returncode})")
-                return False
-
-            if os.path.exists(output_file):
-                self.log_updated.emit(f"✓ Skull stripping completato")
-                return True
-            else:
-                self.log_updated.emit(f"✗ File di output non creato")
-                return False
-
-        except Exception as e:
-            self.log_updated.emit(f"✗ Eccezione SynthStrip: {str(e)}")
-            return False
-
-    def run_coregistration(self, input_file, skull_stripped_file, original_basename):
-        """Esegue coregistrazione con atlas"""
-        try:
-            self.log_updated.emit(f"Avvio coregistrazione: {os.path.basename(skull_stripped_file)}")
-
-            # Crea directory per coregistrazione
-            coreg_dir = os.path.join(self.output_dir, "coregistration")
-            os.makedirs(coreg_dir, exist_ok=True)
-
-            # Inizializza coregistrazione
-            coregistration = NIfTICoregistration(
-                input_nifti=input_file,
-                brain_nifti=skull_stripped_file,
-                atlas_path=self.atlas_path,
-                output_dir=coreg_dir,
-                clobber=False,
-                log_callback=self.log_updated.emit
-            )
-
-            # Esegui coregistrazione
-            self.coreg_results = coregistration.run_coregistration()
-
-            self.log_updated.emit(f"✓ Coregistrazione completata per {original_basename}")
-            return True
-
-        except Exception as e:
-            self.log_updated.emit(f"✗ Errore coregistrazione: {str(e)}")
-            return False
-
-    def cancel(self):
-        """Cancella il processamento"""
-        self.is_cancelled = True
 
 
 class DlExecutionPage(WizardPage):
@@ -446,9 +85,25 @@ class DlExecutionPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
-        self.worker = None
         self.processing = False
         self.processing_completed = False
+        self.is_cancelled = False
+
+        # File processing state
+        self.input_files = []
+        self.current_file_index = 0
+        self.processed_files = 0
+        self.failed_files = []
+
+        # Output directories
+        self.output_dir = None
+        self.coreg_results = None
+
+        # QProcess instances
+        self.synthstrip_process = None
+        self.dl_preprocess = None
+        self.dl_process = None
+        self.dl_postprocess = None
 
         # 🔹 Percorso atlas di default
         self.atlas_path = os.path.join("pediatric_fdopa_pipeline", "atlas", "T1.nii.gz")
@@ -556,7 +211,7 @@ class DlExecutionPage(WizardPage):
         button_layout.addWidget(self.start_button)
 
         self.cancel_button = QPushButton("Annulla")
-        self.cancel_button.clicked.connect(self.cancel_processing)
+        # self.cancel_button.clicked.connect(self.cancel_processing)
         self.cancel_button.setVisible(False)
         button_layout.addWidget(self.cancel_button)
 
@@ -588,6 +243,13 @@ class DlExecutionPage(WizardPage):
         """Chiamata quando si entra nella pagina"""
         self.reset_processing_state()
 
+        # Popoliamo la lista dei file se disponibile
+        if self.context and "selected_segmentation_files" in self.context:
+            self.files_list.clear()
+            for file_path in self.context["selected_segmentation_files"]:
+                filename = os.path.basename(file_path)
+                self.files_list.addItem(f"📄 {filename} - In attesa")
+
     def start_processing(self):
         """Avvia il processamento"""
         if not self.context or "selected_segmentation_files" not in self.context:
@@ -609,25 +271,20 @@ class DlExecutionPage(WizardPage):
                 )
                 return
 
+        # Inizializza stato processamento
+        self.input_files = selected_files
+        self.current_file_index = 0
+        self.processed_files = 0
+        self.failed_files = []
+        self.is_cancelled = False
+
         # Configura directory di output
         if "workspace_path" in self.context:
-            output_dir = os.path.join(self.context["workspace_path"], "outputs")
+            self.output_dir = os.path.join(self.context["workspace_path"], "outputs")
         else:
-            output_dir = os.path.join(os.getcwd(), ".workspace", "outputs")
+            self.output_dir = os.path.join(os.getcwd(), ".workspace", "outputs")
 
-        # Avvia worker thread
-        self.worker = SynthStripCoregistrationWorker(
-            input_files=selected_files,
-            workspace_path=self.context["workspace_path"],
-            atlas_path=self.atlas_path if self.enable_coregistration.isChecked() else None,
-            enable_coregistration=self.enable_coregistration.isChecked()
-        )
-
-        # Connetti segnali
-        self.worker.progress_updated.connect(self.update_progress)
-        self.worker.file_progress_updated.connect(self.update_file_status)
-        self.worker.log_updated.connect(self.add_log_message)
-        self.worker.finished.connect(self.processing_finished)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Aggiorna UI
         self.processing = True
@@ -638,29 +295,467 @@ class DlExecutionPage(WizardPage):
         self.status_label.setText("Processamento in corso...")
         self.log_text.clear()
 
-        # Avvia worker
-        self.worker.start()
-
         pipeline_type = "SynthStrip + Coregistrazione" if self.enable_coregistration.isChecked() else "Solo SynthStrip"
+        self.add_log_message(f"Avviato processamento {pipeline_type} per {len(selected_files)} file")
         log.info(f"Avviato processamento {pipeline_type} per {len(selected_files)} file")
 
-    def cancel_processing(self):
-        """Cancella il processamento in corso"""
-        if self.worker:
-            self.worker.cancel()
-            self.add_log_message("Cancellazione richiesta...")
+        # Inizia processamento del primo file
+        self.process_next_file()
 
-    def update_progress(self, value):
-        """Aggiorna la barra di progresso"""
-        self.progress_bar.setValue(value)
+    def process_next_file(self):
+        """Processa il prossimo file nella lista"""
+        if self.is_cancelled:
+            self.processing_finished(False, "Processamento cancellato dall'utente.")
+            return
 
-    def update_file_status(self, filename, status):
-        """Aggiorna lo stato di un file nella lista"""
-        for i in range(self.files_list.count()):
-            item = self.files_list.item(i)
-            if filename in item.text():
-                item.setText(f"📄 {filename} - {status}")
-                break
+        if self.current_file_index >= len(self.input_files):
+            # Tutti i file processati
+            self.finalize_processing()
+            return
+
+        # Processa file corrente
+        current_file = self.input_files[self.current_file_index]
+        self.process_single_file(current_file)
+
+    def process_single_file(self, input_file):
+        """Processa un singolo file con SynthStrip + Coregistrazione + Reorientazione"""
+        input_basename = os.path.basename(input_file)
+        base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
+
+        self.add_log_message(f"=== PROCESSAMENTO: {input_basename} ===")
+        self.update_file_status(input_basename, "🔄 Skull Stripping...")
+
+        # Nome file skull stripped
+        self.current_skull_stripped_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
+        self.current_input_file = input_file
+        self.current_basename = input_basename
+
+        if os.path.exists(self.current_skull_stripped_file):
+            self.add_log_message(
+                f"File skull-stripped già esistente: {os.path.basename(self.current_skull_stripped_file)}")
+            self.on_synthstrip_finished()
+        else:
+            self.run_synthstrip(input_file, self.current_skull_stripped_file)
+
+    def run_synthstrip(self, input_file, output_file):
+        """Esegue SynthStrip su un file"""
+        self.add_log_message(f"Avvio SynthStrip: {os.path.basename(input_file)}")
+
+        if self.synthstrip_process:
+            self.synthstrip_process.kill()
+            self.synthstrip_process = None
+
+        self.synthstrip_process = QProcess(self)
+        self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
+        self.synthstrip_process.errorOccurred.connect(self.on_synthstrip_error)
+        self.synthstrip_process.readyReadStandardOutput.connect(self.on_synthstrip_stdout)
+        self.synthstrip_process.readyReadStandardError.connect(self.on_synthstrip_stderr)
+
+        cmd = [
+            "nipreps-synthstrip",
+            "-i", input_file,
+            "-o", output_file,
+            "-g",
+            "--model", "synthstrip.infant.1.pt"
+        ]
+
+        self.synthstrip_process.start(cmd[0], cmd[1:])
+
+    def on_synthstrip_stdout(self):
+        """Gestisce stdout di SynthStrip"""
+        if self.synthstrip_process:
+            data = self.synthstrip_process.readAllStandardOutput()
+            stdout = bytes(data).decode("utf8")
+            if stdout.strip():
+                self.add_log_message(f"SynthStrip stdout: {stdout.strip()}")
+
+    def on_synthstrip_stderr(self):
+        """Gestisce stderr di SynthStrip"""
+        if self.synthstrip_process:
+            data = self.synthstrip_process.readAllStandardError()
+            stderr = bytes(data).decode("utf8")
+            if stderr.strip():
+                self.add_log_message(f"SynthStrip stderr: {stderr.strip()}")
+
+    def on_synthstrip_error(self, error):
+        """Gestisce errori del processo SynthStrip"""
+        self.add_log_message(f"✗ Errore SynthStrip: {error}")
+        self.mark_current_file_failed(f"Errore SynthStrip: {error}")
+
+    def on_synthstrip_finished(self):
+        """Chiamata quando SynthStrip termina"""
+        if self.synthstrip_process and self.synthstrip_process.exitCode() != 0:
+            self.add_log_message(f"✗ SynthStrip fallito (code: {self.synthstrip_process.exitCode()})")
+            self.mark_current_file_failed(f"SynthStrip fallito")
+            return
+
+        if not os.path.exists(self.current_skull_stripped_file):
+            self.add_log_message(f"✗ File di output non creato")
+            self.mark_current_file_failed("File output non creato")
+            return
+
+        self.add_log_message(f"✓ Skull stripping completato")
+
+        # Procedi con coregistrazione se abilitata
+        if self.enable_coregistration.isChecked() and self.atlas_path and os.path.exists(self.atlas_path):
+            self.update_file_status(self.current_basename, "🔄 Coregistrazione...")
+            self.run_coregistration()
+        else:
+            # Salta direttamente alla riorientazione o termina
+            self.on_coregistration_finished(True)
+
+    def run_coregistration(self):
+        """Esegue coregistrazione con atlas"""
+        try:
+            self.add_log_message(f"Avvio coregistrazione: {os.path.basename(self.current_skull_stripped_file)}")
+
+            # Crea directory per coregistrazione
+            coreg_dir = os.path.join(self.output_dir, "coregistration")
+            os.makedirs(coreg_dir, exist_ok=True)
+
+            # Inizializza coregistrazione
+            coregistration = NIfTICoregistration(
+                input_nifti=self.current_input_file,
+                brain_nifti=self.current_skull_stripped_file,
+                atlas_path=self.atlas_path,
+                output_dir=coreg_dir,
+                clobber=False,
+                log_callback=self.add_log_message
+            )
+
+            # Esegui coregistrazione
+            self.coreg_results = coregistration.run_coregistration()
+
+            self.add_log_message(f"✓ Coregistrazione completata per {self.current_basename}")
+            self.update_file_status(self.current_basename, "✓ Coregistrazione completata")
+            self.on_coregistration_finished(True)
+
+        except Exception as e:
+            self.add_log_message(f"✗ Errore coregistrazione: {str(e)}")
+            self.on_coregistration_finished(False)
+
+    def on_coregistration_finished(self, success):
+        """Chiamata quando la coregistrazione termina"""
+        if success and self.coreg_results:
+            aligned_file = self.coreg_results.get("brain_in_atlas")
+            if aligned_file and os.path.exists(aligned_file):
+                self.add_log_message(f"File allineato creato: {os.path.basename(aligned_file)}")
+                self.run_reorientation(aligned_file)
+            else:
+                self.add_log_message(f"⚠️ File allineato non trovato: {aligned_file}")
+                self.on_reorientation_finished(False)
+        else:
+            if self.enable_coregistration.isChecked():
+                self.add_log_message(
+                    f"⚠️ Coregistrazione fallita per {self.current_basename}, ma skull stripping completato")
+            self.on_reorientation_finished(True)  # Continua anche se coregistrazione fallisce
+
+    def run_reorientation(self, brain_in_atlas_file):
+        """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
+        try:
+            self.update_file_status(self.current_basename, "🔄 Riorientazione...")
+            self.add_log_message(f"Avvio riorientazione: {os.path.basename(brain_in_atlas_file)}")
+
+            # Percorso del file BraTS di riferimento
+            brats_reference_path = os.path.join("pediatric_fdopa_pipeline", "atlas", "BraTS-GLI-01-001.nii")
+
+            # Verifica esistenza file BraTS di riferimento
+            if not os.path.exists(brats_reference_path):
+                self.add_log_message(f"⚠️ File BraTS di riferimento non trovato: {brats_reference_path}")
+                self.on_reorientation_finished(False)
+                return
+
+            # Carica il file brain_in_atlas (file da riorientare)
+            my_img = nib.load(brain_in_atlas_file)
+
+            # Carica il file BraTS di riferimento
+            brats_img = nib.load(brats_reference_path)
+
+            # Ottieni le matrici affini
+            my_affine = my_img.affine
+            brats_affine = brats_img.affine
+
+            # Ottieni gli orientamenti
+            my_ornt = io_orientation(my_affine)
+            brats_ornt = io_orientation(brats_affine)
+
+            self.add_log_message(f"Orientamento brain_in_atlas: {my_ornt}")
+            self.add_log_message(f"Orientamento BraTS riferimento: {brats_ornt}")
+
+            # Controlla se è necessaria la riorientazione
+            if not (my_ornt == brats_ornt).all():
+                self.add_log_message("Orientamenti diversi - eseguo riorientazione...")
+
+                # Calcola la trasformazione necessaria
+                transform = ornt_transform(my_ornt, brats_ornt)
+
+                # Applica la riorientazione ai dati
+                reoriented_data = apply_orientation(my_img.get_fdata(), transform)
+
+                self.add_log_message("✓ Dati riorientati")
+            else:
+                reoriented_data = my_img.get_fdata()
+                self.add_log_message("✓ Orientamento già coerente con BraTS")
+
+            # Crea il nuovo file NIfTI con la matrice affine di BraTS
+            reoriented_img = nib.Nifti1Image(reoriented_data, affine=brats_affine)
+
+            # Determina il percorso di output per il file riorientato
+            output_filename = f"{self.current_basename.replace('.nii.gz', '').replace('.nii', '')}_reoriented.nii.gz"
+            reoriented_output_path = os.path.join(self.output_dir, "reoriented", output_filename)
+
+            # Crea la directory se non esiste
+            os.makedirs(os.path.dirname(reoriented_output_path), exist_ok=True)
+
+            # Salva il file riorientato
+            nib.save(reoriented_img, reoriented_output_path)
+
+            self.add_log_message(f"✓ File riorientato salvato: {os.path.basename(reoriented_output_path)}")
+            self.add_log_message(f"✓ Matrice affine BraTS applicata")
+
+            # Verifica finale
+            final_img = nib.load(reoriented_output_path)
+            final_ornt = aff2axcodes(final_img.affine)
+            brats_ornt_codes = aff2axcodes(brats_affine)
+
+            self.add_log_message(f"Orientamento finale: {final_ornt}")
+            self.add_log_message(f"Orientamento BraTS: {brats_ornt_codes}")
+
+            # Verifica dimensioni
+            final_shape = final_img.get_fdata().shape
+            brats_shape = brats_img.get_fdata().shape
+            self.add_log_message(f"Dimensioni file riorientato: {final_shape}")
+            self.add_log_message(f"Dimensioni BraTS riferimento: {brats_shape}")
+
+            self.update_file_status(self.current_basename, "✓ Riorientazione completata")
+            self.on_reorientation_finished(True)
+
+        except Exception as e:
+            self.add_log_message(f"✗ Errore durante riorientazione: {str(e)}")
+            import traceback
+            self.add_log_message(f"Traceback: {traceback.format_exc()}")
+            self.on_reorientation_finished(False)
+
+    def on_reorientation_finished(self, success):
+        """Chiamata quando la riorientazione termina"""
+        if not success:
+            self.add_log_message(f"⚠️ Riorientazione fallita per {self.current_basename}")
+
+        self.add_log_message("FASE 3 completata, entro in FASE 4&5")
+        self.run_preprocess()
+
+    def run_preprocess(self):
+        """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
+        self.update_file_status(self.current_basename, "🔄 Preprocessing...")
+
+        data_path = os.path.join(self.output_dir, "reoriented")
+        results_path = os.path.join(self.output_dir, "preprocess")
+
+        if self.dl_preprocess:
+            self.dl_preprocess.kill()
+            self.dl_preprocess = None
+
+        self.dl_preprocess = QProcess(self)
+        self.dl_preprocess.finished.connect(self.on_preprocess_finished)
+        self.dl_preprocess.errorOccurred.connect(self.on_preprocess_error)
+        self.dl_preprocess.readyReadStandardOutput.connect(self.on_preprocess_stdout)
+        self.dl_preprocess.readyReadStandardError.connect(self.on_preprocess_stderr)
+
+        # Prepara gli argomenti per il processo
+        python_executable = sys.executable  # Usa lo stesso interprete Python
+        args = [
+            "deep_learning/preprocess.py",
+            '--data', data_path,
+            '--results', results_path,
+            '--ohe'
+        ]
+
+        # Avvia il processo
+        self.dl_preprocess.start(python_executable, args)
+
+    def on_preprocess_stdout(self):
+        """Gestisce stdout del preprocess"""
+        if self.dl_preprocess:
+            data = self.dl_preprocess.readAllStandardOutput()
+            stdout = bytes(data).decode("utf8")
+            if stdout.strip():
+                self.add_log_message(f"[PREPROCESS] {stdout.strip()}")
+
+    def on_preprocess_stderr(self):
+        """Gestisce stderr del preprocess"""
+        if self.dl_preprocess:
+            data = self.dl_preprocess.readAllStandardError()
+            stderr = bytes(data).decode("utf8")
+            if stderr.strip():
+                self.add_log_message(f"[PREPROCESS ERROR] {stderr.strip()}")
+
+    def on_preprocess_error(self, error):
+        """Gestisce errori del processo preprocess"""
+        self.add_log_message(f"✗ Errore preprocess: {error}")
+        self.mark_current_file_failed(f"Errore preprocess: {error}")
+
+    def on_preprocess_finished(self):
+        """Chiamata quando il preprocess termina"""
+        if self.dl_preprocess and self.dl_preprocess.exitCode() != 0:
+            self.add_log_message(f"✗ Preprocess fallito (code: {self.dl_preprocess.exitCode()})")
+            self.mark_current_file_failed("Preprocess fallito")
+            return
+
+        self.add_log_message("FASE 5 completata, entro in FASE 6")
+        self.run_deep_learning()
+
+    def run_deep_learning(self):
+        """Esegue FASE 6: DEEP LEARNING"""
+        self.update_file_status(self.current_basename, "🔄 Deep Learning...")
+
+        if self.dl_process:
+            self.dl_process.kill()
+            self.dl_process = None
+
+        self.dl_process = QProcess(self)
+        self.dl_process.finished.connect(self.on_deep_learning_finished)
+        self.dl_process.errorOccurred.connect(self.on_deep_learning_error)
+        self.dl_process.readyReadStandardOutput.connect(self.on_deep_learning_stdout)
+        self.dl_process.readyReadStandardError.connect(self.on_deep_learning_stderr)
+
+        python_executable = sys.executable
+        args = [
+            "deep_learning/deep_learning_runner.py",
+            '--depth', '6',
+            '--filters', '64', '96', '128', '192', '256', '384', '512',
+            '--min_fmap', '2',
+            '--gpus', '1',
+            '--amp',
+            '--save_preds',
+            '--exec_mode', 'predict',
+            '--data', f'{self.output_dir}/preprocess/val_3d/test',
+            '--ckpt_path', 'deep_learning/checkpoints/fold3/epoch=146-dice=88.05.ckpt',
+            '--tta',
+            '--results', f'{self.output_dir}/dl_results'
+        ]
+
+        self.dl_process.start(python_executable, args)
+
+    def on_deep_learning_stdout(self):
+        """Gestisce stdout del processo deep learning"""
+        if self.dl_process:
+            data = self.dl_process.readAllStandardOutput()
+            stdout = bytes(data).decode("utf8")
+            if stdout.strip():
+                self.add_log_message(f"[DL] {stdout.strip()}")
+                log.debug(f"[DL]  {stdout.strip()}")
+
+    def on_deep_learning_stderr(self):
+        """Gestisce stderr del processo deep learning"""
+        if self.dl_process:
+            data = self.dl_process.readAllStandardError()
+            stderr = bytes(data).decode("utf8")
+            if stderr.strip():
+                self.add_log_message(f"[DL ERROR] {stderr.strip()}")
+                log.error(f"[DL ERROR] {stderr.strip()}")
+
+    def on_deep_learning_error(self, error):
+        """Gestisce errori del processo deep learning"""
+        self.add_log_message(f"✗ Errore Deep Learning: {error}")
+        log.error(f"Errore Deep Learning: {error}")
+        self.mark_current_file_failed(f"Errore Deep Learning: {error}")
+
+    def on_deep_learning_finished(self):
+        """Chiamata quando il processo deep learning termina"""
+        if self.dl_process and self.dl_process.exitCode() != 0:
+            self.add_log_message(f"✗ Deep Learning fallito (code: {self.dl_process.exitCode()})")
+            self.mark_current_file_failed("Deep Learning fallito")
+            return
+
+        self.add_log_message("✓ Deep Learning completato con successo")
+        self.update_file_status(self.current_basename, "✓ Deep Learning completato")
+
+        # Avanza al prossimo file
+        self.processed_files += 1
+        self.current_file_index += 1
+
+        progress = int((self.processed_files / len(self.input_files)) * 100)
+        self.progress_bar.setValue(progress)
+
+        self.run_postprocess()
+
+    def run_postprocess(self):
+        self.update_file_status(self.current_basename, "🔄 Deep Learning...")
+
+        if self.dl_postprocess:
+            self.dl_postprocess.kill()
+            self.dl_postprocess = None
+
+        self.dl_postprocess = QProcess(self)
+        # self.dl_postprocess.finished.connect(self.on_deep_learning_finished)
+        # self.dl_postprocess.errorOccurred.connect(self.on_deep_learning_error)
+        # self.dl_postprocess.readyReadStandardOutput.connect(self.on_deep_learning_stdout)
+        # self.dl_postprocess.readyReadStandardError.connect(self.on_deep_learning_stderr)
+
+        python_executable = sys.executable
+        args = [
+            "deep_learning/postprocess.py",
+            '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
+            '-o', f'{self.output_dir}/dl_postprocess'
+        ]
+
+        self.dl_postprocess.start(python_executable, args)
+
+    def mark_current_file_failed(self, reason: str):
+        """Segna il file corrente come fallito e passa al successivo"""
+        # Aggiorna lista fallimenti
+        self.failed_files.append(self.current_input_file)
+
+        # Log
+        self.add_log_message(f"✗ File fallito: {self.current_basename} → {reason}")
+
+        # Aggiorna lo stato nella lista
+        self.update_file_status(self.current_basename, f"✗ Fallito ({reason})")
+
+        # Aggiorna progress bar e contatori
+        self.current_file_index += 1
+        self.processed_files += 1
+        if self.input_files:
+            progress = int((self.processed_files / len(self.input_files)) * 100)
+            self.progress_bar.setValue(progress)
+
+        # Continua con il prossimo file
+        self.process_next_file()
+
+    def finalize_processing(self):
+        """Finalizza il processamento dopo che tutti i file sono stati gestiti"""
+        self.processing = False
+        self.processing_completed = True
+
+        # Ripristina UI
+        self.start_button.setVisible(True)
+        self.start_button.setText("Rielabora File")
+        self.cancel_button.setVisible(False)
+        self.progress_bar.setValue(100)
+        self.status_label.setStyleSheet("font-weight: bold; color: green;")
+
+        # Log e stato finale
+        if self.failed_files:
+            self.status_label.setText("Processamento completato con errori ⚠️")
+            self.add_log_message(f"⚠️ Alcuni file non sono stati processati correttamente: {len(self.failed_files)} falliti")
+            for failed_file in self.failed_files:
+                self.add_log_message(f"   ✗ {os.path.basename(failed_file)}")
+            QMessageBox.warning(
+                self,
+                "Processamento completato con errori",
+                f"Il processamento è terminato, ma {len(self.failed_files)} file non sono stati processati correttamente.\n"
+                "Controlla il log per maggiori dettagli."
+            )
+        else:
+            self.status_label.setText("✓ Processamento completato con successo")
+            self.add_log_message("✓ Tutti i file sono stati processati correttamente")
+            QMessageBox.information(
+                self,
+                "Processamento completato",
+                "Tutti i file sono stati processati con successo 🎉"
+            )
+
+        log.info("Processamento finale completato")
 
     def add_log_message(self, message):
         """Aggiunge un messaggio al log"""
@@ -670,42 +765,13 @@ class DlExecutionPage(WizardPage):
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    def processing_finished(self, success, message):
-        """Chiamata quando il processamento termina"""
-        self.processing = False
-        self.processing_completed = True
-
-        # Aggiorna UI
-        self.start_button.setVisible(True)
-        self.cancel_button.setVisible(False)
-        self.progress_bar.setVisible(False)
-
-        if success:
-            self.status_label.setText("✓ Processamento completato!")
-            self.status_label.setStyleSheet("color: green; font-weight: bold;")
-            self.start_button.setText("Riprocessa")
-        else:
-            self.status_label.setText("✗ Processamento fallito")
-            self.status_label.setStyleSheet("color: red; font-weight: bold;")
-
-        self.add_log_message(f"FINALE: {message}")
-
-        # Aggiorna context con risultati
-        if success and "workspace_path" in self.context:
-            output_dir = os.path.join(self.context["workspace_path"], "outputs")
-            self.context["processing_output_dir"] = output_dir
-            if self.enable_coregistration.isChecked():
-                self.context["coregistration_completed"] = True
-
-        # Notifica cambio stato
-        if "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-        # Mostra messaggio finale
-        if success:
-            QMessageBox.information(self, "Completato", message)
-        else:
-            QMessageBox.critical(self, "Errore", message)
+    def update_file_status(self, filename, status):
+        """Aggiorna lo stato di un file nella lista"""
+        for i in range(self.files_list.count()):
+            item = self.files_list.item(i)
+            if filename in item.text():
+                item.setText(f"📄 {filename} - {status}")
+                break
 
     def reset_processing_state(self):
         """Resetta lo stato del processamento"""
@@ -716,54 +782,3 @@ class DlExecutionPage(WizardPage):
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
         self.status_label.setStyleSheet("")
-
-        if self.worker:
-            self.worker.quit()
-            self.worker.wait()
-            self.worker = None
-
-    def back(self):
-        """Torna alla pagina precedente"""
-        if self.processing:
-            reply = QMessageBox.question(
-                self,
-                "Processamento in corso",
-                "Il processamento è in corso. Vuoi davvero tornare indietro?\nIl processamento verrà interrotto.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.No:
-                return None
-
-            # Interrompi processamento
-            if self.worker:
-                self.worker.cancel()
-                self.worker.quit()
-                self.worker.wait()
-
-        if self.previous_page:
-            self.previous_page.on_enter()
-            return self.previous_page
-        return None
-
-    def next(self, context):
-        """Avanza alla pagina successiva"""
-        return None
-
-    def is_ready_to_advance(self):
-        """Controlla se è possibile andare alla pagina successiva"""
-        return self.processing_completed and not self.processing
-
-    def is_ready_to_go_back(self):
-        """Controlla se è possibile tornare indietro"""
-        return True
-
-    def reset_page(self):
-        """Resetta la pagina allo stato iniziale"""
-        self.reset_processing_state()
-        self.log_text.clear()
-        self.files_list.clear()
-        self.status_label.setText("Pronto per iniziare il processamento")
-        self.atlas_path = None
-        self.atlas_path_label.setText("Nessun atlas selezionato")
-        self.atlas_path_label.setStyleSheet("color: gray; font-style: italic;")

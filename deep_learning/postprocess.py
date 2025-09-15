@@ -6,8 +6,6 @@ from glob import glob
 from scipy.ndimage.measurements import label
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
-from pediatric_fdopa_pipeline.utils import align, transform
-
 
 # inspired by the NVIDIA nnU-Net GitHub repository available at:
 # https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Segmentation/nnUNet
@@ -31,27 +29,21 @@ def back_to_original_labels(pred):
 
 
 def prepare_predictions(preds, output_dir):
-    """
-    Convert back to original BraTS labels and save as NIfTI.
-    :param example: example file
-    :param preop: boolean value to check if postprocessing is applied for pre-operative segmentation.
-    :return: post-processed NIfTI file
-    """
-    # fname = example[0].split("/")[-1].split(".")[0]
     for pred in preds:
         fname = os.path.basename(pred).split(".")[0]
-        pred_npy = [np.load(pred)]
-        pred_mean = np.mean(pred_npy, axis=0)
+        pred_npy = np.load(pred)  # caricamento corretto
+        pred_mean = np.mean(pred_npy, axis=0)  # se hai più canali/ensembling
         print(pred_npy.shape)
         print(pred_mean.shape)
+
         # convert back to original BraTS labels
-        p = back_to_original_labels(pred_npy)
+        p = back_to_original_labels(pred_mean)
 
         # save as NIfTI
         img = nib.load(f"/mnt/c/Users/nicol/Desktop/codice_per_DL/prepared/{fname}.nii.gz")
         nib.save(
             nib.Nifti1Image(p, img.affine, header=img.header),
-            os.path.join(output_dir, f"{fname}" + "-seg.nii.gz"),
+            os.path.join(output_dir, f"{fname}-seg.nii.gz"),
         )
 
 

@@ -12,8 +12,10 @@ numpy
 scipy
 dcm2niix
 nipreps-synthstrip
-monai
+monai==0.9.1
 hd-bet; sys_platform == "win32"
+
+git+https://github.com/NVIDIA/dllogger
 
 joblib==1.4.2
 pytorch-lightning==2.5.0.post0
