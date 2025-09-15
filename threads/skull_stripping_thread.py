@@ -15,7 +15,7 @@ class SkullStripThread(QThread):
     file_completed = pyqtSignal(str, bool, str)
     all_completed = pyqtSignal(int, list)
 
-    def __init__(self, files, workspace_path, parameters, system_info):
+    def __init__(self, files, workspace_path, parameters, system_info,has_bet):
         super().__init__()
         self.files = files
         self.workspace_path = workspace_path
@@ -24,6 +24,7 @@ class SkullStripThread(QThread):
         self.is_cancelled = False
         self.success_count = 0
         self.failed_files = []
+        self.has_bet = has_bet
 
     def cancel(self):
         """Cancella l'operazione"""
@@ -67,7 +68,7 @@ class SkullStripThread(QThread):
                 base_name = filename.replace('.nii.gz','').replace('.nii','')
 
                 # Costruzione comando
-                if self.system_info["os"] != "Windows":
+                if self.has_bet:
                     f_val = self.parameters.get('f_val', 0.5)
                     f_str = f"f{str(f_val).replace('.', '')}"
                     output_file = os.path.join(output_dir, f"{base_name}_{f_str}_brain.nii.gz")
@@ -93,14 +94,7 @@ class SkullStripThread(QThread):
                 self.process = QProcess()
                 self.process.start(cmd[0], cmd[1:])
 
-                while self.process.state() != QProcess.ProcessState.NotRunning:
-                    self.msleep(100)
-                    if self.is_cancelled:
-                        self.process.terminate()
-                        self.process.kill()
-                        self.file_completed.emit(filename, False, "Cancelled by user")
-                        self.failed_files.append(nifti_file)
-                        break
+                self.process.waitForFinished(-1)
 
                 if self.is_cancelled:
                     break

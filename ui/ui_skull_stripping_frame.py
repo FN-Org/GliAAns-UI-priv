@@ -73,7 +73,21 @@ class SkullStrippingPage(WizardPage):
         file_selector_layout.addWidget(button_container)
 
         self.layout.addLayout(file_selector_layout)
-        if self.system_info["os"] != "Windows":
+
+        try:
+            # eseguo il comando, senza output a video
+            result = subprocess.run(
+                ['bet'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            # ritorna True se exit code = 0 (successo), False altrimenti
+            self.has_bet = True
+        except FileNotFoundError:
+            # se il comando non esiste proprio
+            self.has_bet = False
+
+        if self.has_bet:
             # Parametro principale
             self.f_box = QGroupBox()
 
@@ -305,7 +319,7 @@ class SkullStrippingPage(WizardPage):
             }
 
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters,self.system_info)
+        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters,self.system_info,self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
