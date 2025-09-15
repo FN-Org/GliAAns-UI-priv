@@ -229,8 +229,8 @@ class PipelinePatientSelectionPage(WizardPage):
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
             # nnU-net segmentation
-            os.path.join(self.workspace_path, "derivatives", "nnU_net", patient_id, "anat", "*_dseg.nii"),
-            os.path.join(self.workspace_path, "derivatives", "nnU_net", patient_id, "anat", "*_dseg.nii.gz")
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii"),
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii.gz")
         ]
 
         segmentation_found = False
@@ -240,13 +240,13 @@ class PipelinePatientSelectionPage(WizardPage):
                 segmentation_found = True
                 if "manual-masks" in pattern:
                     segmentation_type = "Manual Mask"
-                elif "nnU-net" in pattern:
-                    segmentation_type = "nnU-net Segmentation"
+                elif "deep_learning_masks" in pattern:
+                    segmentation_type = "deep_learning_masks Segmentation"
                 break
 
         requirements['segmentation'] = segmentation_found
         if not segmentation_found:
-            missing_files.append("Segmentation (manual_masks/*_mask.nii[.gz] or nnU-net/*_dseg.nii[.gz])")
+            missing_files.append("Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])")
 
         # Determina se il paziente è eligible
         is_eligible = all(requirements.values())
@@ -645,7 +645,13 @@ class PipelinePatientSelectionPage(WizardPage):
             # Tumor MRI (mask)
             tumor_patterns = [
                 os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
-                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz")
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
+
+                # nnU-net segmentation
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                             "*_seg.nii"),
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                             "*_seg.nii.gz")
             ]
             tumor_files = []
             for p in tumor_patterns:

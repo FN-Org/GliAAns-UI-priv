@@ -147,7 +147,11 @@ class PipelineReviewPage(WizardPage):
             "pet": [os.path.join(self.workspace_path, "{pid}", "ses-01", "pet", "*_pet.nii*")],
             "pet4d": [os.path.join(self.workspace_path, "{pid}", "ses-02", "pet", "*_pet.nii*")],
             "tumor_mri": [
-                os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*")]
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*"),
+                # nnU-net segmentation
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", "{pid}", "anat",
+                             "*_seg.nii*"),
+            ]
         }
 
         for patient_id, files in self.pipeline_config.items():

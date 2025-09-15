@@ -101,19 +101,27 @@ class NiftiSelectionPage(WizardPage):
             return False
 
         # Costruisci il percorso dove dovrebbe essere la mask
-        mask_dir = os.path.join(workspace_path, 'derivatives', 'manual_masks', subject_id, 'anat')
+        manual_mask_dir = os.path.join(workspace_path, 'derivatives', 'manual_masks', subject_id, 'anat')
+        deep_learnig_mask_dir = os.path.join(workspace_path, 'derivatives', 'deep_learning_masks', subject_id, 'anat')
 
         # Controlla se la directory esiste
-        if not os.path.exists(mask_dir):
+        if not os.path.exists(manual_mask_dir) and not os.path.exists(deep_learnig_mask_dir):
             return False
+
 
         # Controlla se esistono file .nii.gz
         has_nii = False
 
-        for file in os.listdir(mask_dir):
-            if file.endswith('.nii.gz'):
-                has_nii = True
-                break
+        if os.path.exists(manual_mask_dir):
+            for file in os.listdir(manual_mask_dir):
+                if file.endswith('.nii.gz'):
+                    has_nii = True
+                    break
+        if os.path.exists(deep_learnig_mask_dir):
+            for file in os.listdir(deep_learnig_mask_dir):
+                if file.endswith('.nii.gz'):
+                    has_nii = True
+                    break
 
         # Ritorna True solo se esistono entrambi i tipi di file
         return has_nii
