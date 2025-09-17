@@ -81,6 +81,7 @@ class DlExecutionPage(WizardPage):
 
     def __init__(self, context=None, previous_page=None):
         super().__init__()
+        self.current_file = None
         self.context = context
         self.previous_page = previous_page
         self.next_page = None
@@ -314,8 +315,8 @@ class DlExecutionPage(WizardPage):
             return
 
         # Processa file corrente
-        current_file = self.input_files[self.current_file_index]
-        self.process_single_file(current_file)
+        self.current_file = self.input_files[self.current_file_index]
+        self.process_single_file(self.current_file)
 
     def process_single_file(self, input_file):
         """Processa un singolo file con SynthStrip + Coregistrazione + Reorientazione"""
@@ -323,7 +324,6 @@ class DlExecutionPage(WizardPage):
         base_name = input_basename.replace('.nii.gz', '').replace('.nii', '')
 
         self.add_log_message(f"=== PROCESSAMENTO: {input_basename} ===")
-        self.update_file_status(input_basename, "🔄 Skull Stripping...")
 
         # Nome file skull stripped
         self.current_skull_stripped_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
@@ -339,6 +339,10 @@ class DlExecutionPage(WizardPage):
 
     def run_synthstrip(self, input_file, output_file):
         """Esegue SynthStrip su un file"""
+        self.update_file_status(self.current_basename, "Synthstrip skull strip...")
+
+        phase = "Synthstrip"
+
         self.add_log_message(f"Avvio SynthStrip: {os.path.basename(input_file)}")
 
         if self.synthstrip_process:
@@ -347,9 +351,9 @@ class DlExecutionPage(WizardPage):
 
         self.synthstrip_process = QProcess(self)
         self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
-        self.synthstrip_process.errorOccurred.connect(self.on_synthstrip_error)
-        self.synthstrip_process.readyReadStandardOutput.connect(self.on_synthstrip_stdout)
-        self.synthstrip_process.readyReadStandardError.connect(self.on_synthstrip_stderr)
+        self.synthstrip_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
+        self.synthstrip_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.synthstrip_process.readAllStandardError()))
 
         cmd = [
             "nipreps-synthstrip",
@@ -360,27 +364,6 @@ class DlExecutionPage(WizardPage):
         ]
 
         self.synthstrip_process.start(cmd[0], cmd[1:])
-
-    def on_synthstrip_stdout(self):
-        """Gestisce stdout di SynthStrip"""
-        if self.synthstrip_process:
-            data = self.synthstrip_process.readAllStandardOutput()
-            stdout = bytes(data).decode("utf8")
-            if stdout.strip():
-                self.add_log_message(f"SynthStrip stdout: {stdout.strip()}")
-
-    def on_synthstrip_stderr(self):
-        """Gestisce stderr di SynthStrip"""
-        if self.synthstrip_process:
-            data = self.synthstrip_process.readAllStandardError()
-            stderr = bytes(data).decode("utf8")
-            if stderr.strip():
-                self.add_log_message(f"SynthStrip stderr: {stderr.strip()}")
-
-    def on_synthstrip_error(self, error):
-        """Gestisce errori del processo SynthStrip"""
-        self.add_log_message(f"✗ Errore SynthStrip: {error}")
-        self.mark_current_file_failed(f"Errore SynthStrip: {error}")
 
     def on_synthstrip_finished(self):
         """Chiamata quando SynthStrip termina"""
@@ -398,7 +381,7 @@ class DlExecutionPage(WizardPage):
 
         # Procedi con coregistrazione se abilitata
         if self.enable_coregistration.isChecked() and self.atlas_path and os.path.exists(self.atlas_path):
-            self.update_file_status(self.current_basename, "🔄 Coregistrazione...")
+            self.update_file_status(self.current_basename, "Coregistration...")
             self.run_coregistration()
         else:
             # Salta direttamente alla riorientazione o termina
@@ -546,7 +529,9 @@ class DlExecutionPage(WizardPage):
 
     def run_preprocess(self):
         """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
-        self.update_file_status(self.current_basename, "🔄 Preprocessing...")
+        self.update_file_status(self.current_basename, "Preprocessing...")
+
+        phase = "Preprocessing"
 
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
@@ -557,9 +542,9 @@ class DlExecutionPage(WizardPage):
 
         self.dl_preprocess = QProcess(self)
         self.dl_preprocess.finished.connect(self.on_preprocess_finished)
-        self.dl_preprocess.errorOccurred.connect(self.on_preprocess_error)
-        self.dl_preprocess.readyReadStandardOutput.connect(self.on_preprocess_stdout)
-        self.dl_preprocess.readyReadStandardError.connect(self.on_preprocess_stderr)
+        self.dl_preprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
+        self.dl_preprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_preprocess.readAllStandardError()))
 
         # Prepara gli argomenti per il processo
         python_executable = sys.executable  # Usa lo stesso interprete Python
@@ -573,27 +558,6 @@ class DlExecutionPage(WizardPage):
         # Avvia il processo
         self.dl_preprocess.start(python_executable, args)
 
-    def on_preprocess_stdout(self):
-        """Gestisce stdout del preprocess"""
-        if self.dl_preprocess:
-            data = self.dl_preprocess.readAllStandardOutput()
-            stdout = bytes(data).decode("utf8")
-            if stdout.strip():
-                self.add_log_message(f"[PREPROCESS] {stdout.strip()}")
-
-    def on_preprocess_stderr(self):
-        """Gestisce stderr del preprocess"""
-        if self.dl_preprocess:
-            data = self.dl_preprocess.readAllStandardError()
-            stderr = bytes(data).decode("utf8")
-            if stderr.strip():
-                self.add_log_message(f"[PREPROCESS ERROR] {stderr.strip()}")
-
-    def on_preprocess_error(self, error):
-        """Gestisce errori del processo preprocess"""
-        self.add_log_message(f"✗ Errore preprocess: {error}")
-        self.mark_current_file_failed(f"Errore preprocess: {error}")
-
     def on_preprocess_finished(self):
         """Chiamata quando il preprocess termina"""
         if self.dl_preprocess and self.dl_preprocess.exitCode() != 0:
@@ -606,7 +570,8 @@ class DlExecutionPage(WizardPage):
 
     def run_deep_learning(self):
         """Esegue FASE 6: DEEP LEARNING"""
-        self.update_file_status(self.current_basename, "🔄 Deep Learning...")
+        phase = "Deep Learning"
+        self.update_file_status(self.current_basename, "Deep Learning...")
 
         if self.dl_process:
             self.dl_process.kill()
@@ -614,9 +579,9 @@ class DlExecutionPage(WizardPage):
 
         self.dl_process = QProcess(self)
         self.dl_process.finished.connect(self.on_deep_learning_finished)
-        self.dl_process.errorOccurred.connect(self.on_deep_learning_error)
-        self.dl_process.readyReadStandardOutput.connect(self.on_deep_learning_stdout)
-        self.dl_process.readyReadStandardError.connect(self.on_deep_learning_stderr)
+        self.dl_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
+        self.dl_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_process.readAllStandardError()))
 
         python_executable = sys.executable
         args = [
@@ -636,30 +601,6 @@ class DlExecutionPage(WizardPage):
 
         self.dl_process.start(python_executable, args)
 
-    def on_deep_learning_stdout(self):
-        """Gestisce stdout del processo deep learning"""
-        if self.dl_process:
-            data = self.dl_process.readAllStandardOutput()
-            stdout = bytes(data).decode("utf8")
-            if stdout.strip():
-                self.add_log_message(f"[DL] {stdout.strip()}")
-                log.debug(f"[DL]  {stdout.strip()}")
-
-    def on_deep_learning_stderr(self):
-        """Gestisce stderr del processo deep learning"""
-        if self.dl_process:
-            data = self.dl_process.readAllStandardError()
-            stderr = bytes(data).decode("utf8")
-            if stderr.strip():
-                self.add_log_message(f"[DL ERROR] {stderr.strip()}")
-                log.error(f"[DL ERROR] {stderr.strip()}")
-
-    def on_deep_learning_error(self, error):
-        """Gestisce errori del processo deep learning"""
-        self.add_log_message(f"✗ Errore Deep Learning: {error}")
-        log.error(f"Errore Deep Learning: {error}")
-        self.mark_current_file_failed(f"Errore Deep Learning: {error}")
-
     def on_deep_learning_finished(self):
         """Chiamata quando il processo deep learning termina"""
         if self.dl_process and self.dl_process.exitCode() != 0:
@@ -670,6 +611,33 @@ class DlExecutionPage(WizardPage):
         self.add_log_message("✓ Deep Learning completato con successo")
         self.update_file_status(self.current_basename, "✓ Deep Learning completato")
 
+        self.run_postprocess()
+
+    def run_postprocess(self):
+        phase = "Postprocessing"
+        self.update_file_status(self.current_basename, "Postprocessing...")
+
+        if self.dl_postprocess:
+            self.dl_postprocess.kill()
+            self.dl_postprocess = None
+
+        self.dl_postprocess = QProcess(self)
+        self.dl_postprocess.finished.connect(self.on_postprocess_finished)
+        self.dl_postprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
+        self.dl_postprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_postprocess.readAllStandardError()))
+
+        python_executable = sys.executable
+        args = [
+            "deep_learning/postprocess.py",
+            '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
+            '-o', f'{self.output_dir}/dl_postprocess',
+            '--mri', f'{self.current_file}'
+        ]
+
+        self.dl_postprocess.start(python_executable, args)
+
+    def on_postprocess_finished(self):
         # Avanza al prossimo file
         self.processed_files += 1
         self.current_file_index += 1
@@ -677,29 +645,25 @@ class DlExecutionPage(WizardPage):
         progress = int((self.processed_files / len(self.input_files)) * 100)
         self.progress_bar.setValue(progress)
 
-        self.run_postprocess()
+    def on_stdout(self, string, data):
+        """Gestisce stdout del processo deep learning"""
+        stdout = bytes(data).decode("utf8")
+        if stdout.strip():
+            self.add_log_message(f"[{string}] {stdout.strip()}")
+            log.debug(f"[{string}]  {stdout.strip()}")
 
-    def run_postprocess(self):
-        self.update_file_status(self.current_basename, "🔄 Deep Learning...")
+    def on_stderr(self, string, data):
+        """Gestisce stderr del processo deep learning"""
+        stderr = bytes(data).decode("utf8")
+        if stderr.strip():
+            self.add_log_message(f"[{string} ERROR] {stderr.strip()}")
+            log.error(f"[{string} ERROR] {stderr.strip()}")
 
-        if self.dl_postprocess:
-            self.dl_postprocess.kill()
-            self.dl_postprocess = None
-
-        self.dl_postprocess = QProcess(self)
-        # self.dl_postprocess.finished.connect(self.on_deep_learning_finished)
-        # self.dl_postprocess.errorOccurred.connect(self.on_deep_learning_error)
-        # self.dl_postprocess.readyReadStandardOutput.connect(self.on_deep_learning_stdout)
-        # self.dl_postprocess.readyReadStandardError.connect(self.on_deep_learning_stderr)
-
-        python_executable = sys.executable
-        args = [
-            "deep_learning/postprocess.py",
-            '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
-            '-o', f'{self.output_dir}/dl_postprocess'
-        ]
-
-        self.dl_postprocess.start(python_executable, args)
+    def on_error(self, string, error):
+        """Gestisce errori del processo deep learning"""
+        self.add_log_message(f"✗ Error on {string}: {error}")
+        log.error(f"✗ Error on {string}: {error}")
+        self.mark_current_file_failed(f"✗ Error on {string}: {error}")
 
     def mark_current_file_failed(self, reason: str):
         """Segna il file corrente come fallito e passa al successivo"""

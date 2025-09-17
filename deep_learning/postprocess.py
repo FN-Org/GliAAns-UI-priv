@@ -1,10 +1,17 @@
+import sys
+
 import numpy as np
 import nibabel as nib
 import os
 
 from glob import glob
-from scipy.ndimage.measurements import label
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from pediatric_fdopa_pipeline.utils import align, transform
 
 
 # inspired by the NVIDIA nnU-Net GitHub repository available at:
@@ -29,22 +36,25 @@ def back_to_original_labels(pred):
 
 
 def prepare_predictions(preds, output_dir):
+    saved_files = []
     for pred in preds:
         fname = os.path.basename(pred).split(".")[0]
-        pred_npy = np.load(pred)  # caricamento corretto
-        pred_mean = np.mean(pred_npy, axis=0)  # se hai più canali/ensembling
-        print(pred_npy.shape)
-        print(pred_mean.shape)
+        pred_npy = np.load(pred)
+        pred_mean = np.mean(pred_npy, axis=0)
 
         # convert back to original BraTS labels
         p = back_to_original_labels(pred_mean)
 
         # save as NIfTI
         img = nib.load(f"/mnt/c/Users/nicol/Desktop/codice_per_DL/prepared/{fname}.nii.gz")
+        out_path = os.path.join(output_dir, f"{fname}-seg.nii.gz")
         nib.save(
             nib.Nifti1Image(p, img.affine, header=img.header),
-            os.path.join(output_dir, f"{fname}-seg.nii.gz"),
+            out_path,
         )
+        saved_files.append(out_path)
+
+    return saved_files
 
 
 # === CLI ARGUMENTS ===
@@ -57,14 +67,10 @@ parser.add_argument(
     "-o", "--output", type=str, required=True,
     help="Directory where to save the final NIfTI predictions"
 )
-# parser.add_argument(
-#     "--mri", type=str, required=True,
-#     help="Path to the MRI file"
-# )
-# parser.add_argument(
-#     "--mrib", type=str, required=True,
-#     help="Path to the BraTS-segmentation (mrib) file"
-# )
+parser.add_argument(
+    "--mri", type=str, required=True,
+    help="Original FLAIR mri"
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -80,20 +86,22 @@ if __name__ == "__main__":
     print(f"Preparing final predictions from {len(preds)} files...")
 
     # === FASE 1: FROM NPY TO NIFTI ===
-    prepare_predictions(preds, output_dir=args.output)
+    save_preds = prepare_predictions(preds, output_dir=args.output)
 
     # === FASE 2: FROM BRATS TO MRI ===
-    # mri = args.mri # Flair originale
-    # mrib = args.mrib #
-    # atlas_brats = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
-    # prefix = ".workspace/outputs/nifti/sub-01_"
-    #
-    # mri_space_mrib, mrib_space_mri, mrib2mri_tfm, mri2mrib_tfm = align(
-    #     mri, atlas_brats,
-    #     transform_method='SyNAggro',
-    #     outprefix=f'_mrib2mri_Rigid_'
-    # )
-    #
-    # new_mri = transform(prefix, mri, mrib, mrib2mri_tfm)
+    mri = args.mri # Flair originale
+    mrib = save_preds[0]
+    atlas_brats = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
+    prefix = ".workspace/outputs/nifti/"
+
+    os.makedirs(os.path.dirname(prefix), exist_ok=True)
+
+    mri_space_mrib, mrib_space_mri, mrib2mri_tfm, mri2mrib_tfm = align(
+        mri, atlas_brats,
+        transform_method='SyNAggro',
+        outprefix=f'_mrib2mri_Rigid_'
+    )
+
+    new_mri = transform(prefix, mri, mrib, mrib2mri_tfm)
 
     print("Finished!")
