@@ -1,6 +1,3 @@
-"""
-NIfTI Medical Image Viewer with matplotlib-style rendering and time plot for 4D files
-"""
 import sys
 import os
 import gc

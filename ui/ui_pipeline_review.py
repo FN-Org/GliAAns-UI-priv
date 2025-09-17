@@ -2,10 +2,7 @@ import json
 import os
 import glob
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QScrollArea,
-    QHBoxLayout, QFrame, QGraphicsDropShadowEffect
-)
+from PyQt6.QtWidgets import (QWidget)
 
 from components.collapsible_info_frame import CollapsibleInfoFrame
 from components.collapsible_patient_frame import CollapsiblePatientFrame
@@ -13,10 +10,8 @@ from ui.ui_pipeline_execution import PipelineExecutionPage
 from wizard_state import WizardPage
 from logger import get_logger
 
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize, pyqtSignal
-from PyQt6.QtGui import QCursor
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QComboBox, QToolButton, QGraphicsDropShadowEffect
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QVBoxLayout, QLabel
 
 log = get_logger()
 

@@ -3,13 +3,12 @@ import os
 import json
 import sys
 
-from PyQt6.QtGui import QPen, QColor, QFont, QPainter
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QProgressBar, QPushButton,
-    QTextEdit, QFrame, QHBoxLayout, QScrollArea, QDialog, QListWidget, QSpacerItem, QSizePolicy, QGridLayout,
+    QWidget, QVBoxLayout, QLabel, QPushButton,
+    QTextEdit, QFrame, QHBoxLayout, QScrollArea,QGridLayout,
     QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QRectF, QPropertyAnimation, pyqtProperty
+from PyQt6.QtCore import Qt, QTimer, QProcess
 
 from components.circular_progress_bar import CircularProgress
 from components.folder_card import FolderCard

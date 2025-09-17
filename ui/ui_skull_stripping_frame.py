@@ -1,21 +1,15 @@
 import platform
-import re
-import json
 
-
-from PyQt6.QtGui import QFileSystemModel, QIcon
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton,
-    QLineEdit, QMessageBox, QCheckBox, QDialogButtonBox, QDialog, QHBoxLayout,
-    QListWidget, QListWidgetItem, QWidget, QDoubleSpinBox, QSpinBox, QGridLayout, QGroupBox,
+    QVBoxLayout, QLabel, QPushButton,QMessageBox, QCheckBox,
+    QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
     QProgressBar
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel, QThread, pyqtSignal
+from PyQt6.QtCore import Qt,pyqtSignal
 import os
 import subprocess
 
 from components.file_selector_widget import FileSelectorWidget
-from components.nifti_file_selector import NiftiFileDialog
 from threads.skull_stripping_thread import SkullStripThread
 from wizard_state import WizardPage
 from logger import get_logger

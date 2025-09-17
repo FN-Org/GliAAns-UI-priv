@@ -1,17 +1,10 @@
-import re
-import json
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QPushButton,
-    QFileDialog, QMessageBox, QListWidget, QListWidgetItem,
-    QHBoxLayout, QDialog, QLineEdit, QListView, QDialogButtonBox, QComboBox, QSpinBox, QGroupBox, QGridLayout
-)
-from PyQt6.QtCore import Qt, QStringListModel, QSortFilterProxyModel
-from PyQt6.QtGui import QIcon
+
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton,)
+from PyQt6.QtCore import Qt
+
 import os
 
 from components.file_selector_widget import FileSelectorWidget
-from components.nifti_file_selector import NiftiFileDialog
-from ui.ui_nifti_viewer import NiftiViewer
 from wizard_state import WizardPage
 from logger import get_logger
 
