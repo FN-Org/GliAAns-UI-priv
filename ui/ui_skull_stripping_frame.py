@@ -1,5 +1,4 @@
-import platform
-
+import torch
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton,QMessageBox, QCheckBox,
     QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
@@ -29,7 +28,7 @@ class SkullStrippingPage(WizardPage):
 
         self.worker = None  # Per tenere traccia del worker thread
 
-        self.system_info = self.get_system_info()
+        self.has_cuda = torch.cuda.is_available()
 
         self._setup_ui()
 
@@ -267,7 +266,7 @@ class SkullStrippingPage(WizardPage):
 
 
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters,self.system_info,self.has_bet)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters,self.has_cuda,self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
@@ -434,52 +433,3 @@ class SkullStrippingPage(WizardPage):
 
         # Clear status message
         self.status_label.setText("")
-
-    def get_system_info(self):
-        """
-        Raccoglie info sul sistema operativo e GPU disponibili.
-        Usa solo librerie standard di Python + quelle che già hai.
-
-        Returns
-        -------
-        dict
-            Informazioni su sistema e GPU.
-        """
-        info = {
-            "os": platform.system(),
-            "os_version": platform.version(),
-            "machine": platform.machine(),
-            "gpus": []
-        }
-
-        os_name = info["os"]
-
-        try:
-            if os_name == "Windows":
-                result = subprocess.check_output(
-                    ["wmic", "path", "win32_VideoController", "get", "name"],
-                    shell=True
-                ).decode(errors="ignore").strip().split("\n")[1:]
-                gpus = [gpu.strip() for gpu in result if gpu.strip()]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-            elif os_name == "Linux":
-                result = subprocess.check_output("lspci | grep -i vga", shell=True).decode(errors="ignore")
-                gpus = [line.strip() for line in result.splitlines() if line.strip()]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-            elif os_name == "Darwin":  # macOS
-                result = subprocess.check_output(
-                    ["system_profiler", "SPDisplaysDataType"],
-                    stderr=subprocess.DEVNULL
-                ).decode(errors="ignore")
-                gpus = [line.strip().split(":")[-1].strip()
-                        for line in result.splitlines() if "Chipset Model" in line]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-        except Exception:
-            log.info("Failed to get system info")
-            info["gpus"] = []
-
-
-        return info

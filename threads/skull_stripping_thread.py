@@ -15,12 +15,12 @@ class SkullStripThread(QThread):
     file_completed = pyqtSignal(str, bool, str)
     all_completed = pyqtSignal(int, list)
 
-    def __init__(self, files, workspace_path, parameters, system_info,has_bet):
+    def __init__(self, files, workspace_path, parameters, has_cuda,has_bet):
         super().__init__()
         self.files = files
         self.workspace_path = workspace_path
         self.parameters = parameters
-        self.system_info = system_info
+        self.has_cuda = has_cuda
         self.is_cancelled = False
         self.success_count = 0
         self.failed_files = []
@@ -86,7 +86,7 @@ class SkullStripThread(QThread):
                 else:
                     output_file = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
                     cmd = ["hd-bet", "-i", nifti_file, "-o", output_file]
-                    if not any("NVIDIA" in gpu["name"].upper() for gpu in self.system_info["gpus"]):
+                    if not self.has_cuda:
                         cmd += ["-device", "cpu", "--disable_tta"]
                     method = "HD-BET"
 
