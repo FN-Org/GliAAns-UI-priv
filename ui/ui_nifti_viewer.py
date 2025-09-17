@@ -934,7 +934,8 @@ class NiftiViewer(QMainWindow):
         QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
         log.critical(f"Error loading NIftI file: {error_message}")
         thread_to_cancel = self.sender()
-        self.threads.remove(thread_to_cancel)
+        if thread_to_cancel in self.threads:
+            self.threads.remove(thread_to_cancel)
 
     def on_load_canceled(self, canceled=True):
         self.threads[-1].terminate()

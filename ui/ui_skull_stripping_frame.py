@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel, QThread, p
 import os
 import subprocess
 
+from components.file_selector_widget import FileSelectorWidget
 from components.nifti_file_selector import NiftiFileDialog
 from threads.skull_stripping_thread import SkullStripThread
 from wizard_state import WizardPage
@@ -22,6 +23,8 @@ from logger import get_logger
 log = get_logger()
 
 class SkullStrippingPage(WizardPage):
+
+    processing = pyqtSignal(bool)
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.canceled = False
@@ -29,8 +32,7 @@ class SkullStrippingPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
-        self.selected_files = None
-        self.context["selected_files_signal"].connect(self.set_selected_files)
+
         self.worker = None  # Per tenere traccia del worker thread
 
         self.system_info = self.get_system_info()
@@ -38,6 +40,8 @@ class SkullStrippingPage(WizardPage):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.processing.connect(self.set_processing_mode)
+
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
@@ -46,33 +50,15 @@ class SkullStrippingPage(WizardPage):
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
 
-        file_selector_layout = QHBoxLayout()
+        self.file_selector_widget = FileSelectorWidget(parent=self,
+                                                       context=self.context,
+                                                       has_existing_function=self.has_existing_skull_strip,
+                                                       label="skull strip",
+                                                       allow_multiple=True,
+                                                       processing=self.processing,
+                                                       forced_filters={"datatype": "anat"})
 
-        self.file_list_widget = QListWidget()
-        self.file_list_widget.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        self.file_list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.file_list_widget.setMaximumHeight(100)
-        file_selector_layout.addWidget(self.file_list_widget, stretch=1)
-
-        button_container = QWidget()
-        button_layout = QVBoxLayout(button_container)
-
-        button_layout.addStretch()
-
-        self.file_button = QPushButton("Choose NIfTI File(s)")
-        self.file_button.clicked.connect(self.open_tree_dialog)
-        button_layout.addWidget(self.file_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.clear_button = QPushButton("Clear Selection")
-        self.clear_button.setEnabled(False)
-        self.clear_button.clicked.connect(self.clear_selected_files)
-        button_layout.addWidget(self.clear_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        button_layout.addStretch()
-
-        file_selector_layout.addWidget(button_container)
-
-        self.layout.addLayout(file_selector_layout)
+        self.layout.addWidget(self.file_selector_widget)
 
         try:
             # eseguo il comando, senza output a video
@@ -209,6 +195,7 @@ class SkullStrippingPage(WizardPage):
 
         # Bottone RUN
         self.run_button = QPushButton("Run Skull Stripping")
+        self.file_selector_widget.has_file.connect(self.run_button.setEnabled)
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
         button_container.addWidget(self.run_button)
@@ -257,41 +244,6 @@ class SkullStrippingPage(WizardPage):
 
         return False
 
-    def open_tree_dialog(self):
-        results = NiftiFileDialog.get_files(
-            self,
-            self.context["workspace_path"],
-            allow_multiple=True,
-            has_existing_func=self.has_existing_skull_strip,
-            label="skull strip"
-        )
-        if results:
-            self.set_selected_files(results)
-
-    def set_selected_files(self, file_paths):
-        file_paths = [file for file in file_paths if os.path.exists(file) and not os.path.isdir(file) and (file.endswith('.nii.gz') or file.endswith('.nii'))]
-        self.selected_files = file_paths
-        self.file_list_widget.clear()
-
-        for path in file_paths:
-            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
-            item.setToolTip(path)
-            self.file_list_widget.addItem(item)
-
-        self.clear_button.setEnabled(bool(file_paths))
-        self.run_button.setEnabled(bool(file_paths))
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-    def clear_selected_files(self):
-        self.selected_files = []
-        self.file_list_widget.clear()
-        self.clear_button.setEnabled(False)
-        self.run_button.setEnabled(False)
-
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
     def toggle_advanced(self):
         is_checked = self.advanced_btn.isChecked()
         self.advanced_box.setVisible(is_checked)
@@ -299,11 +251,12 @@ class SkullStrippingPage(WizardPage):
 
     def run_bet(self):
         """Avvia il processing in background usando QThread"""
-        if not hasattr(self, 'selected_files') or not self.selected_files:
+        selected_files = self.file_selector_widget.get_selected_files()
+        if not selected_files:
             QMessageBox.warning(self, "No files", "Please select at least one NIfTI file first.")
             return
         parameters = None
-        if self.system_info["os"] != "Windows":
+        if self.has_bet:
             # Prepara i parametri per il worker
             parameters = {
                 'f_val': self.f_spinbox.value(),
@@ -318,8 +271,9 @@ class SkullStrippingPage(WizardPage):
                 'c_z': self.c_z_spinbox.value(),
             }
 
+
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters,self.system_info,self.has_bet)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters,self.system_info,self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
@@ -330,7 +284,7 @@ class SkullStrippingPage(WizardPage):
         self.worker.finished.connect(self.on_worker_finished)
 
         # Aggiorna l'interfaccia per lo stato "processing"
-        self.set_processing_mode(True)
+        self.processing.emit(True)
 
         # Configura e mostra la progress bar
         self.progress_bar.setRange(0, 100)  # Cambiato per percentuale
@@ -351,9 +305,7 @@ class SkullStrippingPage(WizardPage):
     def set_processing_mode(self, processing):
         """Abilita/disabilita controlli durante il processing"""
         # Disabilita/abilita controlli
-        self.file_button.setEnabled(not processing)
-        self.clear_button.setEnabled(not processing and bool(self.selected_files))
-        self.run_button.setEnabled(not processing and bool(self.selected_files))
+        self.run_button.setEnabled(not processing and bool(self.file_selector_widget.get_selected_files()))
 
         if hasattr(self,"f_spinbox"):
             self.f_spinbox.setEnabled(not processing)
@@ -415,111 +367,12 @@ class SkullStrippingPage(WizardPage):
     def on_worker_finished(self):
         """Gestisce la fine del worker thread"""
         # Riabilita l'interfaccia
-        self.set_processing_mode(False)
+        self.processing.emit(False)
 
         # Pulisci il worker
         if self.worker:
             self.worker.deleteLater()
             self.worker = None
-
-    def update_selected_files(self, files):
-        """
-        Aggiorna i file selezionati e mostra warning se esistono skull strip per i pazienti.
-        """
-        selected_files = []
-        files_with_warnings = []
-
-        # Controlla tutti i file NIfTI nella lista
-        for path in files:
-            if path.endswith(".nii") or path.endswith(".nii.gz"):
-                # Controlla se esiste già uno skull strip per questo paziente
-                if self.has_existing_skull_strip(path, self.context["workspace_path"]):
-                    files_with_warnings.append(path)
-
-                selected_files.append(path)
-
-        # Se ci sono file con warning, mostra il messaggio
-        if files_with_warnings:
-            if len(files_with_warnings) == 1:
-                path = files_with_warnings[0]
-                path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
-                subject_id = None
-                for part in path_parts:
-                    if part.startswith('sub-'):
-                        subject_id = part
-                        break
-
-                if subject_id:
-                    subject_display = subject_id
-                else:
-                    subject_display = "this patient"
-
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("Existing Skull Strip Detected")
-                msg.setText(f"A skull strip already exists for {subject_display}.")
-                msg.setInformativeText(
-                    f"File: {os.path.basename(path)}\n\n"
-                    "You can still proceed to create additional skull strips for this patient.\n"
-                    "Do you want to continue with this selection?"
-                )
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                if msg.exec() == QMessageBox.StandardButton.No:
-                    self.selected_files = []
-                    self.file_list_widget.clear()
-                    self.clear_button.setEnabled(False)
-                    self.run_button.setEnabled(False)
-                    if self.context and "update_main_buttons" in self.context:
-                        self.context["update_main_buttons"]()
-                    return
-            else:
-                subjects_with_strips = set()
-                for path in files_with_warnings:
-                    path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
-                    for part in path_parts:
-                        if part.startswith('sub-'):
-                            subjects_with_strips.add(part)
-                            break
-
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("Existing Skull Strips Detected")
-                msg.setText(f"Skull strips already exist for {len(subjects_with_strips)} patients:")
-
-                subject_list = ", ".join(sorted(subjects_with_strips))
-                msg.setInformativeText(
-                    f"Patients: {subject_list}\n\n"
-                    "You can still proceed to create additional skull strips for these patients.\n"
-                    "Do you want to continue with this selection?"
-                )
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                if msg.exec() == QMessageBox.StandardButton.No:
-                    self.selected_files = []
-                    self.file_list_widget.clear()
-                    self.clear_button.setEnabled(False)
-                    self.run_button.setEnabled(False)
-                    if self.context and "update_main_buttons" in self.context:
-                        self.context["update_main_buttons"]()
-                    return
-
-        # Procedi con la selezione normale
-        self.selected_files = selected_files
-        self.file_list_widget.clear()
-
-        for path in selected_files:
-            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
-            item.setToolTip(path)
-            self.file_list_widget.addItem(item)
-
-        self.clear_button.setEnabled(bool(selected_files))
-        self.run_button.setEnabled(bool(selected_files))
-
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
 
     def back(self):
         # Non permettere di tornare indietro durante il processing
@@ -553,11 +406,8 @@ class SkullStrippingPage(WizardPage):
             self.worker.wait()  # Aspetta che il thread finisca
 
         # Clear selected files
-        self.selected_files = []
-        self.file_list_widget.clear()
+        self.file_selector_widget.clear_selected_files()
 
-        # Reset buttons state
-        self.clear_button.setEnabled(False)
         self.run_button.setEnabled(False)
 
         # Reset main parameter
@@ -586,7 +436,7 @@ class SkullStrippingPage(WizardPage):
         self.cancel_button.setVisible(False)
 
         # Reset UI state
-        self.set_processing_mode(False)
+        self.processing.emit(False)
 
         # Clear status message
         self.status_label.setText("")

@@ -10,9 +10,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
-
 class NiftiFileDialog(QDialog):
-    def __init__(self, parent, workspace_path, allow_multiple=True, has_existing_func=None, label="mask"):
+    def __init__(self, parent, workspace_path, allow_multiple=None, has_existing_func=None, label=None,forced_filters = None):
         super().__init__(parent)
         self.label = label
         self.setWindowTitle(f"Select NIfTI Files ({self.label})")
@@ -21,6 +20,8 @@ class NiftiFileDialog(QDialog):
         self.workspace_path = workspace_path
         self.allow_multiple = allow_multiple
         self.has_existing_func = has_existing_func or (lambda *_: False)
+        self.forced_filters = forced_filters or {}
+
 
         self.selected_files = []
         self.relative_to_absolute = {}
@@ -32,8 +33,8 @@ class NiftiFileDialog(QDialog):
 
     # === Public API ===
     @staticmethod
-    def get_files(parent, workspace_path, allow_multiple=True, has_existing_func=None, label="mask"):
-        dialog = NiftiFileDialog(parent, workspace_path, allow_multiple, has_existing_func, label)
+    def get_files(parent, workspace_path, allow_multiple=True, has_existing_func=None, label="mask",forced_filters=None):
+        dialog = NiftiFileDialog(parent, workspace_path, allow_multiple, has_existing_func, label,forced_filters)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             return dialog.selected_files
         return None
@@ -162,6 +163,10 @@ class NiftiFileDialog(QDialog):
 
         self._update_info_label(len(self.all_nii_files))
         self._populate_file_list()
+
+        if self.forced_filters:
+            self._apply_forced_filters()
+
 
     def _populate_file_list(self):
         self.file_list.clear()
@@ -307,5 +312,39 @@ class NiftiFileDialog(QDialog):
 
         self.selected_files = selected_files
         self.accept()
+
+    def _apply_forced_filters(self):
+        """Applica i filtri forzati definiti in self.forced_filters."""
+        if "search" in self.forced_filters:
+            self.search_bar.setText(self.forced_filters["search"])
+            self.search_bar.setEnabled(False)
+
+        if "subject" in self.forced_filters:
+            self.subject_combo.setCurrentText(self.forced_filters["subject"])
+            self.subject_combo.setEnabled(False)
+
+        if "session" in self.forced_filters:
+            self.session_combo.setCurrentText(self.forced_filters["session"])
+            self.session_combo.setEnabled(False)
+
+        if "modality" in self.forced_filters:
+            self.modality_combo.setCurrentText(self.forced_filters["modality"])
+            self.modality_combo.setEnabled(False)
+
+        if "datatype" in self.forced_filters:
+            self.datatype_combo.setCurrentText(self.forced_filters["datatype"])
+            self.datatype_combo.setEnabled(False)
+
+        if "no_flag" in self.forced_filters:
+            self.no_flag_checkbox.setChecked(bool(self.forced_filters["no_flag"]))
+            self.no_flag_checkbox.setEnabled(False)
+
+        if "with_flag" in self.forced_filters:
+            self.with_flag_checkbox.setChecked(bool(self.forced_filters["with_flag"]))
+            self.with_flag_checkbox.setEnabled(False)
+
+        # Riapplica i filtri alla lista
+        self._apply_filters()
+
 
 
