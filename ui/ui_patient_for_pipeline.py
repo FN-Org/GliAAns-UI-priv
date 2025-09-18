@@ -1,17 +1,13 @@
 import json
-import shutil
 import os
 import glob
 
-from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtGui import QPixmap
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
-                             QFrame, QGridLayout, QHBoxLayout,
-                             QTextEdit, QSplitter)
+                             QFrame, QGridLayout, QHBoxLayout,QSizePolicy)
 from PyQt6.QtCore import Qt
 
 from ui.ui_pipeline_review import PipelineReviewPage
-from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 from logger import get_logger
 
@@ -46,9 +42,11 @@ class PipelinePatientSelectionPage(WizardPage):
         # Pulsanti di selezione in alto
         top_buttons_layout = QHBoxLayout()
 
-        select_eligible_btn = QPushButton("Select All Eligible")
-        deselect_all_btn = QPushButton("Deselect All")
-        refresh_btn = QPushButton("Refresh Status")
+        self.select_eligible_btn = QPushButton("Select All Eligible")
+        self.deselect_all_btn = QPushButton("Deselect All")
+        self.refresh_btn = QPushButton("Refresh Status")
+
+        self.buttons = [self.select_eligible_btn, self.deselect_all_btn, self.refresh_btn]
 
         btn_style = """
             QPushButton {
@@ -67,23 +65,19 @@ class PipelinePatientSelectionPage(WizardPage):
                 color: #888888;
             }
         """
-
-        for btn in [select_eligible_btn, deselect_all_btn, refresh_btn]:
+        for btn in self.buttons:
             btn.setStyleSheet(btn_style)
 
-        select_eligible_btn.clicked.connect(self._select_all_eligible_patients)
-        deselect_all_btn.clicked.connect(self._deselect_all_patients)
-        refresh_btn.clicked.connect(self._refresh_patient_status)
+        self.select_eligible_btn.clicked.connect(self._select_all_eligible_patients)
+        self.deselect_all_btn.clicked.connect(self._deselect_all_patients)
+        self.refresh_btn.clicked.connect(self._refresh_patient_status)
 
         top_buttons_layout.addStretch()
-        top_buttons_layout.addWidget(select_eligible_btn)
-        top_buttons_layout.addWidget(deselect_all_btn)
-        top_buttons_layout.addWidget(refresh_btn)
+        top_buttons_layout.addWidget(self.select_eligible_btn)
+        top_buttons_layout.addWidget(self.deselect_all_btn)
+        top_buttons_layout.addWidget(self.refresh_btn)
 
         self.layout.addLayout(top_buttons_layout)
-
-        # Splitter per dividere la vista dei pazienti e il resoconto
-        # splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Area scroll per i pazienti
         self.scroll_area = QScrollArea()
@@ -118,18 +112,19 @@ class PipelinePatientSelectionPage(WizardPage):
                 border: 1px solid #e0e0e0;
                 border-radius: 12px;
                 background-color: #ffffff;
-                padding: 10px;
+                padding: 0.1em;
             }
         """)
 
         main_layout = QVBoxLayout(summary_frame)
 
-        title = QLabel("Pipeline Requirements Summary")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; margin-bottom: 10px;")
-        main_layout.addWidget(title)
+        # Salvo come attributo per gestire font in resizeEvent
+        self.title_summary = QLabel("Pipeline Requirements Summary")
+        self.title_summary.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_summary.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; margin-bottom: 10px;")
+        main_layout.addWidget(self.title_summary)
 
-        # Layout delle "pillole" informative
+        # Layout delle pillole
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(15)
 
@@ -138,9 +133,9 @@ class PipelinePatientSelectionPage(WizardPage):
         self.not_eligible_label = self._create_stat_pill("./resources/icon_cross.png", "Not Eligible", "0",
                                                          color="#c0392b")
 
-        stats_layout.addWidget(self.total_label)
-        stats_layout.addWidget(self.eligible_label)
-        stats_layout.addWidget(self.not_eligible_label)
+        for pill in [self.total_label, self.eligible_label, self.not_eligible_label]:
+            pill.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            stats_layout.addWidget(pill)
 
         main_layout.addLayout(stats_layout)
 
@@ -157,6 +152,7 @@ class PipelinePatientSelectionPage(WizardPage):
                 background-color: #f9f9f9;
             }}
         """)
+
         layout = QVBoxLayout(pill)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -171,8 +167,14 @@ class PipelinePatientSelectionPage(WizardPage):
         layout.addWidget(label)
         layout.addWidget(value)
 
-        # Lo salvo per poter aggiornare dinamicamente il valore
+        # Salvo i riferimenti per il resize dinamico
+        pill.label = label
         pill.value_label = value
+
+        pill.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        pill.setMinimumHeight(50)
+        pill.setMaximumHeight(120)
+
         return pill
 
     def _check_patient_requirements(self, patient_path, patient_id):
@@ -223,8 +225,8 @@ class PipelinePatientSelectionPage(WizardPage):
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
             # nnU-net segmentation
-            os.path.join(self.workspace_path, "derivatives", "nnU_net", patient_id, "anat", "*_dseg.nii"),
-            os.path.join(self.workspace_path, "derivatives", "nnU_net", patient_id, "anat", "*_dseg.nii.gz")
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii"),
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii.gz")
         ]
 
         segmentation_found = False
@@ -234,13 +236,13 @@ class PipelinePatientSelectionPage(WizardPage):
                 segmentation_found = True
                 if "manual-masks" in pattern:
                     segmentation_type = "Manual Mask"
-                elif "nnU-net" in pattern:
-                    segmentation_type = "nnU-net Segmentation"
+                elif "deep_learning_masks" in pattern:
+                    segmentation_type = "deep_learning_masks Segmentation"
                 break
 
         requirements['segmentation'] = segmentation_found
         if not segmentation_found:
-            missing_files.append("Segmentation (manual_masks/*_mask.nii[.gz] or nnU-net/*_dseg.nii[.gz])")
+            missing_files.append("Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])")
 
         # Determina se il paziente è eligible
         is_eligible = all(requirements.values())
@@ -286,6 +288,8 @@ class PipelinePatientSelectionPage(WizardPage):
         """Crea il frame per un singolo paziente"""
         patient_frame = QFrame()
         patient_frame.setObjectName("patientCard")
+        patient_frame.setMaximumHeight(140)  # Altezza massima
+        patient_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Stile diverso per pazienti eligible/non-eligible
         if status['eligible']:
@@ -561,9 +565,6 @@ class PipelinePatientSelectionPage(WizardPage):
 
         self.selected_patients = valid_selections
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._update_column_count()
 
     def _build_pipeline_config(self):
         """Crea e salva un file JSON con la configurazione iniziale della pipeline.
@@ -640,7 +641,13 @@ class PipelinePatientSelectionPage(WizardPage):
             # Tumor MRI (mask)
             tumor_patterns = [
                 os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
-                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz")
+                os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
+
+                # nnU-net segmentation
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                             "*_seg.nii"),
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                             "*_seg.nii.gz")
             ]
             tumor_files = []
             for p in tumor_patterns:
@@ -776,3 +783,64 @@ class PipelinePatientSelectionPage(WizardPage):
 
         # Ricarica tutto
         self._load_patients()
+
+    def resizeEvent(self, event):
+        """Rende l'interfaccia responsiva in base all'altezza della finestra"""
+        super().resizeEvent(event)
+
+        self._update_column_count()
+
+        height = self.height()
+
+        # Titolo più piccolo su finestra bassa
+        if height < 500:
+            self.title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 5px;")
+            btn_padding = "5px 10px"
+            font_size_btn = 11
+            max_pill_height = 70
+            font_size_title = 12
+            font_size_value = 14
+            font_size_label = 10
+            max_pill_height = 60
+        else:
+            self.title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+            btn_padding = "10px 20px"
+            font_size_btn = 13
+            font_size_title = 16
+            font_size_value = 20
+            font_size_label = 13
+            max_pill_height = 100
+
+        # Aggiorna pulsanti
+        for btn in self.buttons:
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #e0e0e0;
+                    padding: {btn_padding};
+                    border-radius: 10px;
+                    border: 1px solid #bdc3c7;
+                    font-weight: bold;
+                    font-size: {font_size_btn}px;
+                    margin: 2px;
+                }}
+                QPushButton:hover {{
+                    background-color: #d0d0d0;
+                }}
+                QPushButton:disabled {{
+                    background-color: #f0f0f0;
+                    color: #888888;
+                }}
+            """)
+
+        self.title_summary.setStyleSheet(
+            f"font-size: {font_size_title}px; font-weight: bold; color: #000000; margin-bottom: 8px;"
+        )
+
+        for pill in [self.total_label, self.eligible_label, self.not_eligible_label]:
+            pill.label.setStyleSheet(f"font-size: {font_size_label}px; font-weight: bold;")
+            pill.value_label.setStyleSheet(
+                f"font-size: {font_size_value}px; font-weight: bold; color: {pill.value_label.palette().color(pill.value_label.foregroundRole()).name()};"
+            )
+            pill.setMaximumHeight(max_pill_height)
+
+

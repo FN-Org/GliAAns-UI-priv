@@ -1,279 +1,40 @@
-import platform
-import re
-import json
-
-
-from PyQt6.QtGui import QFileSystemModel, QIcon
+import torch
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton,
-    QLineEdit, QMessageBox, QCheckBox, QDialogButtonBox, QDialog, QHBoxLayout,
-    QListWidget, QListWidgetItem, QWidget, QDoubleSpinBox, QSpinBox, QGridLayout, QGroupBox,
+    QVBoxLayout, QLabel, QPushButton,QMessageBox, QCheckBox,
+    QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
     QProgressBar
 )
-from PyQt6.QtCore import Qt, QSortFilterProxyModel, QStringListModel, QThread, pyqtSignal
+from PyQt6.QtCore import Qt,pyqtSignal
 import os
 import subprocess
 
+from components.file_selector_widget import FileSelectorWidget
+from threads.skull_stripping_thread import SkullStripThread
 from wizard_state import WizardPage
 from logger import get_logger
 
 log = get_logger()
 
-
-class SkullStripThread(QThread):
-    """Worker thread per eseguire i comandi BET in background"""
-
-    # Segnali per comunicare con l'interfaccia principale
-    progress_updated = pyqtSignal(str)  # Messaggio di progresso
-    progress_value_updated = pyqtSignal(int)  # Valore numerico per progress bar
-    file_started = pyqtSignal(str)  # filename quando inizia il processing
-    file_completed = pyqtSignal(str, bool, str)  # filename, success, error_message
-    all_completed = pyqtSignal(int, list)  # success_count, failed_files
-
-    def __init__(self, files, workspace_path, parameters,system_info):
-        super().__init__()
-        self.files = files
-        self.workspace_path = workspace_path
-        self.parameters = parameters
-        self.is_cancelled = False
-        self.system_info = system_info
-
-    def cancel(self):
-        """Cancella l'operazione"""
-        self.is_cancelled = True
-
-    def run(self):
-        """Esegue il processing dei file in background"""
-        success_count = 0
-        failed_files = []
-
-        for i, nifti_file in enumerate(self.files):
-            if self.is_cancelled:
-                break
-
-            try:
-                # Emetti segnale di inizio file
-                filename = os.path.basename(nifti_file)
-                self.file_started.emit(filename)
-                self.progress_updated.emit(f"Processing {filename} ({i + 1}/{len(self.files)})...")
-
-                # Aggiorna progress bar all'inizio del file
-                progress_base = int((i / len(self.files)) * 100)
-                self.progress_value_updated.emit(progress_base)
-
-                # Estrai l'ID del paziente dal percorso del file
-                self.progress_updated.emit(f"Extracting subject ID for {filename}...")
-                path_parts = nifti_file.replace(self.workspace_path, '').strip(os.sep).split(os.sep)
-                subject_id = None
-                for part in path_parts:
-                    if part.startswith('sub-'):
-                        subject_id = part
-                        break
-
-                if not subject_id:
-                    error_msg = f"Could not extract subject ID from: {nifti_file}"
-                    self.file_completed.emit(filename, False, error_msg)
-                    failed_files.append(nifti_file)
-                    continue
-
-                # Crea la directory di output
-                self.progress_updated.emit(f"Creating output directory for {filename}...")
-                self.progress_value_updated.emit(progress_base + 10)
-
-                output_dir = os.path.join(self.workspace_path, 'derivatives', 'skullstrips', subject_id, 'anat')
-                os.makedirs(output_dir, exist_ok=True)
-
-                # Prepara i parametri di output
-                self.progress_updated.emit(f"Preparing parameters for {filename}...")
-                self.progress_value_updated.emit(progress_base + 20)
-
-                # Estrai il nome base del file (senza estensione)
-                if filename.endswith('.nii.gz'):
-                    base_name = filename[:-7]  # Rimuovi .nii.gz
-                elif filename.endswith('.nii'):
-                    base_name = filename[:-4]  # Rimuovi .nii
-                else:
-                    base_name = filename
-
-                if self.system_info["os"] != "Windows":
-                    # Estrai il parametro f per il naming
-                    f_val = self.parameters['f_val']
-                    f_str = f"{f_val:.2f}"  # Formatta con 2 decimali
-                    f_formatted = f"f{f_str.replace('.', '')}"  # Rimuovi il punto per il nome file
-
-                    # Nome del file di output
-                    output_filename = f"{base_name}_{f_formatted}_brain.nii.gz"
-                    output_file = os.path.join(output_dir, output_filename)
-
-                    # Costruisci il comando BET
-                    self.progress_updated.emit(f"Building BET command for {filename}...")
-                    self.progress_value_updated.emit(progress_base + 30)
-
-                    cmd = ["bet", nifti_file, output_file]
-
-                    # Aggiungi il parametro fractional intensity
-                    if f_val:
-                        cmd += ["-f", str(f_val)]
-
-                    # Aggiungi opzioni avanzate se selezionate
-                    if self.parameters.get('opt_m', False):
-                        cmd.append("-m")
-                    if self.parameters.get('opt_t', False):
-                        cmd.append("-t")
-                    if self.parameters.get('opt_s', False):
-                        cmd.append("-s")
-                    if self.parameters.get('opt_o', False):
-                        cmd.append("-o")
-
-                    # Aggiungi parametro gradient se impostato
-                    g_val = self.parameters.get('g_val', 0.0)
-                    if g_val != 0.0:
-                        cmd += ["-g", str(g_val)]
-
-                    # Aggiungi coordinate del centro se impostate (diverse da 0,0,0)
-                    c_x = self.parameters.get('c_x', 0)
-                    c_y = self.parameters.get('c_y', 0)
-                    c_z = self.parameters.get('c_z', 0)
-                    if c_x != 0 or c_y != 0 or c_z != 0:
-                        cmd += ["-c", str(c_x), str(c_y), str(c_z)]
-
-                    # Se non è selezionata l'opzione "Output brain-extracted image", aggiungi -n
-                    if not self.parameters.get('opt_brain_extracted', True):
-                        cmd.append("-n")
-
-                    # Esegui il comando
-                    self.progress_updated.emit(f"Running FSL BET on {filename}... This may take a while.")
-                    self.progress_value_updated.emit(progress_base + 40)
-
-                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-
-                    # Crea metadati
-                    self.progress_updated.emit(f"Creating metadata for {filename}...")
-                    self.progress_value_updated.emit(progress_base + 80)
-
-                    # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
-                    json_file = output_file.replace('.nii.gz', '.json')
-                    metadata = {
-                        "SkullStripped": True,
-                        "Description": "Skull-stripped brain image",
-                        "Sources": [filename],
-                        "SkullStrippingMethod": "FSL BET",
-                        "SkullStrippingParameters": {
-                            "fractional_intensity": f_val
-                        }
-                    }
-
-                    # Aggiungi parametri utilizzati ai metadati
-                    if g_val != 0.0:
-                        metadata["SkullStrippingParameters"]["vertical_gradient"] = g_val
-                    if c_x != 0 or c_y != 0 or c_z != 0:
-                        metadata["SkullStrippingParameters"]["center_of_gravity"] = [c_x, c_y, c_z]
-
-                    # Aggiungi flags utilizzati
-                    flags_used = []
-                    if not self.parameters.get('opt_brain_extracted', True):
-                        flags_used.append("-n (no brain image output)")
-                    if self.parameters.get('opt_m', False):
-                        flags_used.append("-m (binary brain mask)")
-                    if self.parameters.get('opt_t', False):
-                        flags_used.append("-t (thresholding)")
-                    if self.parameters.get('opt_s', False):
-                        flags_used.append("-s (exterior skull surface)")
-                    if self.parameters.get('opt_o', False):
-                        flags_used.append("-o (brain surface overlay)")
-
-                    if flags_used:
-                        metadata["SkullStrippingParameters"]["flags_used"] = flags_used
-                else:
-                    # Nome del file di output
-                    output_filename = f"{base_name}_hd-bet_brain.nii.gz"
-                    output_file = os.path.join(output_dir, output_filename)
-
-                    # Costruisci il comando HD-BET
-                    self.progress_updated.emit(f"Building HD-BET command for {filename}...")
-                    self.progress_value_updated.emit(progress_base + 30)
-
-                    cmd = ["hd-bet","-i",nifti_file,"-o",output_file]
-
-                    has_nvidia = any("NVIDIA" in gpu["name"].upper() for gpu in self.system_info["gpus"])
-
-                    if not has_nvidia:
-                        cmd += ["-device","cpu"]
-                        cmd += ["--disable_tta"]
-
-
-
-                    # Esegui il comando
-                    self.progress_updated.emit(f"Running HD-BET on {filename}... This may take a while.")
-                    self.progress_value_updated.emit(progress_base + 40)
-
-                    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-
-                    # Crea metadati
-                    self.progress_updated.emit(f"Creating metadata for {filename}...")
-                    self.progress_value_updated.emit(progress_base + 80)
-
-                    # Crea anche un file JSON con i metadati (opzionale ma utile per BIDS)
-                    json_file = output_file.replace('.nii.gz', '.json')
-                    metadata = {
-                        "SkullStripped": True,
-                        "Description": "Skull-stripped brain image",
-                        "Sources": [filename],
-                        "SkullStrippingMethod": "HD-BET",
-                    }
-
-                with open(json_file, 'w') as f:
-                    json.dump(metadata, f, indent=2)
-
-                # Completamento file
-                self.progress_value_updated.emit(progress_base + 100)
-                success_count += 1
-                self.file_completed.emit(filename, True, "")
-
-            except subprocess.CalledProcessError as e:
-                if self.system_info["os"] == "Windows":
-                    error_msg = f"HD-BET command failed"
-
-                    for fname in ["dataset.json", "plans.json", "predict_from_raw_data_args.json"]:
-                        fpath = os.path.join(output_dir, fname)
-                        try:
-                            os.remove(fpath)
-                        except FileNotFoundError:
-                            pass
-
-                else:
-                    error_msg = f"BET command failed"
-
-                if e.stderr:
-                    error_msg += f": {e.stderr}"
-                self.file_completed.emit(filename, False, error_msg)
-                failed_files.append(nifti_file)
-            except Exception as e:
-                error_msg = f"Error processing file: {str(e)}"
-                self.file_completed.emit(filename, False, error_msg)
-                failed_files.append(nifti_file)
-
-        # Emetti segnale di completamento
-        if not self.is_cancelled:
-            self.progress_value_updated.emit(100)
-            self.all_completed.emit(success_count, failed_files)
-
-
 class SkullStrippingPage(WizardPage):
+
+    processing = pyqtSignal(bool)
     def __init__(self, context=None, previous_page=None):
         super().__init__()
+        self.canceled = False
         self.context = context
         self.previous_page = previous_page
         self.next_page = None
 
-        self.selected_files = None
+
         self.worker = None  # Per tenere traccia del worker thread
 
-        self.system_info = self.get_system_info()
+        self.has_cuda = torch.cuda.is_available()
 
         self._setup_ui()
 
     def _setup_ui(self):
+        self.processing.connect(self.set_processing_mode)
+
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
@@ -282,34 +43,30 @@ class SkullStrippingPage(WizardPage):
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
 
-        file_selector_layout = QHBoxLayout()
+        self.file_selector_widget = FileSelectorWidget(parent=self,
+                                                       context=self.context,
+                                                       has_existing_function=self.has_existing_skull_strip,
+                                                       label="skull strip",
+                                                       allow_multiple=True,
+                                                       processing=self.processing,
+                                                       forced_filters={"datatype": "anat"})
 
-        self.file_list_widget = QListWidget()
-        self.file_list_widget.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        self.file_list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.file_list_widget.setMaximumHeight(100)
-        file_selector_layout.addWidget(self.file_list_widget, stretch=1)
+        self.layout.addWidget(self.file_selector_widget)
 
-        button_container = QWidget()
-        button_layout = QVBoxLayout(button_container)
+        try:
+            # eseguo il comando, senza output a video
+            result = subprocess.run(
+                ['bet'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            # ritorna True se exit code = 0 (successo), False altrimenti
+            self.has_bet = True
+        except FileNotFoundError:
+            # se il comando non esiste proprio
+            self.has_bet = False
 
-        button_layout.addStretch()
-
-        self.file_button = QPushButton("Choose NIfTI File(s)")
-        self.file_button.clicked.connect(self.open_tree_dialog)
-        button_layout.addWidget(self.file_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.clear_button = QPushButton("Clear Selection")
-        self.clear_button.setEnabled(False)
-        self.clear_button.clicked.connect(self.clear_selected_files)
-        button_layout.addWidget(self.clear_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        button_layout.addStretch()
-
-        file_selector_layout.addWidget(button_container)
-
-        self.layout.addLayout(file_selector_layout)
-        if self.system_info["os"] != "Windows":
+        if self.has_bet:
             # Parametro principale
             self.f_box = QGroupBox()
 
@@ -431,6 +188,7 @@ class SkullStrippingPage(WizardPage):
 
         # Bottone RUN
         self.run_button = QPushButton("Run Skull Stripping")
+        self.file_selector_widget.has_file.connect(self.run_button.setEnabled)
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
         button_container.addWidget(self.run_button)
@@ -479,397 +237,6 @@ class SkullStrippingPage(WizardPage):
 
         return False
 
-    def open_tree_dialog(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Select NIfTI files for skull stripping")
-        dialog.resize(700, 650)  # Aumentato per i nuovi controlli
-
-        layout = QVBoxLayout(dialog)
-
-        # === SEZIONE FILTRI MODERNA ===
-        filter_group = QGroupBox("Filters")
-        filter_layout = QGridLayout(filter_group)
-
-        # Ricerca testuale (migliorata)
-        search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search files (FLAIR, T1, T2, etc.)")
-        search_bar.setClearButtonEnabled(True)  # Pulsante X per cancellare
-        filter_layout.addWidget(QLabel("Search:"), 0, 0)
-        filter_layout.addWidget(search_bar, 0, 1, 1, 3)
-
-        # Filtro per soggetto/paziente
-        from PyQt6.QtWidgets import QComboBox, QCheckBox, QPushButton
-        subject_combo = QComboBox()
-        subject_combo.setEditable(True)  # Permette digitazione custom
-        subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
-        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
-        filter_layout.addWidget(subject_combo, 1, 1)
-
-        # Filtro per sessione
-        session_combo = QComboBox()
-        session_combo.setEditable(True)
-        session_combo.lineEdit().setPlaceholderText("All sessions...")
-        filter_layout.addWidget(QLabel("Session:"), 1, 2)
-        filter_layout.addWidget(session_combo, 1, 3)
-
-        # Filtro per modalità (T1, T2, FLAIR, etc.)
-        modality_combo = QComboBox()
-        modality_combo.setEditable(True)
-        modality_combo.lineEdit().setPlaceholderText("All modalities...")
-        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
-        filter_layout.addWidget(modality_combo, 2, 1)
-
-        # Filtro per tipo di file (anatomico, funzionale, etc.)
-        datatype_combo = QComboBox()
-        datatype_combo.addItems(["All types", "anat", "func", "dwi", "fmap", "perf"])
-        filter_layout.addWidget(QLabel("Data type:"), 2, 2)
-        filter_layout.addWidget(datatype_combo, 2, 3)
-
-        # Checkbox per mostrare solo file senza skull strip
-        no_strip_checkbox = QCheckBox("Show only files without existing skull strips")
-        filter_layout.addWidget(no_strip_checkbox, 3, 0, 1, 2)
-
-        # Checkbox per mostrare solo file con skull strip
-        with_strip_checkbox = QCheckBox("Show only files with existing skull strips")
-        filter_layout.addWidget(with_strip_checkbox, 3, 2, 1, 2)
-
-        layout.addWidget(filter_group)
-
-        # === RACCOLTA E PARSING DEI FILE ===
-        all_nii_files = []
-        relative_to_absolute = {}
-        files_with_skull_strips = set()
-        subjects_set = set()
-        sessions_set = set()
-        modalities_set = set()
-
-        for root, dirs, files in os.walk(self.context["workspace_path"]):
-            # Ignora la cartella 'derivatives' e tutte le sue sottocartelle
-            dirs[:] = [d for d in dirs if d != "derivatives"]
-
-            for f in files:
-                if f.endswith((".nii", ".nii.gz")):
-                    full_path = os.path.join(root, f)
-                    relative_path = os.path.relpath(full_path, self.context["workspace_path"])
-                    all_nii_files.append(relative_path)
-                    relative_to_absolute[relative_path] = full_path
-
-                    # Estrai informazioni BIDS dal percorso
-                    path_parts = relative_path.split(os.sep)
-
-                    # Estrai subject
-                    for part in path_parts:
-                        if part.startswith('sub-'):
-                            subjects_set.add(part)
-                            break
-
-                    # Estrai session
-                    for part in path_parts:
-                        if part.startswith('ses-'):
-                            sessions_set.add(part)
-                            break
-
-                    # Estrai modality
-                    filename = os.path.basename(f)
-                    filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]  # rimuove .nii.gz o .nii
-                    parts = filename_noext.split("_")
-                    # La modalità è in genere l'ultima parte del nome
-                    possible_modality = parts[-1]
-                    modality = possible_modality if possible_modality else "Unknown"
-
-                    modalities_set.add(modality)
-
-                    # Segna i file che hanno già una mask
-                    if self.has_existing_skull_strip(full_path, self.context["workspace_path"]):
-                        files_with_skull_strips.add(relative_path)
-
-        # === POPOLA I DROPDOWN ===
-        subject_combo.addItem("All subjects")
-        subject_combo.addItems(sorted(subjects_set))
-
-        session_combo.addItem("All sessions")
-        session_combo.addItems(sorted(sessions_set))
-
-        modality_combo.addItem("All modalities")
-        modality_combo.addItems(sorted(modalities_set))
-
-        # === INFO LABEL ===
-        info_label = QLabel()
-
-        def update_info_label(visible_count):
-            info_text = f"Showing {visible_count} of {len(all_nii_files)} files"
-            if files_with_skull_strips:
-                info_text += f" ({len(files_with_skull_strips)} total with existing skull strips)"
-            info_label.setText(info_text)
-            info_label.setStyleSheet("color: gray; font-size: 10px;")
-
-        update_info_label(len(all_nii_files))
-        layout.addWidget(info_label)
-
-        # === LISTA FILE ===
-        from PyQt6.QtWidgets import QListWidget, QListWidgetItem
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtGui import QBrush, QColor
-
-        file_list = QListWidget()
-        file_list.setEditTriggers(QListWidget.EditTrigger.NoEditTriggers)
-        file_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)  # Permette selezione multipla
-        file_list.setAlternatingRowColors(True)  # Righe alternate colorate
-
-        # Aggiungi tutti i file con colori differenziati
-        def populate_file_list():
-            file_list.clear()
-            for relative_path in sorted(all_nii_files):
-                item = QListWidgetItem(relative_path)
-
-                # Se il file ha già uno skull strip, coloralo in giallo
-                if relative_path in files_with_skull_strips:
-                    item.setForeground(QBrush(QColor(255, 193, 7)))  # Giallo (Bootstrap warning color)
-                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n✓ This patient already has a skull strip")
-                else:
-                    item.setToolTip(f"{relative_to_absolute[relative_path]}\n○ No existing skull strip")
-
-                file_list.addItem(item)
-
-        populate_file_list()
-        layout.addWidget(file_list)
-
-        # === FUNZIONE DI FILTRO AVANZATA ===
-        def apply_filters():
-            search_text = search_bar.text().lower()
-            selected_subject = subject_combo.currentText()
-            selected_session = session_combo.currentText()
-            selected_modality = modality_combo.currentText()
-            selected_datatype = datatype_combo.currentText()
-
-            show_only_no_strip = no_strip_checkbox.isChecked()
-            show_only_with_strip = with_strip_checkbox.isChecked()
-
-            visible_count = 0
-
-            for i in range(file_list.count()):
-                item = file_list.item(i)
-                relative_path = item.text()
-                should_show = True
-
-                # Filtro ricerca testuale
-                if search_text and search_text not in relative_path.lower():
-                    should_show = False
-
-                # Filtro soggetto
-                if selected_subject != "All subjects" and selected_subject:
-                    if selected_subject not in relative_path:
-                        should_show = False
-
-                # Filtro sessione
-                if selected_session != "All sessions" and selected_session:
-                    if selected_session not in relative_path:
-                        should_show = False
-
-                # Filtro modalità
-                if selected_modality != "All modalities" and selected_modality:
-                    if selected_modality not in relative_path:
-                        should_show = False
-
-                # Filtro tipo di dato
-                if selected_datatype != "All types":
-                    if f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
-                        should_show = False
-
-                # Filtro per presenza/assenza skull strip
-                has_strip = relative_path in files_with_skull_strips
-                if show_only_no_strip and has_strip:
-                    should_show = False
-                if show_only_with_strip and not has_strip:
-                    should_show = False
-
-                item.setHidden(not should_show)
-                if should_show:
-                    visible_count += 1
-
-            update_info_label(visible_count)
-
-        # === CONNESSIONI EVENTI ===
-        search_bar.textChanged.connect(apply_filters)
-        subject_combo.currentTextChanged.connect(apply_filters)
-        session_combo.currentTextChanged.connect(apply_filters)
-        modality_combo.currentTextChanged.connect(apply_filters)
-        datatype_combo.currentTextChanged.connect(apply_filters)
-        no_strip_checkbox.toggled.connect(apply_filters)
-        with_strip_checkbox.toggled.connect(apply_filters)
-
-        # Evita che entrambi i checkbox siano selezionati insieme
-        def on_no_strip_toggled(checked):
-            if checked:
-                with_strip_checkbox.setChecked(False)
-
-        def on_with_strip_toggled(checked):
-            if checked:
-                no_strip_checkbox.setChecked(False)
-
-        no_strip_checkbox.toggled.connect(on_no_strip_toggled)
-        with_strip_checkbox.toggled.connect(on_with_strip_toggled)
-
-        # === PULSANTI ===
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-
-        # Pulsante per resettare tutti i filtri
-        reset_button = QPushButton("Reset Filters")
-
-        def reset_filters():
-            search_bar.clear()
-            subject_combo.setCurrentIndex(0)
-            session_combo.setCurrentIndex(0)
-            modality_combo.setCurrentIndex(0)
-            datatype_combo.setCurrentIndex(0)
-            no_strip_checkbox.setChecked(False)
-            with_strip_checkbox.setChecked(False)
-
-        reset_button.clicked.connect(reset_filters)
-        buttons.addButton(reset_button, QDialogButtonBox.ButtonRole.ResetRole)
-
-        # Pulsante per selezionare tutti i file visibili
-        select_all_button = QPushButton("Select All Visible")
-
-        def select_all_visible():
-            for i in range(file_list.count()):
-                item = file_list.item(i)
-                if not item.isHidden():
-                    item.setSelected(True)
-
-        select_all_button.clicked.connect(select_all_visible)
-        buttons.addButton(select_all_button, QDialogButtonBox.ButtonRole.ActionRole)
-
-        # Pulsante per deselezionare tutto
-        deselect_all_button = QPushButton("Deselect All")
-
-        def deselect_all():
-            file_list.clearSelection()
-
-        deselect_all_button.clicked.connect(deselect_all)
-        buttons.addButton(deselect_all_button, QDialogButtonBox.ButtonRole.ActionRole)
-
-        layout.addWidget(buttons)
-
-        # === LOGICA ACCETTAZIONE ===
-        def accept():
-            selected_items = file_list.selectedItems()
-            # Filtra solo gli elementi visibili (non nascosti)
-            visible_selected_items = [item for item in selected_items if not item.isHidden()]
-
-            if not visible_selected_items:
-                QMessageBox.warning(dialog, "No selection", "Please select at least one visible NIfTI file.")
-                log.info("No selection")
-                return
-
-            selected_files = []
-            files_with_warnings = []
-
-            # Processa ogni file selezionato
-            for item in visible_selected_items:
-                selected_relative_path = item.text()
-                selected_absolute_path = relative_to_absolute[selected_relative_path]
-
-                # Se il file selezionato ha già uno skull strip, aggiungilo alla lista dei warning
-                if selected_relative_path in files_with_skull_strips:
-                    files_with_warnings.append((selected_absolute_path, selected_relative_path))
-
-                selected_files.append(selected_absolute_path)
-
-            # Se ci sono file con warning, mostra il messaggio
-            if files_with_warnings:
-                if len(files_with_warnings) == 1:
-                    # Un solo file con warning
-                    selected_absolute_path, selected_relative_path = files_with_warnings[0]
-
-                    # Estrai l'ID del paziente
-                    path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(os.sep).split(
-                        os.sep)
-                    subject_id = None
-                    for part in path_parts:
-                        if part.startswith('sub-'):
-                            subject_id = part
-                            break
-
-                    if subject_id:
-                        subject_display = subject_id
-                    else:
-                        subject_display = "this patient"
-
-                    msg = QMessageBox(dialog)
-                    msg.setIcon(QMessageBox.Icon.Warning)
-                    msg.setWindowTitle("Existing Skull Strip Detected")
-                    msg.setText(f"A skull strip already exists for {subject_display}.")
-                    msg.setInformativeText(
-                        f"File: {os.path.basename(selected_absolute_path)}\n\n"
-                        "You can still proceed to create additional skull strips for this patient.\n"
-                        "Do you want to continue with this selection?"
-                    )
-                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                    if msg.exec() == QMessageBox.StandardButton.No:
-                        return
-                else:
-                    # Multipli file con warning
-                    subjects_with_strips = set()
-                    for selected_absolute_path, _ in files_with_warnings:
-                        path_parts = selected_absolute_path.replace(self.context["workspace_path"], '').strip(
-                            os.sep).split(os.sep)
-                        for part in path_parts:
-                            if part.startswith('sub-'):
-                                subjects_with_strips.add(part)
-                                break
-
-                    msg = QMessageBox(dialog)
-                    msg.setIcon(QMessageBox.Icon.Warning)
-                    msg.setWindowTitle("Existing Skull Strips Detected")
-                    msg.setText(f"Skull strips already exist for {len(subjects_with_strips)} patients:")
-
-                    subject_list = ", ".join(sorted(subjects_with_strips))
-                    msg.setInformativeText(
-                        f"Patients: {subject_list}\n\n"
-                        "You can still proceed to create additional skull strips for these patients.\n"
-                        "Do you want to continue with this selection?"
-                    )
-                    msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                    msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                    if msg.exec() == QMessageBox.StandardButton.No:
-                        return
-
-            # Procedi con la selezione
-            self.set_selected_files(selected_files)
-            dialog.accept()
-
-        buttons.accepted.connect(accept)
-        buttons.rejected.connect(dialog.reject)
-
-        dialog.exec()
-
-    def set_selected_files(self, file_paths):
-        self.selected_files = file_paths
-        self.file_list_widget.clear()
-
-        for path in file_paths:
-            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
-            item.setToolTip(path)
-            self.file_list_widget.addItem(item)
-
-        self.clear_button.setEnabled(bool(file_paths))
-        self.run_button.setEnabled(bool(file_paths))
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
-    def clear_selected_files(self):
-        self.selected_files = []
-        self.file_list_widget.clear()
-        self.clear_button.setEnabled(False)
-        self.run_button.setEnabled(False)
-
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
-
     def toggle_advanced(self):
         is_checked = self.advanced_btn.isChecked()
         self.advanced_box.setVisible(is_checked)
@@ -877,11 +244,12 @@ class SkullStrippingPage(WizardPage):
 
     def run_bet(self):
         """Avvia il processing in background usando QThread"""
-        if not hasattr(self, 'selected_files') or not self.selected_files:
+        selected_files = self.file_selector_widget.get_selected_files()
+        if not selected_files:
             QMessageBox.warning(self, "No files", "Please select at least one NIfTI file first.")
             return
         parameters = None
-        if self.system_info["os"] != "Windows":
+        if self.has_bet:
             # Prepara i parametri per il worker
             parameters = {
                 'f_val': self.f_spinbox.value(),
@@ -896,8 +264,9 @@ class SkullStrippingPage(WizardPage):
                 'c_z': self.c_z_spinbox.value(),
             }
 
+
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(self.selected_files, self.context["workspace_path"], parameters,self.system_info)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters,self.has_cuda,self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
@@ -908,7 +277,7 @@ class SkullStrippingPage(WizardPage):
         self.worker.finished.connect(self.on_worker_finished)
 
         # Aggiorna l'interfaccia per lo stato "processing"
-        self.set_processing_mode(True)
+        self.processing.emit(True)
 
         # Configura e mostra la progress bar
         self.progress_bar.setRange(0, 100)  # Cambiato per percentuale
@@ -920,6 +289,7 @@ class SkullStrippingPage(WizardPage):
 
     def cancel_processing(self):
         """Cancella il processing in corso"""
+        self.canceled = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.status_label.setText("Cancelling...")
@@ -928,9 +298,7 @@ class SkullStrippingPage(WizardPage):
     def set_processing_mode(self, processing):
         """Abilita/disabilita controlli durante il processing"""
         # Disabilita/abilita controlli
-        self.file_button.setEnabled(not processing)
-        self.clear_button.setEnabled(not processing and bool(self.selected_files))
-        self.run_button.setEnabled(not processing and bool(self.selected_files))
+        self.run_button.setEnabled(not processing and bool(self.file_selector_widget.get_selected_files()))
 
         if hasattr(self,"f_spinbox"):
             self.f_spinbox.setEnabled(not processing)
@@ -992,111 +360,12 @@ class SkullStrippingPage(WizardPage):
     def on_worker_finished(self):
         """Gestisce la fine del worker thread"""
         # Riabilita l'interfaccia
-        self.set_processing_mode(False)
+        self.processing.emit(False)
 
         # Pulisci il worker
         if self.worker:
             self.worker.deleteLater()
             self.worker = None
-
-    def update_selected_files(self, files):
-        """
-        Aggiorna i file selezionati e mostra warning se esistono skull strip per i pazienti.
-        """
-        selected_files = []
-        files_with_warnings = []
-
-        # Controlla tutti i file NIfTI nella lista
-        for path in files:
-            if path.endswith(".nii") or path.endswith(".nii.gz"):
-                # Controlla se esiste già uno skull strip per questo paziente
-                if self.has_existing_skull_strip(path, self.context["workspace_path"]):
-                    files_with_warnings.append(path)
-
-                selected_files.append(path)
-
-        # Se ci sono file con warning, mostra il messaggio
-        if files_with_warnings:
-            if len(files_with_warnings) == 1:
-                path = files_with_warnings[0]
-                path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
-                subject_id = None
-                for part in path_parts:
-                    if part.startswith('sub-'):
-                        subject_id = part
-                        break
-
-                if subject_id:
-                    subject_display = subject_id
-                else:
-                    subject_display = "this patient"
-
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("Existing Skull Strip Detected")
-                msg.setText(f"A skull strip already exists for {subject_display}.")
-                msg.setInformativeText(
-                    f"File: {os.path.basename(path)}\n\n"
-                    "You can still proceed to create additional skull strips for this patient.\n"
-                    "Do you want to continue with this selection?"
-                )
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                if msg.exec() == QMessageBox.StandardButton.No:
-                    self.selected_files = []
-                    self.file_list_widget.clear()
-                    self.clear_button.setEnabled(False)
-                    self.run_button.setEnabled(False)
-                    if self.context and "update_main_buttons" in self.context:
-                        self.context["update_main_buttons"]()
-                    return
-            else:
-                subjects_with_strips = set()
-                for path in files_with_warnings:
-                    path_parts = path.replace(self.context["workspace_path"], '').strip(os.sep).split(os.sep)
-                    for part in path_parts:
-                        if part.startswith('sub-'):
-                            subjects_with_strips.add(part)
-                            break
-
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Warning)
-                msg.setWindowTitle("Existing Skull Strips Detected")
-                msg.setText(f"Skull strips already exist for {len(subjects_with_strips)} patients:")
-
-                subject_list = ", ".join(sorted(subjects_with_strips))
-                msg.setInformativeText(
-                    f"Patients: {subject_list}\n\n"
-                    "You can still proceed to create additional skull strips for these patients.\n"
-                    "Do you want to continue with this selection?"
-                )
-                msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-                if msg.exec() == QMessageBox.StandardButton.No:
-                    self.selected_files = []
-                    self.file_list_widget.clear()
-                    self.clear_button.setEnabled(False)
-                    self.run_button.setEnabled(False)
-                    if self.context and "update_main_buttons" in self.context:
-                        self.context["update_main_buttons"]()
-                    return
-
-        # Procedi con la selezione normale
-        self.selected_files = selected_files
-        self.file_list_widget.clear()
-
-        for path in selected_files:
-            item = QListWidgetItem(QIcon.fromTheme("document"), os.path.basename(path))
-            item.setToolTip(path)
-            self.file_list_widget.addItem(item)
-
-        self.clear_button.setEnabled(bool(selected_files))
-        self.run_button.setEnabled(bool(selected_files))
-
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
 
     def back(self):
         # Non permettere di tornare indietro durante il processing
@@ -1130,11 +399,8 @@ class SkullStrippingPage(WizardPage):
             self.worker.wait()  # Aspetta che il thread finisca
 
         # Clear selected files
-        self.selected_files = []
-        self.file_list_widget.clear()
+        self.file_selector_widget.clear_selected_files()
 
-        # Reset buttons state
-        self.clear_button.setEnabled(False)
         self.run_button.setEnabled(False)
 
         # Reset main parameter
@@ -1163,56 +429,7 @@ class SkullStrippingPage(WizardPage):
         self.cancel_button.setVisible(False)
 
         # Reset UI state
-        self.set_processing_mode(False)
+        self.processing.emit(False)
 
         # Clear status message
         self.status_label.setText("")
-
-    def get_system_info(self):
-        """
-        Raccoglie info sul sistema operativo e GPU disponibili.
-        Usa solo librerie standard di Python + quelle che già hai.
-
-        Returns
-        -------
-        dict
-            Informazioni su sistema e GPU.
-        """
-        info = {
-            "os": platform.system(),
-            "os_version": platform.version(),
-            "machine": platform.machine(),
-            "gpus": []
-        }
-
-        os_name = info["os"]
-
-        try:
-            if os_name == "Windows":
-                result = subprocess.check_output(
-                    ["wmic", "path", "win32_VideoController", "get", "name"],
-                    shell=True
-                ).decode(errors="ignore").strip().split("\n")[1:]
-                gpus = [gpu.strip() for gpu in result if gpu.strip()]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-            elif os_name == "Linux":
-                result = subprocess.check_output("lspci | grep -i vga", shell=True).decode(errors="ignore")
-                gpus = [line.strip() for line in result.splitlines() if line.strip()]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-            elif os_name == "Darwin":  # macOS
-                result = subprocess.check_output(
-                    ["system_profiler", "SPDisplaysDataType"],
-                    stderr=subprocess.DEVNULL
-                ).decode(errors="ignore")
-                gpus = [line.strip().split(":")[-1].strip()
-                        for line in result.splitlines() if "Chipset Model" in line]
-                info["gpus"] = [{"name": gpu} for gpu in gpus]
-
-        except Exception:
-            log.info("Failed to get system info")
-            info["gpus"] = []
-
-
-        return info

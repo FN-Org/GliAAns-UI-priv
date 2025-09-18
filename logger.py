@@ -66,7 +66,7 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
 def setup_logger(console,
                  logger_name="GliAAns-UI",
                  logfile=Path(".log") / "log.txt",
-                 level=logging.DEBUG,
+                 level=logging.ERROR,
                  maxBytes=10*1024*1024,
                  backupCount=5):
     logger = logging.getLogger(logger_name)
