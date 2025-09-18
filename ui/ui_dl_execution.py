@@ -1,14 +1,13 @@
 import os
 from PyQt6 import QtWidgets, QtGui, QtCore
-from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QScrollArea, QFrame, QGridLayout, QHBoxLayout,
                              QMessageBox, QGroupBox, QListWidget, QProgressBar,
                              QListWidgetItem, QTextEdit, QSplitter, QFileDialog,
                              QCheckBox)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QProcess
+from PyQt6.QtCore import Qt
 
-from pediatric_fdopa_pipeline.utils import align, transform
+from components.circular_progress_bar import CircularProgress
 from threads.dl_thread import DlThread
 from wizard_state import WizardPage
 from logger import get_logger
@@ -34,54 +33,55 @@ class DlExecutionPage(WizardPage):
 
     def _setup_ui(self):
         """Configura l'interfaccia utente"""
-        self.layout = QVBoxLayout(self)
-        self.setLayout(self.layout)
+        main_layout = QVBoxLayout(self)
+        # self.layout = QVBoxLayout(self)
+        # self.setLayout(self.layout)
+
+        # Header
+        header = QLabel("Deep Learning Segmentation")
+        header.setStyleSheet("""
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #2c3e50;
+            margin-bottom: 10px;
+        """)
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(header)
 
         # Titolo
-        self.title = QLabel("Skull Stripping + Coregistrazione")
-        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(self.title)
+        # self.title = QLabel("Skull Stripping + Coregistrazione")
+        # self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        # self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.layout.addWidget(self.title)
 
-        description = QLabel(
-            "I file NIfTI verranno processati con SynthStrip per rimuovere il cranio,\n"
-            "seguiti opzionalmente da coregistrazione con atlas T1.\n"
-            "I risultati saranno salvati nella cartella outputs del workspace."
-        )
-        description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description.setStyleSheet("color: gray; margin-bottom: 20px;")
-        self.layout.addWidget(description)
+        # description = QLabel(
+        #     "I file NIfTI verranno processati con SynthStrip per rimuovere il cranio,\n"
+        #     "seguiti opzionalmente da coregistrazione con atlas T1.\n"
+        #     "I risultati saranno salvati nella cartella outputs del workspace."
+        # )
+        # description.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # description.setStyleSheet("color: gray; margin-bottom: 20px;")
+        # self.layout.addWidget(description)
 
-        # === CONFIGURAZIONE ATLAS ===
-        atlas_group = QGroupBox("Configurazione Coregistrazione")
-        atlas_layout = QVBoxLayout(atlas_group)
+        # Current operation
+        self.current_operation = QLabel("Ready to start")
+        self.current_operation.setStyleSheet("""
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 8px;
+        """)
+        self.current_operation.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.current_operation)
 
-        # Checkbox coregistrazione (di default attiva)
-        self.enable_coregistration = QCheckBox("Abilita coregistrazione con atlas")
-        self.enable_coregistration.setChecked(True)
-        atlas_layout.addWidget(self.enable_coregistration)
+        # --- Content area ---
+        content_layout = QGridLayout()
+        main_layout.addLayout(content_layout, stretch=1)
 
-        # Label percorso atlas (bloccata sul default)
-        atlas_selection_layout = QHBoxLayout()
-        self.atlas_label = QLabel("Atlas T1.nii.gz:")
-        self.atlas_path_label = QLabel(os.path.basename(self.atlas_path))
-        self.atlas_path_label.setToolTip(self.atlas_path)
-        self.atlas_path_label.setStyleSheet("color: black; font-style: normal;")
-
-        # Disabilitiamo il pulsante (niente scelta manuale)
-        self.select_atlas_button = QPushButton("Seleziona Atlas")
-        self.select_atlas_button.setEnabled(False)
-
-        atlas_selection_layout.addWidget(self.atlas_label)
-        atlas_selection_layout.addWidget(self.atlas_path_label, 1)
-        atlas_selection_layout.addWidget(self.select_atlas_button)
-        atlas_layout.addLayout(atlas_selection_layout)
-
-        self.layout.addWidget(atlas_group)
-
-        # Splitter per dividere file list e log
-        splitter = QSplitter(Qt.Orientation.Vertical)
-        self.layout.addWidget(splitter)
+        # --- Left: Circular progress bar ---
+        left_layout = QVBoxLayout()
+        self.progress_bar = CircularProgress()
+        left_layout.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addLayout(left_layout, 0, 0)
 
         # === SEZIONE FILE SELEZIONATI ===
         files_group = QGroupBox("File da processare")
@@ -91,38 +91,44 @@ class DlExecutionPage(WizardPage):
         self.files_list.setMaximumHeight(150)
         files_layout.addWidget(self.files_list)
 
-        splitter.addWidget(files_group)
+        content_layout.addWidget(self.files_list, 0, 1)
 
         # === SEZIONE PROGRESSO ===
-        progress_group = QGroupBox("Progresso")
-        progress_layout = QVBoxLayout(progress_group)
+        left_layout = QVBoxLayout()
+        self.progress_bar = CircularProgress()
+        left_layout.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addLayout(left_layout, 0, 0)
 
-        # Barra progresso generale
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        progress_layout.addWidget(self.progress_bar)
-
-        # Label stato
-        self.status_label = QLabel("Pronto per iniziare il processamento")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        progress_layout.addWidget(self.status_label)
-
-        splitter.addWidget(progress_group)
+        # Columns: 1/3 for progress bar, 2/3 for scroll area
+        content_layout.setColumnStretch(0, 1)  # left column (progress bar)
+        content_layout.setColumnStretch(1, 2)  # right column (folder list)
 
         # === SEZIONE LOG ===
-        log_group = QGroupBox("Log processamento")
-        log_layout = QVBoxLayout(log_group)
+        log_label = QLabel("Execution Log:")
+        log_label.setStyleSheet("""
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-top: 15px;
+                    margin-bottom: 5px;
+                """)
+        content_layout.addWidget(log_label, 1, 0, 1, 2)
 
         self.log_text = QTextEdit()
-        self.log_text.setReadOnly(True)
+        self.log_text.setStyleSheet("""
+                    QTextEdit {
+                        background-color: #2c3e50;
+                        color: #ecf0f1;
+                        font-family: 'Courier New', monospace;
+                        font-size: 11px;
+                        border: 2px solid #34495e;
+                        border-radius: 8px;
+                        padding: 8px;
+                    }
+                """)
         self.log_text.setMaximumHeight(200)
-        self.log_text.setStyleSheet("font-family: monospace; font-size: 10px;")
-        log_layout.addWidget(self.log_text)
-
-        splitter.addWidget(log_group)
-
-        # Imposta dimensioni splitter
-        splitter.setSizes([80, 150, 100, 200])
+        self.log_text.setReadOnly(True)
+        content_layout.addWidget(self.log_text, 2, 0, 1, 2)
 
         # === PULSANTI CONTROLLO ===
         button_layout = QHBoxLayout()
@@ -137,29 +143,7 @@ class DlExecutionPage(WizardPage):
         self.cancel_button.setVisible(False)
         button_layout.addWidget(self.cancel_button)
 
-        self.layout.addLayout(button_layout)
-
-    def toggle_atlas_selection(self, state):
-        """Abilita/disabilita selezione atlas"""
-        enabled = state == Qt.CheckState.Checked.value
-        self.atlas_label.setEnabled(enabled)
-        self.atlas_path_label.setEnabled(enabled)
-        self.select_atlas_button.setEnabled(enabled)
-
-    def select_atlas_file(self):
-        """Seleziona file atlas"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Seleziona Atlas T1.nii.gz",
-            "",
-            "File NIfTI (*.nii.gz *.nii);;Tutti i file (*)"
-        )
-
-        if file_path:
-            self.atlas_path = file_path
-            self.atlas_path_label.setText(os.path.basename(file_path))
-            self.atlas_path_label.setStyleSheet("color: black; font-style: normal;")
-            self.atlas_path_label.setToolTip(file_path)
+        main_layout.addLayout(button_layout)
 
     def on_enter(self):
         """Chiamata quando si entra nella pagina"""
@@ -183,16 +167,6 @@ class DlExecutionPage(WizardPage):
             QMessageBox.warning(self, "Errore", "Nessun file selezionato per il processamento.")
             return
 
-        # Verifica atlas se coregistrazione abilitata
-        if self.enable_coregistration.isChecked():
-            if not self.atlas_path or not os.path.exists(self.atlas_path):
-                QMessageBox.warning(
-                    self,
-                    "Atlas mancante",
-                    "Seleziona un file atlas valido per la coregistrazione\no disabilita la coregistrazione."
-                )
-                return
-
         # Avvia worker thread
         self.worker = DlThread(
             input_files=selected_files,
@@ -211,13 +185,13 @@ class DlExecutionPage(WizardPage):
         self.cancel_button.setVisible(True)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
-        self.status_label.setText("Processamento in corso...")
+        self.current_operation.setText("Processing...")
         self.log_text.clear()
 
         # Avvia worker
         self.worker.start()
 
-        self.add_log_message(f"Deep learning processing started for {len(selected_files)} file")
+        self.add_log_message(f"Deep learning processing started for {len(selected_files)} file", 'i')
         log.info(f"Deep learning processing started for {len(selected_files)} file")
 
     def update_progress(self, value):
@@ -255,7 +229,7 @@ class DlExecutionPage(WizardPage):
         if self.worker:
             self.worker.stop_processing()
             self.worker.cancel()
-            self.add_log_message("Cancellazione richiesta...")
+            self.add_log_message("Cancellazione richiesta...", 'i')
 
     def processing_finished(self, success, message):
         """Chiamata quando il processamento termina"""
@@ -268,21 +242,19 @@ class DlExecutionPage(WizardPage):
         self.progress_bar.setVisible(False)
 
         if success:
-            self.status_label.setText("✓ Processamento completato!")
-            self.status_label.setStyleSheet("color: green; font-weight: bold;")
+            self.current_operation.setText("✓ Processamento completato!")
+            self.current_operation.setStyleSheet("color: green; font-weight: bold;")
             self.start_button.setText("Riprocessa")
         else:
-            self.status_label.setText("✗ Processamento fallito")
-            self.status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.current_operation.setText("✗ Processamento fallito")
+            self.current_operation.setStyleSheet("color: #c0392b; font-weight: bold;")
 
-        self.add_log_message(f"FINALE: {message}")
+        self.add_log_message(f"FINALE: {message}", 'i')
 
         # Aggiorna context con risultati
         if success and "workspace_path" in self.context:
             output_dir = os.path.join(self.context["workspace_path"], "outputs")
             self.context["processing_output_dir"] = output_dir
-            if self.enable_coregistration.isChecked():
-                self.context["coregistration_completed"] = True
 
         # Notifica cambio stato
         if "update_main_buttons" in self.context:
@@ -302,9 +274,52 @@ class DlExecutionPage(WizardPage):
         self.start_button.setVisible(True)
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
-        self.status_label.setStyleSheet("")
+        self.current_operation.setStyleSheet("")
 
         if self.worker:
             self.worker.quit()
             self.worker.wait()
             self.worker = None
+
+    def back(self):
+        """Torna alla pagina precedente"""
+        if self.processing:
+            reply = QMessageBox.question(
+                self,
+                "Processamento in corso",
+                "Il processamento è in corso. Vuoi davvero tornare indietro?\nIl processamento verrà interrotto.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.No:
+                return None
+
+            # Interrompi processamento
+            if self.worker:
+                self.worker.cancel()
+                # self.worker.quit()
+                # self.worker.wait()
+
+        if self.previous_page:
+            self.previous_page.on_enter()
+            return self.previous_page
+        return None
+
+    def next(self, context):
+        """Avanza alla pagina successiva"""
+        return None
+
+    def is_ready_to_advance(self):
+        """Controlla se è possibile andare alla pagina successiva"""
+        return False
+
+    def is_ready_to_go_back(self):
+        """Controlla se è possibile tornare indietro"""
+        return True
+
+    # def reset_page(self):
+    #     """Resetta la pagina allo stato iniziale"""
+    #     self.reset_processing_state()
+    #     self.log_text.clear()
+    #     self.files_list.clear()
+    #     self.status_label.setText("Pronto per iniziare il processamento")
