@@ -1,3 +1,4 @@
+import re
 import sys
 
 import numpy as np
@@ -56,6 +57,27 @@ def prepare_predictions(preds, output_dir):
 
     return saved_files
 
+def extract_subject_id(filepath):
+    """
+    Estrae il subject ID da un filepath con pattern sub-*_*_flair.nii(.gz)
+
+    Args:
+        filepath (str): Path del file MRI flair
+
+    Returns:
+        str: Subject ID (es. "sub-01") o None se non trovato
+    """
+    # Estrai solo il nome del file dal path completo
+    filename = os.path.basename(filepath)
+
+    # Pattern per match: sub-qualcosa_qualcosa_flair.nii(.gz)
+    pattern = r'(sub-[^_]+)_.*_flair\.nii(\.gz)?$'
+
+    match = re.match(pattern, filename)
+    if match:
+        return match.group(1)  # Ritorna solo il gruppo sub-*
+    else:
+        return None
 
 # === CLI ARGUMENTS ===
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
@@ -92,9 +114,20 @@ if __name__ == "__main__":
     mri = args.mri # Flair originale
     mrib = save_preds[0]
     atlas_brats = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
-    prefix = ".workspace/outputs/nifti/"
 
-    os.makedirs(os.path.dirname(prefix), exist_ok=True)
+    # Estrai subject ID dal path della MRI
+    subject_id = extract_subject_id(mri)
+    if subject_id is None:
+        raise ValueError(f"Cannot extract subject ID from filename: {os.path.basename(mri)}")
+
+    # Crea il prefix con subject ID
+    prefix = f".workspace/derivatives/deep_learning_masks/{subject_id}/anat/"
+
+    print(f"Extracted subject ID: {subject_id}")
+    print(f"Output directory: {prefix}")
+
+    # Crea la directory se non esiste
+    os.makedirs(prefix, exist_ok=True)
 
     mri_space_mrib, mrib_space_mri, mrib2mri_tfm, mri2mrib_tfm = align(
         mri, atlas_brats,
