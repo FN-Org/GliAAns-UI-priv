@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
-from ui.ui_nifti_selection import NiftiSelectionPage
-from ui.ui_patient_for_dl import DlPatientSelectionPage
-from ui.ui_patient_for_pipeline import PipelinePatientSelectionPage
+from ui.ui_mask_selection import NiftiSelectionPage
+from ui.ui_dl_selection import DlPatientSelectionPage
+from ui.ui_pipeline_patient_selection import PipelinePatientSelectionPage
 from ui.ui_skull_stripping_frame import SkullStrippingPage
 from wizard_state import WizardPage
 
@@ -94,13 +94,30 @@ class ToolChoicePage(WizardPage):
 
         self.selected_option = None
 
-    # Font dinamico quando la finestra viene ridimensionata
     def resizeEvent(self, event):
-        new_width = self.width()
-        font_size = max(10, new_width // 60)  # scala proporzionale
-        self.title.setFont(QFont("Arial", max(12, font_size + 4)))
+        """
+        Ridimensiona dinamicamente i font in base alle dimensioni della finestra
+        considerando sia larghezza che altezza per un risultato più equilibrato
+        """
+        # Ottieni le dimensioni correnti
+        window_width = self.width()
+        window_height = self.height()
+
+        # Calcola una dimensione di riferimento basata su entrambe le dimensioni
+        # Usando la media geometrica per bilanciare larghezza e altezza
+        reference_size = (window_width * window_height) ** 0.5
+
+        # Metodo 1: Basato su dimensione di riferimento
+        base_font_size = max(10, int(reference_size / 45))
+        title_font_size = max(14, int(base_font_size * 1.4))
+
+        # Applica i font
+        self.title.setFont(QFont("Arial", title_font_size, QFont.Weight.Bold))
+
         for btn in self.radio_buttons:
-            btn.setFont(QFont("Arial", font_size))
+            btn.setFont(QFont("Arial", base_font_size))
+
+        # Chiama il metodo padre
         super().resizeEvent(event)
 
     def on_selection(self):

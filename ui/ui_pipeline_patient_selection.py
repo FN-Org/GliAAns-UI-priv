@@ -320,6 +320,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         # Sezione profilo (sinistra)
         profile_frame = QFrame()
+        profile_frame.setFixedSize(150,100)
         profile_layout = QVBoxLayout(profile_frame)
         profile_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 

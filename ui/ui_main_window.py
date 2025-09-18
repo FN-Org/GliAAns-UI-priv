@@ -44,8 +44,8 @@ class MainWindow(QMainWindow):
     # --------------------------
     def _setup_ui(self):
         self.setObjectName("MainWindow")
-        self.resize(840, 440)
-        self.setMinimumSize(840, 440)
+        self.resize(950, 650)
+        self.setMinimumSize(950, 650)
 
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)

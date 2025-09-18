@@ -62,18 +62,33 @@ class PatientSelectionPage(WizardPage):
 
         self.layout.addLayout(top_buttons_layout)
 
+        # self.scroll_area = QScrollArea()
+        # self.scroll_area.setWidgetResizable(True)
+        # self.scroll_area.setStyleSheet("""
+        #     QScrollArea {
+        #         font-size: 13px;
+        #         border: 1px solid #bdc3c7;
+        #         border-radius: 10px;
+        #         padding: 5px;
+        #     }
+        # """)
+        # self.scroll_content = QWidget()
+        # self.grid_layout = QGridLayout(self.scroll_content)
+
+        # Area scroll per i pazienti
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet("""
             QScrollArea {
                 font-size: 13px;
-                border: 1px solid #bdc3c7;
+                border: 1px solid #CCCCCC;
                 border-radius: 10px;
                 padding: 5px;
             }
         """)
         self.scroll_content = QWidget()
         self.grid_layout = QGridLayout(self.scroll_content)
+        self.scroll_area.setWidget(self.scroll_content)
 
         self.column_count = 2  # default fallback
 
@@ -211,8 +226,8 @@ class PatientSelectionPage(WizardPage):
                 }
             """)
             # Adattabile in verticale ma con un limite
-            patient_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-            patient_frame.setMaximumHeight(150)
+            patient_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            patient_frame.setMaximumHeight(140)
 
             # Usa QHBoxLayout invece di QVBoxLayout per allineare orizzontalmente
             patient_layout = QHBoxLayout(patient_frame)

@@ -2,7 +2,7 @@ import json
 import os
 import glob
 
-from PyQt6.QtWidgets import (QWidget)
+from PyQt6.QtWidgets import QWidget, QScrollArea
 
 from components.collapsible_info_frame import CollapsibleInfoFrame
 from components.collapsible_patient_frame import CollapsiblePatientFrame
