@@ -1,8 +1,8 @@
 import shutil
 
-from PyQt6 import QtWidgets, QtGui
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
-    QMessageBox, QGroupBox, QSizePolicy
+    QMessageBox, QSizePolicy
 from PyQt6.QtCore import Qt
 import os
 

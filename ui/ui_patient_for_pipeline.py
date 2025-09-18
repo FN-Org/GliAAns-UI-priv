@@ -1,17 +1,13 @@
 import json
-import shutil
 import os
 import glob
 
-from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtGui import QPixmap
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
-                             QFrame, QGridLayout, QHBoxLayout,
-                             QTextEdit, QSplitter, QSizePolicy)
+                             QFrame, QGridLayout, QHBoxLayout,QSizePolicy)
 from PyQt6.QtCore import Qt
 
 from ui.ui_pipeline_review import PipelineReviewPage
-from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 from logger import get_logger
 
