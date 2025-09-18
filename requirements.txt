@@ -11,12 +11,12 @@ seaborn
 numpy
 scipy
 dcm2niix
+hd-bet
 nipreps-synthstrip
-monai==0.9.1
-hd-bet; sys_platform == "win32"
 
 git+https://github.com/NVIDIA/dllogger
 
+monai==0.9.1
 joblib==1.4.2
 pytorch-lightning==2.5.0.post0
 rich==13.9.4
