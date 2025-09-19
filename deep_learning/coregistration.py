@@ -29,8 +29,9 @@ parser.add_argument(
     help="T1 atlas"
 )
 parser.add_argument(
-    "--clobber", type=str, required=True, default=False,
-    help="Clobber"
+    "--clobber",
+    action="store_true",          # diventa un flag
+    help="Overwrite existing files (default: False)"
 )
 
 if __name__ == "__main__":
@@ -42,7 +43,8 @@ if __name__ == "__main__":
     clobber = args.clobber
 
     input_basename = Path(mri).stem.replace('.nii', '')
-    prefix = str(args.output / f"{input_basename}_")
+    output_dir = Path(args.output)
+    prefix = str(output_dir / f"{input_basename}_")
 
     # Esegue la registrazione
     stx_space_mri, mri_space_stx, stx2mri_tfm, mri2stx_tfm = align(

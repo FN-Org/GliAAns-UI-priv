@@ -144,8 +144,7 @@ class PipelineReviewPage(WizardPage):
             "tumor_mri": [
                 os.path.join(self.workspace_path, "derivatives", "manual_masks", "{pid}", "anat", "*_mask.nii*"),
                 # nnU-net segmentation
-                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", "{pid}", "anat",
-                             "*_seg.nii*"),
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_seg", "{pid}", "anat", "*_seg.nii*"),
             ]
         }
 

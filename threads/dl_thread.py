@@ -16,6 +16,7 @@ class DlThread(QThread):
     file_update = pyqtSignal(str, str)  # (filename, status)
     log_update = pyqtSignal(str, str)  # Messaggi di log
     finished = pyqtSignal(bool, str)  # (success, message)
+    cancel_requested = pyqtSignal()
 
     def __init__(self, input_files, workspace_path):
         super().__init__()
@@ -30,6 +31,11 @@ class DlThread(QThread):
 
         self.is_cancelled = False
 
+        # Progress tracking
+        self.total_phases = 6  # Numero totale di fasi per file
+        self.current_file_index = 0
+        self.current_phase = 0
+
         self.current_input_file = None
         self.current_input_file_basename = None
         self.current_synthstrip_file = None
@@ -43,6 +49,29 @@ class DlThread(QThread):
         self.dl_process = None
         self.dl_postprocess = None
 
+        self.cancel_requested.connect(self.cancel)
+
+    def update_progress(self):
+        """Calcola e aggiorna la progress bar basata su file e fasi"""
+        if self.total_files == 0:
+            return
+
+        # Calcola il progresso: (file completati * 6 + fasi del file corrente) / (totale file * 6) * 100
+        total_phases_completed = (self.current_file_index * self.total_phases) + self.current_phase
+        total_phases_overall = self.total_files * self.total_phases
+
+        progress = int((total_phases_completed / total_phases_overall) * 100)
+        progress = min(progress, 100)  # Assicurati che non superi 100
+
+        self.progressbar_update.emit(progress)
+
+        # Log di debug (opzionale)
+        self.log_update.emit(
+            f"Progress: {progress}% (File {self.current_file_index + 1}/{self.total_files}, "
+            f"Phase {self.current_phase}/{self.total_phases})",
+            'd'
+        )
+
     def run(self):
         """Processa tutti i file NIfTI con la Deep Learning pipeline"""
         try:
@@ -50,19 +79,32 @@ class DlThread(QThread):
             self.processed_files = 0
             self.failed_files = []
 
+            # Inizializza progress bar
+            self.current_file_index = 0
+            self.current_phase = 0
+            self.update_progress()
+            self.progressbar_update.emit(5)
+
             for i, input_file in enumerate(self.input_files):
                 if self.is_cancelled:
                     break
+
+                self.current_file_index = i
+                self.current_phase = 0
 
                 # Crea directory temporanea per questo file
                 temp_dir = None
                 try:
                     temp_dir = tempfile.mkdtemp(prefix=f"dl_processing_{i}_")
+                    out_dir = os.path.join(self.workspace_path, "outputs")
+                    os.makedirs(out_dir, exist_ok=True)
                     self.output_dir = temp_dir
 
                     self.current_input_file = input_file
                     self.current_input_file_basename = os.path.basename(input_file)
-                    success = self.process_single_file(i)
+
+                    success = self.process_single_file()
+
                     if success:
                         self.processed_files += 1
                         self.file_update.emit(
@@ -89,13 +131,12 @@ class DlThread(QThread):
                     if temp_dir and os.path.exists(temp_dir):
                         try:
                             shutil.rmtree(temp_dir)
-                            self.log_update.emit("INFO", f"Removed temporary directory: {temp_dir}")
+                            self.log_update.emit(f"Removed temporary directory: {temp_dir}", 'i')
                         except Exception as e:
-                            self.log_update.emit("WARNING", f"Failed to remove temp dir {temp_dir}: {e}")
+                            self.log_update.emit(f"Failed to remove temp dir {temp_dir}: {e}", 'w')
 
-                # Update progress bar
-                progress = int((i + 1) / self.total_files * 100)
-                self.progressbar_update.emit(progress)
+            # Progress bar al 100% alla fine
+            self.progressbar_update.emit(100)
 
             # Final result
             if self.is_cancelled:
@@ -106,68 +147,66 @@ class DlThread(QThread):
                 message += f"Failed: {', '.join(self.failed_files)}"
                 self.finished.emit(True, message)
             else:
-                message = f"Every {self.total_files} file processed successfully\n!"
+                message = f"Every {self.total_files} file processed successfully!"
                 self.finished.emit(True, message)
 
         except Exception as e:
             log.error(f"General error in the worker: {e}")
             self.finished.emit(False, f"General error: {str(e)}")
 
-    def process_single_file(self, index):
+    def process_single_file(self):
         """Process single file with the Deep Learning pipeline"""
 
         self.log_update.emit(f"=== PROCESSING: {self.current_input_file_basename} ===", 'i')
 
-        # FASE 1
+        # FASE 1: SynthStrip
+        self.current_phase = 1
         ok = self.run_synthstrip()
         if not ok:
             return False
-        progress = int((((index + 1) * 6) + 1)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
-        # FASE 2
+        # FASE 2: Coregistration
+        self.current_phase = 2
         ok = self.run_coregistration()
         if not ok or self.is_cancelled:
             return False
-        progress = int((((index + 1) * 6) + 2)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
-        # FASE 3
+        # FASE 3: Reorientation
+        self.current_phase = 3
         ok = self.run_reorientation()
         if not ok or self.is_cancelled:
             return False
-        progress = int((((index + 1) * 6) + 3)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
-        # FASE 4
+        # FASE 4: Preprocess
+        self.current_phase = 4
         ok = self.run_preprocess()
         if not ok or self.is_cancelled:
             return False
-        progress = int((((index + 1) * 6) + 4)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
-        # FASE 5
+        # FASE 5: Deep Learning
+        self.current_phase = 5
         ok = self.run_deep_learning()
         if not ok or self.is_cancelled:
             return False
-        progress = int((((index + 1) * 6) + 5)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
-        # FASE 6
+        # FASE 6: Postprocess
+        self.current_phase = 6
         ok = self.run_postprocess()
         if not ok or self.is_cancelled:
             return False
-        progress = int((((index + 1) * 6) + 6)/ (self.total_files * 6) * 100)
-        self.progressbar_update.emit(progress)
+        self.update_progress()
 
         return True
 
     def run_synthstrip(self):
         """Synthstrip on a single file"""
-        self.file_update.emit(self.current_input_file_basename, "Synthstrip skull strip...")
-        self.log_update.emit("FASE 1: Skull strip with Synthstrip")
-
-        # phase = "Synthstrip"
+        self.file_update.emit(self.current_input_file_basename, "Phase 1/6: Synthstrip skull strip...")
+        self.log_update.emit("FASE 1: Skull strip with Synthstrip", 'i')
 
         self.log_update.emit(f"SynthStrip started: {os.path.basename(self.current_input_file)}", 'i')
 
@@ -175,11 +214,7 @@ class DlThread(QThread):
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         self.current_synthstrip_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
 
-        self.synthstrip_process = QProcess(self)
-        # self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
-        # self.synthstrip_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
-        # self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
-        # self.synthstrip_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.synthstrip_process.readAllStandardError()))
+        self.synthstrip_process = QProcess()
 
         cmd = [
             "nipreps-synthstrip",
@@ -213,10 +248,8 @@ class DlThread(QThread):
     def run_coregistration(self):
         """Esegue coregistrazione con atlas"""
 
-        self.file_update.emit(self.current_input_file_basename, "Coregistration...")
-        self.log_update.emit("FASE 2: Coregistration")
-
-        # phase = "Coregistration"
+        self.file_update.emit(self.current_input_file_basename, "Phase 2/6: Coregistration...")
+        self.log_update.emit("FASE 2: Coregistration", 'i')
 
         self.log_update.emit(f"Coregistration started: {os.path.basename(self.current_input_file)}", 'i')
 
@@ -224,7 +257,7 @@ class DlThread(QThread):
         coreg_dir = os.path.join(self.output_dir, "coregistration")
         os.makedirs(coreg_dir, exist_ok=True)
 
-        self.coregistration_process = QProcess(self)
+        self.coregistration_process = QProcess()
 
         python_executable = sys.executable
         args = [
@@ -255,10 +288,8 @@ class DlThread(QThread):
     def run_reorientation(self):
         """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
 
-        self.file_update.emit(self.current_input_file_basename, "Reorientation...")
-        self.log_update.emit("FASE 3: Reorientation")
-
-        # phase = "Reorientation"
+        self.file_update.emit(self.current_input_file_basename, "Phase 3/6: Reorientation...")
+        self.log_update.emit("FASE 3: Reorientation", 'i')
 
         self.log_update.emit(f"Reorientation started: {os.path.basename(self.current_input_file)}", 'i')
 
@@ -271,7 +302,7 @@ class DlThread(QThread):
 
         brain_in_atlas_file = str(brain_in_atlas_files[0])
 
-        self.reorientation_process = QProcess(self)
+        self.reorientation_process = QProcess()
 
         python_executable = sys.executable
         args = [
@@ -300,19 +331,13 @@ class DlThread(QThread):
 
     def run_preprocess(self):
         """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
-        self.file_update.emit(self.current_input_file_basename, "Preparing and preprocessing...")
-        self.log_update("FASE 4: Prepare and preprocess")
-
-        # phase = "Preprocessing"
+        self.file_update.emit(self.current_input_file_basename, "Phase 4/6: Preparing and preprocessing...")
+        self.log_update.emit("FASE 4: Prepare and preprocess", 'i')
 
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
 
-        self.dl_preprocess = QProcess(self)
-        # self.dl_preprocess.finished.connect(self.on_preprocess_finished)
-        # self.dl_preprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
-        # self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
-        # self.dl_preprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_preprocess.readAllStandardError()))
+        self.dl_preprocess = QProcess()
 
         python_executable = sys.executable  # Usa lo stesso interprete Python
         args = [
@@ -340,17 +365,11 @@ class DlThread(QThread):
         return True
 
     def run_deep_learning(self):
-        """Esegue FASE 6: DEEP LEARNING"""
-        self.file_update.emit(self.current_input_file_basename, "Deep Learning...")
-        self.log_update.emit("FASE 5: Deep learning execution")
+        """Esegue FASE 5: DEEP LEARNING"""
+        self.file_update.emit(self.current_input_file_basename, "Phase 5/6: Deep Learning...")
+        self.log_update.emit("FASE 5: Deep learning execution", 'i')
 
-        # phase = "Deep Learning"
-
-        self.dl_process = QProcess(self)
-        # self.dl_process.finished.connect(self.on_deep_learning_finished)
-        # self.dl_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
-        # self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
-        # self.dl_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_process.readAllStandardError()))
+        self.dl_process = QProcess()
 
         python_executable = sys.executable
         args = [
@@ -386,16 +405,10 @@ class DlThread(QThread):
         return True
 
     def run_postprocess(self):
-        self.file_update.emit(self.current_input_file_basename, "Postprocessing...")
-        self.log_update.emit("FASE 6: Postprocess")
+        self.file_update.emit(self.current_input_file_basename, "Phase 6/6: Postprocessing...")
+        self.log_update.emit("FASE 6: Postprocess", 'i')
 
-        # phase = "Postprocessing"
-
-        self.dl_postprocess = QProcess(self)
-        # self.dl_postprocess.finished.connect(self.on_postprocess_finished)
-        # self.dl_postprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
-        # self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
-        # self.dl_postprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_postprocess.readAllStandardError()))
+        self.dl_postprocess = QProcess()
 
         python_executable = sys.executable
         args = [
@@ -422,7 +435,7 @@ class DlThread(QThread):
         self.log_update.emit("✓ Postprocess completed", 'i')
         return True
 
-    def cancel_robust(self):
+    def cancel(self):
         self.is_cancelled = True
 
         self.log_update.emit("Cancellation requested - stopping all processes...", 'w')

@@ -49,12 +49,6 @@ class PipelineExecutionPage(WizardPage):
         # self._create_pipeline_script()
         self._setup_ui()
 
-    # def _create_pipeline_script(self):
-    #     """Crea lo script Python temporaneo per l'esecuzione della pipeline."""
-    #     os.makedirs(os.path.dirname(self.pipeline_script_path), exist_ok=True)
-    #     with open(self.pipeline_script_path, 'w', encoding='utf-8') as f:
-    #         f.write(PIPELINE_SCRIPT_CONTENT)
-
     def _find_latest_config(self):
         """Trova il file config con l'ID più alto nella cartella pipeline."""
         import glob

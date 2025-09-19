@@ -48,21 +48,6 @@ class DlExecutionPage(WizardPage):
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(header)
 
-        # Titolo
-        # self.title = QLabel("Skull Stripping + Coregistrazione")
-        # self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        # self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # self.layout.addWidget(self.title)
-
-        # description = QLabel(
-        #     "I file NIfTI verranno processati con SynthStrip per rimuovere il cranio,\n"
-        #     "seguiti opzionalmente da coregistrazione con atlas T1.\n"
-        #     "I risultati saranno salvati nella cartella outputs del workspace."
-        # )
-        # description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # description.setStyleSheet("color: gray; margin-bottom: 20px;")
-        # self.layout.addWidget(description)
-
         # Current operation
         self.current_operation = QLabel("Ready to start")
         self.current_operation.setStyleSheet("""
@@ -131,19 +116,66 @@ class DlExecutionPage(WizardPage):
         content_layout.addWidget(self.log_text, 2, 0, 1, 2)
 
         # === PULSANTI CONTROLLO ===
-        button_layout = QHBoxLayout()
+        # button_layout = QHBoxLayout()
 
-        self.start_button = QPushButton("Avvia Processamento")
+        # --- Stop button (centered) ---
+        button_frame = QFrame()
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 15, 0, 0)
+
+        self.start_button = QPushButton("Start deep learning")
+        button_layout.addStretch()
         self.start_button.clicked.connect(self.start_processing)
-        self.start_button.setStyleSheet("font-weight: bold; padding: 10px;")
+        self.start_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                background-color: #27ae60;
+                color: white;
+                border-radius: 8px;
+                padding: 10px 20px;
+                min-width: 140px;
+            }
+            QPushButton:hover { 
+                background-color: #229954; 
+            }
+            QPushButton:disabled {
+                background-color: #bdc3c7;
+                color: #7f8c8d;
+            }
+        """)
         button_layout.addWidget(self.start_button)
 
-        self.cancel_button = QPushButton("Annulla")
-        self.cancel_button.clicked.connect(self.cancel_processing)
-        self.cancel_button.setVisible(False)
-        button_layout.addWidget(self.cancel_button)
+        # self.cancel_button = QPushButton("Annulla")
+        # self.cancel_button.clicked.connect(self.cancel_processing)
+        # self.cancel_button.setVisible(False)
+        # button_layout.addWidget(self.cancel_button)
 
-        main_layout.addLayout(button_layout)
+        self.cancel_button = QPushButton("Stop processing")
+        self.cancel_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                background-color: #e74c3c;
+                color: white;
+                border-radius: 8px;
+                padding: 10px 20px;
+                min-width: 140px;
+            }
+            QPushButton:hover { 
+                background-color: #c0392b; 
+            }
+            QPushButton:disabled {
+                background-color: #bdc3c7;
+                color: #7f8c8d;
+            }
+        """)
+        self.cancel_button.clicked.connect(self.cancel_processing)
+        button_layout.addStretch()
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addStretch()
+
+        main_layout.addWidget(button_frame)
 
     def on_enter(self):
         """Chiamata quando si entra nella pagina"""
@@ -227,8 +259,8 @@ class DlExecutionPage(WizardPage):
     def cancel_processing(self):
         """Cancella il processamento in corso"""
         if self.worker:
-            self.worker.stop_processing()
-            self.worker.cancel()
+            self.worker.cancel_requested.emit()
+            # self.worker.cancel()
             self.add_log_message("Cancellazione richiesta...", 'i')
 
     def processing_finished(self, success, message):
@@ -277,8 +309,6 @@ class DlExecutionPage(WizardPage):
         self.current_operation.setStyleSheet("")
 
         if self.worker:
-            self.worker.quit()
-            self.worker.wait()
             self.worker = None
 
     def back(self):
@@ -296,9 +326,8 @@ class DlExecutionPage(WizardPage):
 
             # Interrompi processamento
             if self.worker:
-                self.worker.cancel()
-                # self.worker.quit()
-                # self.worker.wait()
+                self.worker.cancel_requested.emit()
+                # self.worker.cancel()
 
         if self.previous_page:
             self.previous_page.on_enter()
@@ -316,10 +345,3 @@ class DlExecutionPage(WizardPage):
     def is_ready_to_go_back(self):
         """Controlla se è possibile tornare indietro"""
         return True
-
-    # def reset_page(self):
-    #     """Resetta la pagina allo stato iniziale"""
-    #     self.reset_processing_state()
-    #     self.log_text.clear()
-    #     self.files_list.clear()
-    #     self.status_label.setText("Pronto per iniziare il processamento")

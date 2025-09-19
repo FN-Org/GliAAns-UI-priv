@@ -1,5 +1,7 @@
 import re
+import shutil
 import sys
+from pathlib import Path
 
 import numpy as np
 import nibabel as nib
@@ -121,7 +123,8 @@ if __name__ == "__main__":
         raise ValueError(f"Cannot extract subject ID from filename: {os.path.basename(mri)}")
 
     # Crea il prefix con subject ID
-    prefix = f".workspace/derivatives/deep_learning_masks/{subject_id}/anat/"
+    prefix = f".workspace/derivatives/deep_learning_seg/{subject_id}/anat/"
+    outprefix = f"{args.output}/{subject_id}_mrib2mri_Rigid_"
 
     print(f"Extracted subject ID: {subject_id}")
     print(f"Output directory: {prefix}")
@@ -132,9 +135,29 @@ if __name__ == "__main__":
     mri_space_mrib, mrib_space_mri, mrib2mri_tfm, mri2mrib_tfm = align(
         mri, atlas_brats,
         transform_method='SyNAggro',
-        outprefix=f'_mrib2mri_Rigid_'
+        outprefix=outprefix
     )
 
     new_mri = transform(prefix, mri, mrib, mrib2mri_tfm)
+    new_mri = Path(new_mri)  # <--- converti la stringa in Path
+
+    # Costruisci il nuovo nome a partire dal file MRI
+    mri_name = Path(mri).name
+    if mri_name.endswith('.nii.gz'):
+        seg_name = mri_name[:-7] + '_seg.nii.gz'  # togli ".nii.gz" e aggiungi "_seg.nii.gz"
+    else:
+        seg_name = Path(mri).stem + '_seg' + Path(mri).suffix
+
+    seg_path = Path(prefix) / seg_name
+
+    # Se esiste già, lo sostituisci (opzionale)
+    if seg_path.exists():
+        seg_path.unlink()
+
+    # Usa move (più sicuro di rename se sei su WSL)
+    shutil.move(str(new_mri), str(seg_path))
+
+    new_mri = seg_path
+    print("Final saved file:", new_mri)
 
     print("Finished!")
