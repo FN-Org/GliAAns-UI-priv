@@ -43,6 +43,22 @@ class SkullStrippingPage(WizardPage):
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
 
+        self.info_label = QLabel(
+            'Using tool: <a href="https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET">BET from FSL toolkit</a>'
+        )
+        self.info_label.setOpenExternalLinks(True)
+        self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+
+        self.info_label.setStyleSheet("""
+                    font-size: 11px;
+                    color: #666;
+                    font-style: italic;
+                    margin-bottom: 6px;
+                """)
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_label.setWordWrap(True)
+        self.layout.addWidget(self.info_label)
+
         self.file_selector_widget = FileSelectorWidget(parent=self,
                                                        context=self.context,
                                                        has_existing_function=self.has_existing_skull_strip,
@@ -177,6 +193,14 @@ class SkullStrippingPage(WizardPage):
             self.advanced_box.setLayout(self.advanced_layout)
             self.advanced_box.setVisible(False)
             self.layout.addWidget(self.advanced_box)
+        else:
+            self.info_label.setText(
+                'Using tool: <a href="https://github.com/MIC-DKFZ/HD-BET">hd-bet</a> <br>'
+                'To use BET from FSL toolkit, you have to be on linux and follow the instructions at: <a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index">FSL installation</a>'
+            )
+            self.info_label.setOpenExternalLinks(True)  # abilita apertura link nel browser
+            self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+            self.info_label.setToolTip("Open link")
 
         # Progress bar (inizialmente nascosta)
         self.progress_bar = QProgressBar()

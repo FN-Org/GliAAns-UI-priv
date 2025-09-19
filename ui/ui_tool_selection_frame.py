@@ -1,9 +1,13 @@
+import platform
+
+import torch
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel, QGroupBox, QRadioButton, QButtonGroup, QSizePolicy
+    QVBoxLayout, QLabel, QGroupBox, QRadioButton, QButtonGroup, QSizePolicy, QWidget, QHBoxLayout, QToolTip, QMessageBox
 )
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 
+from components.info_label import InfoLabel
 from ui.ui_mask_selection import NiftiSelectionPage
 from ui.ui_dl_selection import DlPatientSelectionPage
 from ui.ui_pipeline_patient_selection import PipelinePatientSelectionPage
@@ -29,7 +33,7 @@ class ToolChoicePage(WizardPage):
         # Titolo principale
         self.title = QLabel("Select the Next Processing Step")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.title.setFont(QFont("Arial",18,QFont.Weight.Bold))
         self.title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.layout.addWidget(self.title)
 
@@ -52,9 +56,9 @@ class ToolChoicePage(WizardPage):
 
         self.radio_group = QButtonGroup(self)
 
-        # Radio buttons con stile migliorato
+        # Radio buttons
         self.radio_skull = QRadioButton("Skull Stripping")
-        self.radio_draw = QRadioButton("Manual / Automatic Drawing")
+        self.radio_draw = QRadioButton("Automatic Drawing")
         self.radio_dl = QRadioButton("Deep Learning Segmentation")
         self.radio_analysis = QRadioButton("Full Pipeline")
 
@@ -85,7 +89,20 @@ class ToolChoicePage(WizardPage):
 
         for i, btn in enumerate(self.radio_buttons):
             self.radio_group.addButton(btn, id=i)
-            radio_layout.addWidget(btn)
+            if btn == self.radio_dl:
+                dl_widget = QWidget()
+                dl_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                dl_layout = QHBoxLayout(dl_widget)
+                dl_layout.setContentsMargins(0, 0, 0, 0)
+                dl_layout.setSpacing(5)
+
+                self.dl_info_label = InfoLabel(text="i",tooltip_text="To use this you need Linux and a CUDA capable GPU")
+
+                dl_layout.addWidget(self.radio_dl)
+                dl_layout.addWidget(self.dl_info_label)
+                radio_layout.addWidget(dl_widget)
+            else:
+                radio_layout.addWidget(btn)
 
         self.radio_group.buttonToggled.connect(lambda: self.on_selection())
 
@@ -143,7 +160,19 @@ class ToolChoicePage(WizardPage):
         if self.selected_option not in page_classes:
             return None
 
+        is_linux = platform.system() == "Linux"
+        has_gpu = torch.cuda.is_available()
+
+        if self.selected_option == 2 and (not has_gpu or not is_linux):
+            QMessageBox.warning(
+                self,
+                "Not available for this platform",
+                f"The deep learning segmentation is not available for this platform: {platform.system()}",
+            )
+        return self
+
         attr_name, page_class = page_classes[self.selected_option]
+
 
         next_page = getattr(self, attr_name, None)
 
