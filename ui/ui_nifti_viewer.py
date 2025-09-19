@@ -788,7 +788,7 @@ class NiftiViewer(QMainWindow):
         for view in self.views:
             view.coordinate_changed.connect(self.update_coordinates)
 
-    def show_workspace_nii_dialog(self):
+    def show_workspace_nii_dialog(self,is_overlay=False):
         result = NiftiFileDialog.get_files(
             self,
             self.context["workspace_path"],
@@ -797,7 +797,7 @@ class NiftiViewer(QMainWindow):
             label="NiftiViewer",
         )
         if result:
-            self.open_file(result[0])
+            self.open_file(result[0],is_overlay=is_overlay)
 
 
 
@@ -817,7 +817,7 @@ class NiftiViewer(QMainWindow):
             return
         # If no file path provided, show file dialog
         if file_path is None:
-            file_path = self.show_workspace_nii_dialog()
+            file_path = self.show_workspace_nii_dialog(is_overlay=is_overlay)
             if not file_path:  # User canceled the dialog
                 return
 
@@ -855,6 +855,16 @@ class NiftiViewer(QMainWindow):
             # Salva overlay
             self.overlay_data = img_data
             self.overlay_dims = dims
+
+            # Se le dimensioni non combaciano, applica padding
+            if hasattr(self, "dims") and self.overlay_data.shape[:3] != self.dims[:3]:
+                QMessageBox.warning(
+                    self,
+                    "Dimensions mismatch!",
+                    f"The main image has dimensions {self.dims[:3]} and the overlay has dimensions {self.overlay_data.shape[:3]}."
+                )
+                self.overlay_data = self.pad_volume_to_shape(self.overlay_data, self.dims[:3])
+
 
             # Disabilita controlli Automatic ROI
             self.automaticROI_overlay = False
@@ -977,71 +987,6 @@ class NiftiViewer(QMainWindow):
 
         # Enable overlay controls when base image is loaded
         self.overlay_btn.setEnabled(True)
-
-    def open_overlay_file(self, overlay_path=None):
-        """Open and align a NIfTI overlay file to the base image."""
-        if self.img_data is None:
-            QMessageBox.warning(
-                self,
-                _t("NIfTIViewer", "Warning"),
-                _t("NIfTIViewer", "Please load a base image first!")
-            )
-            log.warning("No base image")
-            return
-
-        # Se non fornito, chiedi file
-        if overlay_path is None:
-            overlay_path = self.show_workspace_nii_dialog()
-            if not overlay_path:
-                return
-
-        try:
-            # Carica overlay
-            overlay_img = nib.load(overlay_path)
-
-            overlay_canonical_img = nib.as_closest_canonical(overlay_img)
-
-
-
-            # Salva overlay
-            self.overlay_data = overlay_canonical_img.get_fdata()
-            self.overlay_dims = self.overlay_data.shape
-
-            # Disabilita controlli Automatic ROI
-            self.automaticROI_overlay = False
-            self.automaticROI_save_btn.setEnabled(False)
-            self.automaticROI_sliders_group.setEnabled(False)
-            self.automaticROI_sliders_group.setVisible(False)
-
-            # Aggiorna label info overlay
-            filename = os.path.basename(overlay_path)
-            self.overlay_info_label.setText(
-                f"Overlay: {filename}\n" +
-                _t("NIfTIViewer", "Dimensions") +
-                f":{self.overlay_dims}"
-            )
-
-            # Attiva overlay in UI
-            self.toggle_overlay(True)
-            self.overlay_checkbox.setChecked(True)
-            self.overlay_checkbox.setEnabled(True)
-
-            # Aggiorna visualizzazione
-            self.update_overlay_settings()
-            self.update_all_displays()
-
-            # Messaggio nella status bar
-            self.status_bar.showMessage(
-                _t("NIfTIViewer", "Overlay loaded") + f":{filename}"
-            )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                _t("NIfTIViewer", "Error"),
-                _t("NIfTIViewer", "Failed to load overlay") + f":\n{str(e)}"
-            )
-            log.critical(f"Error loading overlay: {str(e)}")
 
     def toggle_overlay(self, enabled):
         """Toggle overlay display on/off - VERSIONE MIGLIORATA"""
@@ -1315,6 +1260,7 @@ class NiftiViewer(QMainWindow):
                     overlay_slice = self.overlay_data[slice_idx, :, :].T
                     overlay_slice = np.flipud(overlay_slice)
 
+
             # Create composite
             height, width = slice_data.shape
             normalized_data = self.normalize_data_matplotlib_style(slice_data)
@@ -1327,14 +1273,6 @@ class NiftiViewer(QMainWindow):
 
             if qimage is not None:
                 img_w, img_h = qimage.width(), qimage.height()
-
-                # Scaling in mm
-                phys_w = img_w * pixel_spacing[0]  # mm
-                phys_h = img_h * pixel_spacing[1]  # mm
-
-                # Fattori di scala per mantenere proporzioni reali
-                scale_x = phys_w / phys_w  # sarà 1.0
-                scale_y = phys_h / phys_w  # normalizzo rispetto a X
 
                 # Applica il ridimensionamento in mm
                 qimage_scaled = qimage.scaled(
@@ -1720,11 +1658,31 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_overlay = False
         self.automaticROI_save_btn.setEnabled(False)
         self.overlay_data = None
+        self.overlay_dims = None
+        self.overlay_file_path = None
         self.automaticROI_sliders_group.setVisible(False)
         self.automaticROI_sliders_group.setEnabled(False)
         self.toggle_overlay(False)
         self.overlay_checkbox.setChecked(False)
         self.overlay_checkbox.setEnabled(False)
+        self.overlay_info_label.setText(
+            f"Overlay:\n" +
+            _t("NIfTIViewer", "Dimensions")
+        )
+
+
+    def pad_volume_to_shape(self,volume, target_shape, constant_value=0):
+        """Pad a 3D volume (numpy array) to match target_shape."""
+        current_shape = volume.shape
+        pads = []
+
+        for cur, tgt in zip(current_shape, target_shape):
+            diff = max(tgt - cur, 0)
+            pad_before = diff // 2
+            pad_after = diff - pad_before
+            pads.append((pad_before, pad_after))
+
+        return np.pad(volume, pads, mode="constant", constant_values=constant_value)
 
     def _retranslate_ui(self):
         self.setWindowTitle(_t("NIfTIViewer", "NIfTI Image Viewer"))

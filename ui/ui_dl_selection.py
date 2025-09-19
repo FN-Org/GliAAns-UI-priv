@@ -1,15 +1,11 @@
-import shutil
-import glob
 
-from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout, QHBoxLayout, \
     QMessageBox, QGroupBox, QListWidget, QDialog, QLineEdit, QDialogButtonBox, QListWidgetItem
 from PyQt6.QtCore import Qt
 import os
 
 from ui.ui_dl_execution import DlExecutionPage
-from ui.ui_work_in_progress import WorkInProgressPage
 from wizard_state import WizardPage
 from logger import get_logger
 
