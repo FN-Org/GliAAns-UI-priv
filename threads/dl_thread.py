@@ -94,8 +94,8 @@ class DlThread(QThread):
         os.makedirs(out_dir, exist_ok=True)
         self.output_dir = temp_dir
 
-        self.current_input_file = self.input_files[0]
-        self.current_input_file_basename = os.path.basename(self.input_files[0])
+        self.current_input_file = self.input_files[self.current_file_index]
+        self.current_input_file_basename = os.path.basename(self.current_input_file)
 
         self.log_update.emit(f"=== PROCESSING: {self.current_input_file_basename} ===", 'i')
 
@@ -105,6 +105,7 @@ class DlThread(QThread):
 
     def run_synthstrip(self):
         """Synthstrip on a single file"""
+        phase = "Synthstrip"
         self.file_update.emit(self.current_input_file_basename, "Phase 1/6: Synthstrip skull strip...")
         self.log_update.emit("FASE 1: Skull strip with Synthstrip", 'i')
 
@@ -116,6 +117,9 @@ class DlThread(QThread):
 
         self.synthstrip_process = QProcess()
         self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
+        self.synthstrip_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
+        self.synthstrip_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.synthstrip_process.readAllStandardError()))
 
         cmd = [
             "nipreps-synthstrip",
@@ -133,6 +137,7 @@ class DlThread(QThread):
             self.log_update.emit("SynthStrip failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -144,6 +149,7 @@ class DlThread(QThread):
 
     def run_coregistration(self):
         """Esegue coregistrazione con atlas"""
+        phase = "Coregistration"
 
         self.file_update.emit(self.current_input_file_basename, "Phase 2/6: Coregistration...")
         self.log_update.emit("FASE 2: Coregistration", 'i')
@@ -156,6 +162,9 @@ class DlThread(QThread):
 
         self.coregistration_process = QProcess()
         self.coregistration_process.finished.connect(self.on_coregistration_finished)
+        self.coregistration_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.coregistration_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.coregistration_process.readAllStandardOutput()))
+        self.coregistration_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.coregistration_process.readAllStandardError()))
 
         python_executable = sys.executable
         args = [
@@ -174,6 +183,7 @@ class DlThread(QThread):
             self.log_update.emit("Coregistration failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -185,6 +195,7 @@ class DlThread(QThread):
 
     def run_reorientation(self):
         """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
+        phase = "Reorientation"
 
         self.file_update.emit(self.current_input_file_basename, "Phase 3/6: Reorientation...")
         self.log_update.emit("FASE 3: Reorientation", 'i')
@@ -202,6 +213,9 @@ class DlThread(QThread):
 
         self.reorientation_process = QProcess()
         self.reorientation_process.finished.connect(self.on_reorientation_finished)
+        self.reorientation_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.reorientation_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.reorientation_process.readAllStandardOutput()))
+        self.reorientation_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.reorientation_process.readAllStandardError()))
 
         python_executable = sys.executable
         args = [
@@ -219,6 +233,7 @@ class DlThread(QThread):
             self.log_update.emit("Reorientation failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -230,6 +245,8 @@ class DlThread(QThread):
 
     def run_preprocess(self):
         """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
+        phase = "Preprocessing"
+
         self.file_update.emit(self.current_input_file_basename, "Phase 4/6: Preparing and preprocessing...")
         self.log_update.emit("FASE 4: Prepare and preprocess", 'i')
 
@@ -237,7 +254,10 @@ class DlThread(QThread):
         results_path = os.path.join(self.output_dir, "preprocess")
 
         self.dl_preprocess = QProcess()
-        self.reorientation_process.finished.connect(self.on_preprocess_finished)
+        self.dl_preprocess.finished.connect(self.on_preprocess_finished)
+        self.dl_preprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
+        self.dl_preprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_preprocess.readAllStandardError()))
 
         python_executable = sys.executable  # Usa lo stesso interprete Python
         args = [
@@ -255,6 +275,7 @@ class DlThread(QThread):
             self.log_update.emit("Preprocess failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -266,11 +287,16 @@ class DlThread(QThread):
 
     def run_deep_learning(self):
         """Esegue FASE 5: DEEP LEARNING"""
+        phase = "Deep Learning execution"
+
         self.file_update.emit(self.current_input_file_basename, "Phase 5/6: Deep Learning...")
         self.log_update.emit("FASE 5: Deep learning execution", 'i')
 
         self.dl_process = QProcess()
         self.dl_process.finished.connect(self.on_dl_finished)
+        self.dl_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
+        self.dl_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_process.readAllStandardError()))
 
         python_executable = sys.executable
         args = [
@@ -296,6 +322,7 @@ class DlThread(QThread):
             self.log_update.emit("Deep learning execution failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -306,11 +333,16 @@ class DlThread(QThread):
         self.run_postprocess()  # Start the next phase
 
     def run_postprocess(self):
+        phase = "Postprocessing"
+
         self.file_update.emit(self.current_input_file_basename, "Phase 6/6: Postprocessing...")
         self.log_update.emit("FASE 6: Postprocess", 'i')
 
         self.dl_postprocess = QProcess()
-        self.dl_process.finished.connect(self.on_postprocess_finished)
+        self.dl_postprocess.finished.connect(self.on_postprocess_finished)
+        self.dl_postprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
+        self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
+        self.dl_postprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_postprocess.readAllStandardError()))
 
         python_executable = sys.executable
         args = [
@@ -328,6 +360,7 @@ class DlThread(QThread):
             self.log_update.emit("Postprocess failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
+                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
                 self.process_single_file()
             return
 
@@ -396,3 +429,36 @@ class DlThread(QThread):
 
         # Opzionale: emetti il segnale finished per notificare la UI
         self.finished.emit(False, "Processing cancelled by user")
+
+    def on_error(self, phase: str, error):
+        """
+        Handler per errori di avvio/exec di un QProcess.
+        """
+        try:
+            self.log_update.emit(f"[{phase}] Process error: {error}", 'e')
+        except Exception as e:
+            self.log_update.emit(f"[{phase}] Error in on_error handler: {str(e)}", 'e')
+
+    def on_stdout(self, phase: str, data):
+        """
+        Handler per lo stdout di un QProcess.
+        """
+        try:
+            text = bytes(data).decode("utf-8").strip()
+            if text:
+                for line in text.splitlines():
+                    self.log_update.emit(f"[{phase}] {line}", 'i')
+        except Exception as e:
+            self.log_update.emit(f"[{phase}] Error decoding stdout: {str(e)}", 'e')
+
+    def on_stderr(self, phase: str, data):
+        """
+        Handler per lo stderr di un QProcess.
+        """
+        try:
+            text = bytes(data).decode("utf-8").strip()
+            if text:
+                for line in text.splitlines():
+                    self.log_update.emit(f"[{phase}] {line}", 'e')
+        except Exception as e:
+            self.log_update.emit(f"[{phase}] Error decoding stderr: {str(e)}", 'e')
