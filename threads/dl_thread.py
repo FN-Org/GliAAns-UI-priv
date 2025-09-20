@@ -87,12 +87,14 @@ class DlThread(QThread):
 
         self.process_single_file()
 
+        self.exec()
+
     def process_single_file(self):
         """Process single file with the Deep Learning pipeline"""
         temp_dir = tempfile.mkdtemp(prefix=f"dl_processing_{self.current_file_index+1}_")
         out_dir = os.path.join(self.workspace_path, "outputs")
         os.makedirs(out_dir, exist_ok=True)
-        self.output_dir = temp_dir
+        self.output_dir = out_dir
 
         self.current_input_file = self.input_files[self.current_file_index]
         self.current_input_file_basename = os.path.basename(self.current_input_file)
@@ -115,7 +117,7 @@ class DlThread(QThread):
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         self.current_synthstrip_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
 
-        self.synthstrip_process = QProcess()
+        self.synthstrip_process = QProcess(self)
         self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
         self.synthstrip_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
@@ -160,7 +162,7 @@ class DlThread(QThread):
         coreg_dir = os.path.join(self.output_dir, "coregistration")
         os.makedirs(coreg_dir, exist_ok=True)
 
-        self.coregistration_process = QProcess()
+        self.coregistration_process = QProcess(self)
         self.coregistration_process.finished.connect(self.on_coregistration_finished)
         self.coregistration_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.coregistration_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.coregistration_process.readAllStandardOutput()))
@@ -211,7 +213,7 @@ class DlThread(QThread):
 
         brain_in_atlas_file = str(brain_in_atlas_files[0])
 
-        self.reorientation_process = QProcess()
+        self.reorientation_process = QProcess(self)
         self.reorientation_process.finished.connect(self.on_reorientation_finished)
         self.reorientation_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.reorientation_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.reorientation_process.readAllStandardOutput()))
@@ -241,7 +243,7 @@ class DlThread(QThread):
         self.update_progress()
         # FASE 4: Preprocess
         self.current_phase = 4
-        self.run_reorientation()  # Start the next phase
+        self.run_preprocess()  # Start the next phase
 
     def run_preprocess(self):
         """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
@@ -253,7 +255,7 @@ class DlThread(QThread):
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
 
-        self.dl_preprocess = QProcess()
+        self.dl_preprocess = QProcess(self)
         self.dl_preprocess.finished.connect(self.on_preprocess_finished)
         self.dl_preprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
@@ -292,7 +294,7 @@ class DlThread(QThread):
         self.file_update.emit(self.current_input_file_basename, "Phase 5/6: Deep Learning...")
         self.log_update.emit("FASE 5: Deep learning execution", 'i')
 
-        self.dl_process = QProcess()
+        self.dl_process = QProcess(self)
         self.dl_process.finished.connect(self.on_dl_finished)
         self.dl_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
@@ -338,7 +340,7 @@ class DlThread(QThread):
         self.file_update.emit(self.current_input_file_basename, "Phase 6/6: Postprocessing...")
         self.log_update.emit("FASE 6: Postprocess", 'i')
 
-        self.dl_postprocess = QProcess()
+        self.dl_postprocess = QProcess(self)
         self.dl_postprocess.finished.connect(self.on_postprocess_finished)
         self.dl_postprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
@@ -367,7 +369,7 @@ class DlThread(QThread):
         self.log_update.emit("✓ Postprocess completed", 'i')
         self.update_progress()
 
-        if self.current_file_index < self.total_files:
+        if self.current_file_index + 1 < self.total_files:
             self.current_file_index += 1
             self.process_single_file()
         else:
@@ -376,10 +378,8 @@ class DlThread(QThread):
 
     def cancel(self):
         self.is_cancelled = True
-
         self.log_update.emit("Cancellation requested - stopping all processes...", 'w')
 
-        # Dizionario con nome processo e oggetto
         processes = {
             'SynthStrip': self.synthstrip_process,
             'Coregistration': self.coregistration_process,
@@ -389,76 +389,64 @@ class DlThread(QThread):
             'Postprocess': self.dl_postprocess
         }
 
-        active_processes = []
-
-        # Primo passo: identifica processi attivi
         for name, process in processes.items():
-            if process is not None:
-                state = process.state()
-                if state in [QProcess.ProcessState.Running, QProcess.ProcessState.Starting]:
-                    active_processes.append((name, process))
-                    self.log_update.emit(f"Found active process: {name} (state: {state.name})", 'i')
-
-        if not active_processes:
-            self.log_update.emit("No active processes to cancel", 'i')
-            return
-
-        # Secondo passo: termina processi attivi
-        for name, process in active_processes:
-            try:
+            if process is not None and process.state() != QProcess.ProcessState.NotRunning:
                 self.log_update.emit(f"Stopping {name}...", 'w')
 
-                # Step 1: Terminate (SIGTERM)
+                # Disconnetti i segnali per evitare chiamate indesiderate
+                process.finished.disconnect()
+                process.errorOccurred.disconnect()
+                process.readyReadStandardOutput.disconnect()
+                process.readyReadStandardError.disconnect()
+
                 process.terminate()
-                if process.waitForFinished(3000):
-                    self.log_update.emit(f"{name} terminated gracefully", 'i')
-                    continue
+                if not process.waitForFinished(3000):
+                    process.kill()
+                    process.waitForFinished(2000)
 
-                # Step 2: Kill (SIGKILL) se terminate non ha funzionato
-                self.log_update.emit(f"Force killing {name}...", 'w')
-                process.kill()
-                if process.waitForFinished(2000):
-                    self.log_update.emit(f"{name} killed successfully", 'i')
-                else:
-                    self.log_update.emit(f"Warning: {name} may still be running", 'w')
-
-            except Exception as e:
-                self.log_update.emit(f"Error stopping {name}: {str(e)}", 'e')
-
-        self.log_update.emit("Cancellation procedure completed", 'i')
-
-        # Opzionale: emetti il segnale finished per notificare la UI
         self.finished.emit(False, "Processing cancelled by user")
+        self.quit()
 
-    def on_error(self, phase: str, error):
-        """
-        Handler per errori di avvio/exec di un QProcess.
-        """
+    def on_stdout(self, phase, data):
+        """Handler corretto per stdout di QProcess"""
         try:
-            self.log_update.emit(f"[{phase}] Process error: {error}", 'e')
-        except Exception as e:
-            self.log_update.emit(f"[{phase}] Error in on_error handler: {str(e)}", 'e')
-
-    def on_stdout(self, phase: str, data):
-        """
-        Handler per lo stdout di un QProcess.
-        """
-        try:
-            text = bytes(data).decode("utf-8").strip()
+            # Decodifica correttamente i dati da QByteArray
+            text = data.data().decode("utf-8", errors='replace').strip()
             if text:
+                # Splitta per linee e logga ciascuna
                 for line in text.splitlines():
-                    self.log_update.emit(f"[{phase}] {line}", 'i')
+                    if line.strip():  # Evita linee vuote
+                        self.log_update.emit(f"[{phase}] {line.strip()}", 'i')
         except Exception as e:
             self.log_update.emit(f"[{phase}] Error decoding stdout: {str(e)}", 'e')
 
-    def on_stderr(self, phase: str, data):
-        """
-        Handler per lo stderr di un QProcess.
-        """
+    def on_stderr(self, phase, data):
+        """Handler corretto per stderr di QProcess"""
         try:
-            text = bytes(data).decode("utf-8").strip()
+            # Decodifica correttamente i dati da QByteArray
+            text = data.data().decode("utf-8", errors='replace').strip()
             if text:
+                # Splitta per linee e logga ciascuna
                 for line in text.splitlines():
-                    self.log_update.emit(f"[{phase}] {line}", 'e')
+                    if line.strip():  # Evita linee vuote
+                        self.log_update.emit(f"[{phase}] {line.strip()}", 'e')
         except Exception as e:
             self.log_update.emit(f"[{phase}] Error decoding stderr: {str(e)}", 'e')
+
+    def on_error(self, phase, error):
+        """Handler per errori di QProcess"""
+        try:
+            error_messages = {
+                QProcess.ProcessError.FailedToStart: "Failed to start process",
+                QProcess.ProcessError.Crashed: "Process crashed",
+                QProcess.ProcessError.Timedout: "Process timed out",
+                QProcess.ProcessError.WriteError: "Write error",
+                QProcess.ProcessError.ReadError: "Read error",
+                QProcess.ProcessError.UnknownError: "Unknown error"
+            }
+
+            error_msg = error_messages.get(error, f"Unknown error code: {error}")
+            self.log_update.emit(f"[{phase}] Process error: {error_msg}", 'e')
+
+        except Exception as e:
+            self.log_update.emit(f"[{phase}] Error in error handler: {str(e)}", 'e')
