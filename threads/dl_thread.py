@@ -4,14 +4,14 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PyQt6.QtCore import QThread, pyqtSignal, QProcess
+from PyQt6.QtCore import QThread, pyqtSignal, QProcess, QObject
 
 from logger import get_logger
 
 log = get_logger()
 
 
-class DlThread(QThread):
+class DlWorker(QObject):
     progressbar_update = pyqtSignal(int)  # Progresso generale (0-100)
     file_update = pyqtSignal(str, str)  # (filename, status)
     log_update = pyqtSignal(str, str)  # Messaggi di log
@@ -72,7 +72,7 @@ class DlThread(QThread):
             'd'
         )
 
-    def run(self):
+    def start(self):
         """Processa tutti i file NIfTI con la Deep Learning pipeline"""
 
         self.total_files = len(self.input_files)
@@ -87,14 +87,12 @@ class DlThread(QThread):
 
         self.process_single_file()
 
-        self.exec()
-
     def process_single_file(self):
         """Process single file with the Deep Learning pipeline"""
         temp_dir = tempfile.mkdtemp(prefix=f"dl_processing_{self.current_file_index+1}_")
-        out_dir = os.path.join(self.workspace_path, "outputs")
-        os.makedirs(out_dir, exist_ok=True)
-        self.output_dir = out_dir
+        # out_dir = os.path.join(self.workspace_path, "outputs")
+        # os.makedirs(out_dir, exist_ok=True)
+        self.output_dir = temp_dir
 
         self.current_input_file = self.input_files[self.current_file_index]
         self.current_input_file_basename = os.path.basename(self.current_input_file)
@@ -117,7 +115,7 @@ class DlThread(QThread):
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         self.current_synthstrip_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
 
-        self.synthstrip_process = QProcess(self)
+        self.synthstrip_process = QProcess()
         self.synthstrip_process.finished.connect(self.on_synthstrip_finished)
         self.synthstrip_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
@@ -134,6 +132,9 @@ class DlThread(QThread):
         self.synthstrip_process.start(cmd[0], cmd[1:])
 
     def on_synthstrip_finished(self, exit_code, exit_status):
+        if self.is_cancelled:
+            return
+
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("SynthStrip failed", f"Exit code: {exit_code}")
@@ -162,7 +163,7 @@ class DlThread(QThread):
         coreg_dir = os.path.join(self.output_dir, "coregistration")
         os.makedirs(coreg_dir, exist_ok=True)
 
-        self.coregistration_process = QProcess(self)
+        self.coregistration_process = QProcess()
         self.coregistration_process.finished.connect(self.on_coregistration_finished)
         self.coregistration_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.coregistration_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.coregistration_process.readAllStandardOutput()))
@@ -180,6 +181,9 @@ class DlThread(QThread):
         self.coregistration_process.start(python_executable, args)
 
     def on_coregistration_finished(self, exit_code, exit_status):
+        if self.is_cancelled:
+            return
+
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Coregistration failed", f"Exit code: {exit_code}")
@@ -213,7 +217,7 @@ class DlThread(QThread):
 
         brain_in_atlas_file = str(brain_in_atlas_files[0])
 
-        self.reorientation_process = QProcess(self)
+        self.reorientation_process = QProcess()
         self.reorientation_process.finished.connect(self.on_reorientation_finished)
         self.reorientation_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.reorientation_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.reorientation_process.readAllStandardOutput()))
@@ -230,6 +234,9 @@ class DlThread(QThread):
         self.reorientation_process.start(python_executable, args)
 
     def on_reorientation_finished(self, exit_code, exit_status):
+        if self.is_cancelled:
+            return
+
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Reorientation failed", f"Exit code: {exit_code}")
@@ -255,7 +262,7 @@ class DlThread(QThread):
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
 
-        self.dl_preprocess = QProcess(self)
+        self.dl_preprocess = QProcess()
         self.dl_preprocess.finished.connect(self.on_preprocess_finished)
         self.dl_preprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
@@ -273,6 +280,9 @@ class DlThread(QThread):
 
     def on_preprocess_finished(self, exit_code, exit_status):
         # This slot is called by the QProcess when it finishes
+        if self.is_cancelled:
+            return
+
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Preprocess failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
@@ -294,7 +304,7 @@ class DlThread(QThread):
         self.file_update.emit(self.current_input_file_basename, "Phase 5/6: Deep Learning...")
         self.log_update.emit("FASE 5: Deep learning execution", 'i')
 
-        self.dl_process = QProcess(self)
+        self.dl_process = QProcess()
         self.dl_process.finished.connect(self.on_dl_finished)
         self.dl_process.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
@@ -319,6 +329,9 @@ class DlThread(QThread):
         self.dl_process.start(python_executable, args)
 
     def on_dl_finished(self, exit_code, exit_status):
+        if self.is_cancelled:
+            return
+
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Deep learning execution failed", f"Exit code: {exit_code}")
@@ -340,7 +353,7 @@ class DlThread(QThread):
         self.file_update.emit(self.current_input_file_basename, "Phase 6/6: Postprocessing...")
         self.log_update.emit("FASE 6: Postprocess", 'i')
 
-        self.dl_postprocess = QProcess(self)
+        self.dl_postprocess = QProcess()
         self.dl_postprocess.finished.connect(self.on_postprocess_finished)
         self.dl_postprocess.errorOccurred.connect(lambda error, string=phase: self.on_error(string, error))
         self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
@@ -357,6 +370,9 @@ class DlThread(QThread):
         self.dl_postprocess.start(python_executable, args)
 
     def on_postprocess_finished(self, exit_code, exit_status):
+        if self.is_cancelled:
+            return
+
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Postprocess failed", f"Exit code: {exit_code}")
@@ -373,7 +389,7 @@ class DlThread(QThread):
             self.current_file_index += 1
             self.process_single_file()
         else:
-            self.finished.emit(False, "Processing completed")
+            self.finished.emit(True, "Processing completed")
         return
 
     def cancel(self):
@@ -393,19 +409,16 @@ class DlThread(QThread):
             if process is not None and process.state() != QProcess.ProcessState.NotRunning:
                 self.log_update.emit(f"Stopping {name}...", 'w')
 
-                # Disconnetti i segnali per evitare chiamate indesiderate
-                process.finished.disconnect()
-                process.errorOccurred.disconnect()
-                process.readyReadStandardOutput.disconnect()
-                process.readyReadStandardError.disconnect()
-
+                # Non serve disconnettere i segnali manualmente!
                 process.terminate()
-                if not process.waitForFinished(3000):
+
+                # fai un kill solo se dopo un timeout non risponde
+                if not process.waitForFinished(2000):
+                    self.log_update.emit(f"Forcing {name} to quit...", 'e')
                     process.kill()
-                    process.waitForFinished(2000)
+                    process.waitForFinished(1000)
 
         self.finished.emit(False, "Processing cancelled by user")
-        self.quit()
 
     def on_stdout(self, phase, data):
         """Handler corretto per stdout di QProcess"""

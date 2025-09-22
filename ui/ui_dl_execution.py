@@ -5,10 +5,10 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QMessageBox, QGroupBox, QListWidget, QProgressBar,
                              QListWidgetItem, QTextEdit, QSplitter, QFileDialog,
                              QCheckBox)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread
 
 from components.circular_progress_bar import CircularProgress
-from threads.dl_thread import DlThread
+from threads.dl_thread import DlWorker
 from wizard_state import WizardPage
 from logger import get_logger
 
@@ -199,19 +199,24 @@ class DlExecutionPage(WizardPage):
             QMessageBox.warning(self, "Errore", "Nessun file selezionato per il processamento.")
             return
 
+        # self.thread = QThread()
+
         # Avvia worker thread
-        self.worker = DlThread(
+        self.worker = DlWorker(
             input_files=selected_files,
             workspace_path=self.context["workspace_path"]
         )
+        # self.worker.moveToThread(self.thread)
 
-        # Connetti segnali
+        # Connects signals
         self.worker.progressbar_update.connect(self.update_progress)
         self.worker.file_update.connect(self.update_file_status)
         self.worker.log_update.connect(self.add_log_message)
         self.worker.finished.connect(self.processing_finished)
 
-        # Aggiorna UI
+        # self.worker.finished.connect(self.worker.deleteLater)
+
+        # Update UI
         self.processing = True
         self.start_button.setVisible(False)
         self.cancel_button.setVisible(True)
@@ -220,7 +225,8 @@ class DlExecutionPage(WizardPage):
         self.current_operation.setText("Processing...")
         self.log_text.clear()
 
-        # Avvia worker
+        # Start worker on thread
+        # self.thread.start()
         self.worker.start()
 
         self.add_log_message(f"Deep learning processing started for {len(selected_files)} file", 'i')
