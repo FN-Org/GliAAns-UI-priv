@@ -11,7 +11,7 @@ import logging
 log = logging.getLogger(__name__)
 
 class NiftiFileDialog(QDialog):
-    def __init__(self, parent, workspace_path, allow_multiple=None, has_existing_func=None, label=None,forced_filters = None):
+    def __init__(self, parent, workspace_path, allow_multiple=None, has_existing_func=None, label=None, forced_filters=None):
         super().__init__(parent)
         self.label = label
         self.setWindowTitle(f"Select NIfTI Files ({self.label})")
@@ -120,7 +120,7 @@ class NiftiFileDialog(QDialog):
         subjects_set, sessions_set, modalities_set = set(), set(), set()
 
         for root, dirs, files in os.walk(self.workspace_path):
-            dirs[:] = [d for d in dirs if d != "derivatives"]
+            # dirs[:] = [d for d in dirs if d != "derivatives"]
 
             for f in files:
                 if f.endswith((".nii", ".nii.gz")):

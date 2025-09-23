@@ -788,16 +788,26 @@ class NiftiViewer(QMainWindow):
         for view in self.views:
             view.coordinate_changed.connect(self.update_coordinates)
 
-    def show_workspace_nii_dialog(self,is_overlay=False):
-        result = NiftiFileDialog.get_files(
-            self,
-            self.context["workspace_path"],
-            allow_multiple=False,
-            has_existing_func=False,
-            label="NiftiViewer",
-        )
+    def show_workspace_nii_dialog(self, is_overlay=False):
+        if is_overlay:
+            result = NiftiFileDialog.get_files(
+                self,
+                self.context["workspace_path"],
+                allow_multiple=False,
+                has_existing_func=False,
+                label="NiftiViewer",
+                forced_filters={"search": "derivatives"}
+            )
+        else:
+            result = NiftiFileDialog.get_files(
+                self,
+                self.context["workspace_path"],
+                allow_multiple=False,
+                has_existing_func=False,
+                label="NiftiViewer"
+            )
         if result:
-            self.open_file(result[0],is_overlay=is_overlay)
+            self.open_file(result[0], is_overlay=is_overlay)
 
 
 
