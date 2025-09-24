@@ -7,6 +7,8 @@ import shutil
 from logging.handlers import BaseRotatingHandler
 from pathlib import Path
 
+from utils import resource_path, get_app_dir
+
 
 class CompressedRotatingFileHandler(BaseRotatingHandler):
     def __init__(self, filename, mode="a", maxBytes=10*1024*1024,
@@ -65,7 +67,7 @@ class CompressedRotatingFileHandler(BaseRotatingHandler):
 
 def setup_logger(console,
                  logger_name="GliAAns-UI",
-                 logfile=Path(".log") / "log.txt",
+                 logfile= get_app_dir() / ".log" / "log.txt",
                  level=logging.ERROR,
                  maxBytes=10*1024*1024,
                  backupCount=5):

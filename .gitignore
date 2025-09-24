@@ -9,3 +9,8 @@
 /ui/__pycache__
 /.log
 /.venv_wsl
+/build
+/dist
+*.pyc
+*.spec
+*.pyc

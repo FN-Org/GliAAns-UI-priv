@@ -321,7 +321,7 @@ class WorkspaceTreeView(QTreeView):
                 self.new_thread.emit(CopyDeleteThread(src=path, is_folder=is_dir,delete=True))
 
     def _open_in_explorer(self,path):
-        QDesktopServices.openUrl(QUrl.path(path))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def _open_nifti(self, file_path):
         try:

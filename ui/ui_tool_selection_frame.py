@@ -169,10 +169,9 @@ class ToolChoicePage(WizardPage):
                 "Not available for this platform",
                 f"The deep learning segmentation is not available for this platform: {platform.system()}",
             )
-        return self
+            return self
 
         attr_name, page_class = page_classes[self.selected_option]
-
 
         next_page = getattr(self, attr_name, None)
 
