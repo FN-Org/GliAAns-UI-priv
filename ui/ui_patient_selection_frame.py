@@ -1,4 +1,5 @@
 import shutil
+import sys
 
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
@@ -7,6 +8,7 @@ from PyQt6.QtCore import Qt
 import os
 
 from ui.ui_tool_selection_frame import ToolChoicePage
+from utils import resource_path
 from wizard_state import WizardPage
 from logger import get_logger
 
@@ -239,7 +241,7 @@ class PatientSelectionPage(WizardPage):
 
             # Immagine
             image = QLabel()
-            pixmap = QtGui.QPixmap("./resources/user.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
+            pixmap = QtGui.QPixmap(resource_path("resources/user.png")).scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
                                                                   Qt.TransformationMode.SmoothTransformation)
             image.setPixmap(pixmap)
             image.setAlignment(Qt.AlignmentFlag.AlignCenter)
