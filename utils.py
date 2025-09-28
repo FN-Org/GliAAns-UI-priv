@@ -1,9 +1,31 @@
 import os
+import shutil
 import subprocess
 import platform
 import sys
 from PyQt6.QtCore import QStandardPaths
 from pathlib import Path
+
+def get_bin_path(name):
+    exe_name = f"{name}.exe" if platform.system() == "Windows" else name
+
+    # Caso 1: se estrae PyInstaller (usa sys._MEIPASS)
+    if hasattr(sys, "_MEIPASS"):
+        candidate = os.path.join(sys._MEIPASS, exe_name)  # 🔑 tolto "name/"
+        if os.path.exists(candidate):
+            return candidate
+
+    # Caso 2: se distribuito accanto al tuo .py o .exe
+    candidate = os.path.join(os.path.dirname(__file__), exe_name)
+    if os.path.exists(candidate):
+        return candidate
+
+    # Caso 3: se installato nel PATH (es. pacchetto pip o sistema)
+    path = shutil.which(exe_name)
+    if path:
+        return path
+
+    raise FileNotFoundError(f"Impossibile trovare {exe_name}")
 
 def get_app_dir():
     # cartella dove salvare i dati dell'app (scrivibile dall'utente)
@@ -55,12 +77,6 @@ def get_shell_path():
     except Exception as e:
         print(f"Errore nel recuperare PATH dalla shell: {e}")
         return os.environ.get("PATH", "")
-
-
-import os
-import shutil
-from pathlib import Path
-
 
 def setup_fsl_env(log=None):
     """Configura le variabili di ambiente FSL necessarie"""

@@ -17,3 +17,4 @@
 *.bin
 /main.dist
 nuitka-crash-report.xml
+/pipeline_runner.dist

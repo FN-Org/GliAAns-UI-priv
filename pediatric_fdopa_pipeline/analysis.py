@@ -1,30 +1,11 @@
 import matplotlib 
 matplotlib.rcParams['figure.facecolor'] = '1.'
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import numpy as np
 import nibabel as nib
 import pandas as pd
-import re
 import os
-import ants
-import argparse
-import csv
 import statistics
-from scipy.ndimage import distance_transform_edt
-from scipy.ndimage import label
-from scipy.ndimage import center_of_mass
-from scipy.ndimage import gaussian_filter
-from sklearn.mixture import GaussianMixture
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from scipy.stats import linregress
-from argparse import ArgumentParser
-from pathlib import Path
-from skimage.morphology import dilation, erosion
-from sys import argv
-from glob import glob
-import seaborn as sns
 from pediatric_fdopa_pipeline.ref_tumor_seg import ref_seg, binary_mask
 
 def get_stats_for_labels(vol, atlas, labels):

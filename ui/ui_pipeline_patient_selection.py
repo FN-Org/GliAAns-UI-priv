@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollA
 from PyQt6.QtCore import Qt
 
 from ui.ui_pipeline_review import PipelineReviewPage
+from utils import resource_path
 from wizard_state import WizardPage
 from logger import get_logger
 
@@ -128,9 +129,9 @@ class PipelinePatientSelectionPage(WizardPage):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(15)
 
-        self.total_label = self._create_stat_pill("./resources/icon_total.png", "Total Patients", "0")
-        self.eligible_label = self._create_stat_pill("./resources/icon_check.png", "Eligible", "0", color="#27ae60")
-        self.not_eligible_label = self._create_stat_pill("./resources/icon_cross.png", "Not Eligible", "0",
+        self.total_label = self._create_stat_pill(resource_path("resources/icon_total.png"), "Total Patients", "0")
+        self.eligible_label = self._create_stat_pill(resource_path("resources/icon_check.png"), "Eligible", "0", color="#27ae60")
+        self.not_eligible_label = self._create_stat_pill(resource_path("resources/icon_cross.png"), "Not Eligible", "0",
                                                          color="#c0392b")
 
         for pill in [self.total_label, self.eligible_label, self.not_eligible_label]:
@@ -327,11 +328,11 @@ class PipelinePatientSelectionPage(WizardPage):
         # Immagine
         image = QLabel()
         if status['eligible']:
-            pixmap = QtGui.QPixmap("./resources/user.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
+            pixmap = QtGui.QPixmap(resource_path("resources/user.png")).scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
                                                                   Qt.TransformationMode.SmoothTransformation)
         else:
             # Potresti voler usare un'icona diversa per pazienti non eligible
-            pixmap = QtGui.QPixmap("./resources/user.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
+            pixmap = QtGui.QPixmap(resource_path("resources/user.png")).scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio,
                                                                   Qt.TransformationMode.SmoothTransformation)
         image.setPixmap(pixmap)
         image.setAlignment(Qt.AlignmentFlag.AlignCenter)

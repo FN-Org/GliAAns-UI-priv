@@ -321,7 +321,26 @@ class WorkspaceTreeView(QTreeView):
                 self.new_thread.emit(CopyDeleteThread(src=path, is_folder=is_dir,delete=True))
 
     def _open_in_explorer(self,path):
-        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+        try:
+            url = QUrl.fromLocalFile(path)
+            success = QDesktopServices.openUrl(url)
+
+            if not success:
+                # Extract file extension
+                ext = os.path.splitext(path)[1] or "(unknown)"
+                QMessageBox.warning(
+                    self,
+                    "No default application",
+                    f"No default application is registered for files with extension {ext}."
+                )
+                log.debug(f"No default application is registered for files with extension {ext}.")
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An unexpected error occurred while opening the file:\n{e}"
+            )
+            log.error(f"An unexpected error occurred while opening the file:\n{e}")
 
     def _open_nifti(self, file_path):
         try:

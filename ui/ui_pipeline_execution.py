@@ -12,6 +12,7 @@ from PyQt6.QtCore import Qt, QTimer, QProcess
 
 from components.circular_progress_bar import CircularProgress
 from components.folder_card import FolderCard
+from utils import get_bin_path
 from wizard_state import WizardPage
 from logger import get_logger
 
@@ -45,8 +46,9 @@ class PipelineExecutionPage(WizardPage):
             self.pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
 
         # Crea lo script temporaneo per la pipeline
-        self.pipeline_script_path = "./pediatric_fdopa_pipeline/pipeline_runner.py"
-        # self._create_pipeline_script()
+        bin_dir = get_bin_path("pipeline_runner")
+        self.pipeline_bin_path = os.path.join(bin_dir, "pipeline_runner")
+        log.error(f"PERCORSO BINARIO PIPELINE: {self.pipeline_bin_path}")
         self._setup_ui()
 
     def _find_latest_config(self):
@@ -223,15 +225,17 @@ class PipelineExecutionPage(WizardPage):
 
         # Prepara gli argomenti per il processo
         python_executable = sys.executable  # Usa lo stesso interprete Python
-        args = [
-            self.pipeline_script_path,
+        cmd = [
+            self.pipeline_bin_path,
             '--config', self.config_path,
             '--work-dir', self.workspace_path,
             '--out-dir', self.pipeline_output_dir
         ]
 
+        log.error(f"{self.pipeline_bin_path} --config {self.config_path} --work-dir {self.workspace_path} --out-dir {self.pipeline_output_dir}")
+
         # Avvia il processo
-        self.pipeline_process.start(python_executable, args)
+        self.pipeline_process.start(cmd[0],cmd[1:])
 
         if not self.pipeline_process.waitForStarted(3000):
             self._log_message("ERROR: Failed to start pipeline process")

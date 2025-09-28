@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import argparse
+import pandas as pd
 from pathlib import Path
 
 from pediatric_fdopa_pipeline.analysis import tumor_striatum_analysis
@@ -13,9 +14,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = "30"
 os.environ["MKL_NUM_THREADS"] = "30"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "30"
 os.environ["NUMEXPR_NUM_THREADS"] = "30"
-
-import ants
-import pandas as pd
 
 
 def run_pipeline_from_config(config_path, work_dir, out_dir):
@@ -66,8 +64,8 @@ def run_pipeline_from_config(config_path, work_dir, out_dir):
             work_dir=work_dir,
             out_dir=out_dir,
             sub=sub_number,
-            stx_fn="./pediatric_fdopa_pipeline/atlas/mni_icbm152_t1_tal_nlin_asym_09c.nii.gz",
-            atlas_fn="./pediatric_fdopa_pipeline/atlas/dka_atlas_eroded.nii.gz",
+            stx_fn=os.path.join(os.path.dirname(sys.argv[0]), "atlas", "mni_icbm152_t1_tal_nlin_asym_09c.nii.gz"),
+            atlas_fn=os.path.join(os.path.dirname(sys.argv[0]), "atlas", "dka_atlas_eroded.nii.gz"),
             flair_tumor=flair_tumor,
             pet_file=pet_file,
             pet_json_file=pet_json_file,
@@ -101,10 +99,10 @@ def run_pipeline_from_config(config_path, work_dir, out_dir):
 
     log_message("Processing dynamic parameters...")
     for subject in subject_list:
-        if (Path(subject.data_dir + '/sub-' + subject.sub + '/ses-02').is_dir()):
+        if (Path(subject.data_dir) / f"sub-{subject.sub}" / "ses-02").is_dir():
             log_message(f"Adding dynamic parameters for subject {subject.sub}")
             dy_param_data.append(subject.dy_df)
-            if (subject.bool_flag):
+            if subject.bool_flag:
                 ratio_data.append({'subject': subject.sub, 'percentage': subject.tum_percentage})
 
     if dy_param_data:
