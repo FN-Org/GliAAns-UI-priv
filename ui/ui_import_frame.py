@@ -93,12 +93,16 @@ class ImportFrame(WizardPage):
         dialog.setOption(QFileDialog.Option.ReadOnly, True)
         dialog.setDirectory(os.path.expanduser("~"))
 
+        # Imposta ExtendedSelection su QListView e QTreeView del dialog
         for view in dialog.findChildren((QListView, QTreeView)):
-            view.setSelectionMode(view.SelectionMode.MultiSelection)
+            view.setSelectionMode(view.SelectionMode.ExtendedSelection)
 
         if dialog.exec():
             folders = [os.path.abspath(path) for path in dialog.selectedFiles() if os.path.isdir(path)]
-            unique_folders = [f for f in folders if not any(f != other and other.startswith(f + os.sep) for other in folders)]
+            unique_folders = [
+                f for f in folders
+                if not any(f != other and other.startswith(f + os.sep) for other in folders)
+            ]
             self._handle_import(unique_folders)
 
     def _handle_import(self, folders_path):
@@ -120,10 +124,18 @@ class ImportFrame(WizardPage):
     def on_import_error(self, error):
         """Handle file loading errors"""
         thread = self.sender()
+        if thread not in self.threads:  # evita ValueError se già rimosso
+            log.warning(f"Ignored error from already removed thread: {error}")
+            return
+
         index = self.threads.index(thread)
 
         self.progress_dialogs[index].close()
-        QMessageBox.critical(self.context["main_window"], "Error Importing Files", "Failed to import files"+ f":\n{error}")
+        QMessageBox.critical(
+            self.context["main_window"],
+            "Error Importing Files",
+            "Failed to import files" + f":\n{error}"
+        )
         log.error(f"Error Importing Files: {error}")
 
     def on_import_finished(self):

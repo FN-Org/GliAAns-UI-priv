@@ -17,11 +17,11 @@ class WorkspaceTreeView(QTreeView):
 
     new_thread = pyqtSignal(object)
 
-    def __init__(self, workspace_path, context, parent=None):
-        super().__init__(parent)
+    def __init__(self, context):
+        super().__init__()
 
-        self.workspace_path = workspace_path
         self.context = context
+        self.workspace_path = self.context["workspace_path"]
 
         self.selected_files = []
 
@@ -43,7 +43,6 @@ class WorkspaceTreeView(QTreeView):
         self.doubleClicked.connect(self.handle_double_click)
         self.customContextMenuRequested.connect(self.open_tree_context_menu)
 
-
     def handle_workspace_click(self):
         selected_indexes = self.selectionModel().selectedRows()
 
@@ -58,13 +57,19 @@ class WorkspaceTreeView(QTreeView):
     def handle_double_click(self, index):
         file_path = self.tree_model.filePath(index)
 
-        # Verifica che sia un file NIfTI
-        if os.path.isfile(file_path) and (file_path.endswith(".nii") or file_path.endswith(".nii.gz")):
+        if not os.path.isfile(file_path):
+            return
+
+        # Se è un file NIfTI → apri con viewer
+        if file_path.endswith(".nii") or file_path.endswith(".nii.gz"):
             try:
-               self.context["open_nifti_viewer"](file_path)
+                self.context["open_nifti_viewer"](file_path)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error when opening NIfTI file:\n{str(e)}")
                 log.error(f"Error opening file NIfTI:\n{str(e)}")
+        else:
+            # Tutti gli altri file → apri con applicazione di sistema
+            self._open_in_explorer(file_path)
 
     def adjust_tree_columns(self):
         width = self.width()
@@ -294,8 +299,6 @@ class WorkspaceTreeView(QTreeView):
                                                                                                             path))
                 self.new_thread.emit(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_folder, copy=True))
 
-
-
     def remove_from_workspace(self, paths):
         for path in paths:
             if not os.path.exists(path):
@@ -320,8 +323,27 @@ class WorkspaceTreeView(QTreeView):
                 is_dir = os.path.isdir(path)
                 self.new_thread.emit(CopyDeleteThread(src=path, is_folder=is_dir,delete=True))
 
-    def _open_in_explorer(self,path):
-        QDesktopServices.openUrl(QUrl.path(path))
+    def _open_in_explorer(self, path):
+        try:
+            url = QUrl.fromLocalFile(path)
+            success = QDesktopServices.openUrl(url)
+
+            if not success:
+                # Extract file extension
+                ext = os.path.splitext(path)[1] or "(unknown)"
+                QMessageBox.warning(
+                    self,
+                    "No default application",
+                    f"No default application is registered for files with extension {ext}."
+                )
+                log.debug(f"No default application is registered for files with extension {ext}.")
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An unexpected error occurred while opening the file:\n{e}"
+            )
+            log.error(f"An unexpected error occurred while opening the file:\n{e}")
 
     def _open_nifti(self, file_path):
         try:

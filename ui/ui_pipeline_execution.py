@@ -129,6 +129,7 @@ class PipelineExecutionPage(WizardPage):
         self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
         for d in self.watch_dirs:
             card = FolderCard(d)
+            card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
             scroll_layout.addWidget(card)
             self.folder_cards[d] = card
 
