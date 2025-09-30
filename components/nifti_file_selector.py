@@ -78,6 +78,9 @@ class NiftiFileDialog(QDialog):
 
         self.no_flag_checkbox = QCheckBox(f"Show only files without existing {self.label}s")
         self.with_flag_checkbox = QCheckBox(f"Show only files with existing {self.label}s")
+        if self.label is None:
+            self.no_flag_checkbox.setVisible(False)
+            self.with_flag_checkbox.setVisible(False)
         filter_layout.addWidget(self.no_flag_checkbox, 3, 0, 1, 2)
         filter_layout.addWidget(self.with_flag_checkbox, 3, 2, 1, 2)
 

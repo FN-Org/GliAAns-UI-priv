@@ -5,6 +5,7 @@ from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication
 
 from components.ui_button import UiButton
+from ui.ui_workspace_tree_view import WorkspaceTreeView
 from ui.ui_import_frame import ImportFrame
 from ui.ui_main_window import MainWindow
 from ui.ui_nifti_viewer import NiftiViewer
@@ -46,11 +47,12 @@ class WizardController(QObject):
         }
         self.context["import_frame"] = ImportFrame(self.context)
         self.context["main_window"] = MainWindow(self.context)
+        self.context["tree_view"] = WorkspaceTreeView(self.context)
         self.context["nifti_viewer"] = NiftiViewer(self.context)
 
-
-        self.start_page = self.context["import_frame"]
         self.main_window = self.context["main_window"]
+        self.tree_view = self.context["tree_view"]
+        self.start_page = self.context["import_frame"]
 
         self.context["history"].append(self.start_page)
         self.current_page = self.start_page
@@ -60,7 +62,7 @@ class WizardController(QObject):
         self._show_current_page()
 
     def _show_current_page(self):
-        self.main_window.set_right_widget(self.current_page)
+        self.main_window.set_widgets(self.tree_view, self.current_page)
         self.update_buttons_state()
 
     def go_to_next_page(self):

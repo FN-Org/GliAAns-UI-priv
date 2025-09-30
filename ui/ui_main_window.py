@@ -1,17 +1,14 @@
 import logging
 import os
-import json
-
 
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QTranslator, pyqtSignal, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow,QVBoxLayout,
+    QMainWindow,QVBoxLayout,
     QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox,
 )
-from PyQt6.QtGui import QAction, QActionGroup, QIcon
+from PyQt6.QtGui import QAction, QActionGroup
 
-from components.workspace_tree_view import WorkspaceTreeView
 from threads.utils_threads import CopyDeleteThread
 from logger import get_logger,set_log_level
 
@@ -57,15 +54,7 @@ class MainWindow(QMainWindow):
     def _setup_splitter(self):
         # Splitter
         self.splitter = QSplitter(QtCore.Qt.Orientation.Horizontal)
-
-        # TreeView
-        self.tree_view = WorkspaceTreeView(context=self.context,parent=self,workspace_path=self.workspace_path)
-        self.splitter.addWidget(self.tree_view)
-        self.tree_view.new_thread.connect(self.new_thread)
-
         self.main_layout.addWidget(self.splitter)
-        self.splitter.setSizes([200, 600])
-        self.splitter.splitterMoved.connect(self.tree_view.adjust_tree_columns)
 
     def _setup_footer(self):
         self.footer = QtWidgets.QWidget()
@@ -145,16 +134,11 @@ class MainWindow(QMainWindow):
         if self.settings.value("language","en",type=str) == code:
             self.language_actions[code].setChecked(True)
 
-
-
-
     def set_language(self, lang_code):
         self.context["language_changed"].emit(lang_code)
 
         if lang_code in self.language_actions:
             self.language_actions[lang_code].setChecked(True)
-
-
 
     def _retranslate_ui(self):
         _ = QtCore.QCoreApplication.translate
@@ -170,8 +154,6 @@ class MainWindow(QMainWindow):
         self.clear_all_action.setText(_("MainWindow", "Clear workspace"))
         self.language_actions["en"].setText(_("MainWindow", "English"))
         self.language_actions["it"].setText(_("MainWindow", "Italiano"))
-
-
 
     def clear_folder(self,folder_path,folder_name,return_to_import):
         message = f"Sei sicuro di voler cancellare completamente {folder_name}?\n"
@@ -197,22 +179,20 @@ class MainWindow(QMainWindow):
                 if self.context and "return_to_import" in self.context:
                     self.context["return_to_import"]()
 
-    def set_right_widget(self, new_widget):
+    def set_widgets(self, left_widget, right_widget):
+        # Se il sinistro è già tree_view, non distruggerlo
         if self.splitter.count() > 1:
-            old_widget = self.splitter.widget(1)
-            self.splitter.replaceWidget(1, new_widget)
+            self.splitter.replaceWidget(1, right_widget)
             self.splitter.setSizes([200, 600])
-            self.tree_view.adjust_tree_columns()
-            # old_widget.deleteLater()
+            self.left_panel.adjust_tree_columns()
         else:
-            self.splitter.addWidget(new_widget)
+            self.splitter.addWidget(left_widget)
+            self.left_panel = left_widget
+            self.splitter.addWidget(right_widget)
+            self.right_panel = right_widget
             self.splitter.setSizes([200, 600])
-            self.tree_view.adjust_tree_columns()
-        self.right_panel = new_widget  # utile per riferimenti futuri
-
-
-
-
+            self.left_panel.adjust_tree_columns()
+            self.left_panel.new_thread.connect(self.new_thread)
 
     def copydelete_thread_error(self, msg):
         QMessageBox.warning(
@@ -237,7 +217,6 @@ class MainWindow(QMainWindow):
         log.debug("Success:"+msg)
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)
-
 
     def closeEvent(self, event):
         if hasattr(self, "threads"):
@@ -268,12 +247,3 @@ class MainWindow(QMainWindow):
             set_log_level(logging.DEBUG)
         else:
             set_log_level(logging.ERROR)
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())

@@ -19,4 +19,6 @@
 nuitka-crash-report.xml
 /pipeline_runner.dist
 /deep_learning/checkpoints
-/deep_learning_runner.dist
+/dist
+/pipeline_runner.dist
+*.ckpt

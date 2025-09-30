@@ -795,7 +795,7 @@ class NiftiViewer(QMainWindow):
                 self.context["workspace_path"],
                 allow_multiple=False,
                 has_existing_func=False,
-                label="NiftiViewer",
+                label=None,
                 forced_filters={"search": "derivatives"}
             )
         else:
@@ -804,7 +804,7 @@ class NiftiViewer(QMainWindow):
                 self.context["workspace_path"],
                 allow_multiple=False,
                 has_existing_func=False,
-                label="NiftiViewer"
+                label=None
             )
         if result:
             self.open_file(result[0], is_overlay=is_overlay)

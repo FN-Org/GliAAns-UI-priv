@@ -178,6 +178,9 @@ class ImportThread(QThread):
             self.finished.emit()
 
         except Exception as e:
+            if self._is_canceled:
+                log.info("Import interrupted by user, no error emitted.")
+                return
             self.error.emit(str(e))
             log.error(f"Error: {str(e)}")
 
