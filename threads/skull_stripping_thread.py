@@ -2,7 +2,7 @@ import os
 import json
 from PyQt6.QtCore import pyqtSignal, QThread, QProcess
 from logger import get_logger
-from utils import setup_fsl_env
+from utils import setup_fsl_env,get_bin_path
 
 log = get_logger()
 
@@ -87,7 +87,7 @@ class SkullStripThread(QThread):
                     method = "FSL BET"
                 else:
                     output_file = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
-                    cmd = ["hd-bet", "-i", nifti_file, "-o", output_file]
+                    cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", output_file]
                     if not self.has_cuda:
                         cmd += ["-device", "cpu", "--disable_tta"]
                     method = "HD-BET"

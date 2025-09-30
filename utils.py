@@ -11,12 +11,12 @@ def get_bin_path(name):
 
     # Caso 1: se estrae PyInstaller (usa sys._MEIPASS)
     if hasattr(sys, "_MEIPASS"):
-        candidate = os.path.join(sys._MEIPASS, exe_name)  # 🔑 tolto "name/"
+        candidate = os.path.join(sys._MEIPASS,name, exe_name)
         if os.path.exists(candidate):
             return candidate
 
     # Caso 2: se distribuito accanto al tuo .py o .exe
-    candidate = os.path.join(os.path.dirname(__file__), exe_name)
+    candidate = os.path.join(os.path.dirname(__file__),name,exe_name)
     if os.path.exists(candidate):
         return candidate
 

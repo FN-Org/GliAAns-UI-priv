@@ -46,8 +46,11 @@ class PipelineExecutionPage(WizardPage):
             self.pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
 
         # Crea lo script temporaneo per la pipeline
-        bin_dir = get_bin_path("pipeline_runner")
-        self.pipeline_bin_path = os.path.join(bin_dir, "pipeline_runner")
+        try:
+            self.pipeline_bin_path = get_bin_path("pipeline_runner")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
         log.debug(f"Percorso binario pipeline: {self.pipeline_bin_path}")
         self._setup_ui()
 

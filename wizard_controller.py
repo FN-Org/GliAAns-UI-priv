@@ -1,9 +1,11 @@
 import json
+import logging
 import os
 
 from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication
 
+import logger
 from components.ui_button import UiButton
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 from ui.ui_import_frame import ImportFrame
@@ -25,7 +27,12 @@ class WizardController(QObject):
 
         self.translator = QTranslator()
         self.settings = QSettings("GliAAns")
-        self.saved_lang = self.settings.value("language", "en", type=str) # self._load_saved_language()
+        self.saved_lang = self.settings.value("language", "en", type=str)
+        log_debug = self.settings.value("debug_log",False,type=bool)
+        if log_debug:
+            logger.set_log_level(logging.DEBUG)
+
+
         self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
 

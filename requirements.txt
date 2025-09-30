@@ -2,26 +2,8 @@ pyqt6
 pydicom
 nibabel
 matplotlib
-numba
-antspyx
-pandas
-scikit-image
-scikit-learn
-seaborn
+numba == 0.61.2
+llvmlite == 0.44.0
 dcm2niix
 hd-bet
-nipreps-synthstrip
-statsmodels==0.13.5
-numpy==1.26.4
-scipy==1.13.1
-
-git+https://github.com/NVIDIA/dllogger
-
-monai==0.9.1
-joblib==1.4.2
-pytorch-lightning==2.5.0.post0
-rich==13.9.4
-torchinfo==1.7.0
-torch==2.6.0
-torchvision==0.21.0
-torchtext==0.18.0
+pyinstaller

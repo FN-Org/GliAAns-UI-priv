@@ -1273,8 +1273,7 @@ class NiftiViewer(QMainWindow):
 
             # Create composite
             height, width = slice_data.shape
-            normalized_data = self.normalize_data_matplotlib_style(slice_data)
-            rgba_image = self.apply_colormap_matplotlib(normalized_data, self.colormap)
+            rgba_image = self.apply_colormap_matplotlib(slice_data, self.colormap)
             if self.overlay_enabled and overlay_slice is not None:
                 rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
 
@@ -1302,27 +1301,6 @@ class NiftiViewer(QMainWindow):
         except Exception as e:
             log.error(f"Error updating display {plane_idx}: {e}")
 
-    def normalize_data_matplotlib_style(self, data):
-        """Normalize data using matplotlib's approach for clear image display"""
-        if data.size == 0:
-            return data
-
-        # Remove NaN and infinite values
-        valid_data = data[np.isfinite(data)]
-        if valid_data.size == 0:
-            return np.zeros_like(data)
-
-        # Use robust percentile normalization like matplotlib
-        vmin, vmax = np.percentile(valid_data, [2, 98])
-
-        # Avoid division by zero
-        if vmax <= vmin:
-            vmax = vmin + 1
-
-        # Normalize to [0, 1]
-        normalized = np.clip((data - vmin) / (vmax - vmin), 0, 1)
-
-        return normalized
 
     def setup_time_series_plot(self):
         """Setup time series plot for 4D data"""
@@ -1368,13 +1346,11 @@ class NiftiViewer(QMainWindow):
             coords = self.current_coordinates
             bool_in_mask = False
             if self.overlay_data is not None and self.overlay_enabled:
-                # Normalizza overlay_data in modo coerente
-                overlay_norm = self.normalize_data_matplotlib_style(self.overlay_data)
 
                 # Calcola mask thresholded
-                overlay_max = np.max(overlay_norm) if np.max(overlay_norm) > 0 else 1
+                overlay_max = np.max(self.overlay_data) if np.max(self.overlay_data) > 0 else 1
                 threshold_value = self.overlay_threshold * overlay_max
-                threshold_mask = overlay_norm > threshold_value
+                threshold_mask = self.overlay_data > threshold_value
 
                 if threshold_mask[coords[0], coords[1], coords[2]]:
                     bool_in_mask = True
@@ -1465,14 +1441,13 @@ class NiftiViewer(QMainWindow):
             rgba_image_float = rgba_image.astype(np.float64)  # (H,W,4)
 
             if overlay_slice.size > 0:
-                overlay_normalized = self.normalize_data_matplotlib_style(overlay_slice)
 
-                overlay_max = np.max(overlay_normalized) if np.max(overlay_normalized) > 0 else 1
+                overlay_max = np.max(overlay_slice) if np.max(overlay_slice) > 0 else 1
                 threshold_value = self.overlay_threshold * overlay_max
-                overlay_mask = overlay_normalized > threshold_value
+                overlay_mask = overlay_slice > threshold_value
 
                 if np.any(overlay_mask):
-                    overlay_intensity = overlay_normalized * self.overlay_alpha
+                    overlay_intensity = overlay_slice * self.overlay_alpha
 
                     overlay_color = self.overlay_colors.get(self.colormap,np.array([0.0, 1.0, 0.0]))
                     rgba_image_float = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
