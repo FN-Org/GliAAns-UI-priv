@@ -71,7 +71,6 @@ class SkullStripThread(QThread):
                 # Costruzione comando
                 if self.has_bet:
                     os.environ["FSLDIR"] = setup_fsl_env()
-                    log.error(f"NIFTI file: {nifti_file}")
                     f_val = self.parameters.get('f_val', 0.5)
                     f_str = f"f{str(f_val).replace('.', '')}"
                     output_file = os.path.join(output_dir, f"{base_name}_{f_str}_brain.nii.gz")
@@ -105,10 +104,6 @@ class SkullStripThread(QThread):
                 ret_code = self.process.exitCode()
                 stderr = bytes(self.process.readAllStandardError()).decode()
                 stdout = bytes(self.process.readAllStandardOutput()).decode()
-
-                log.error(f"Command failed: {cmd}")
-                log.error(f"stdout: {stdout}")
-                log.error(f"stderr: {stderr}")
 
                 if ret_code != 0:
                     self.file_completed.emit(filename, False, stderr or "Error executing command")
