@@ -8,11 +8,12 @@ pandas
 scikit-image
 scikit-learn
 seaborn
-numpy
-scipy
 dcm2niix
 hd-bet
 nipreps-synthstrip
+statsmodels==0.13.5
+numpy==1.26.4
+scipy==1.13.1
 
 git+https://github.com/NVIDIA/dllogger
 

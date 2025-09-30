@@ -2,6 +2,7 @@ import os
 import json
 from PyQt6.QtCore import pyqtSignal, QThread, QProcess
 from logger import get_logger
+from utils import setup_fsl_env
 
 log = get_logger()
 
@@ -69,6 +70,7 @@ class SkullStripThread(QThread):
 
                 # Costruzione comando
                 if self.has_bet:
+                    os.environ["FSLDIR"] = setup_fsl_env()
                     f_val = self.parameters.get('f_val', 0.5)
                     f_str = f"f{str(f_val).replace('.', '')}"
                     output_file = os.path.join(output_dir, f"{base_name}_{f_str}_brain.nii.gz")

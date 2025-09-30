@@ -173,7 +173,6 @@ class ToolChoicePage(WizardPage):
 
         attr_name, page_class = page_classes[self.selected_option]
 
-
         next_page = getattr(self, attr_name, None)
 
         if not next_page:

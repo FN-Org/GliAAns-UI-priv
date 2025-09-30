@@ -214,6 +214,8 @@ class MainWindow(QMainWindow):
                 msg
                 )
         thread_to_remove = self.sender()
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
         log.debug("Success:"+msg)
         if thread_to_remove in self.threads:
             self.threads.remove(thread_to_remove)

@@ -9,6 +9,7 @@ from ui.ui_workspace_tree_view import WorkspaceTreeView
 from ui.ui_import_frame import ImportFrame
 from ui.ui_main_window import MainWindow
 from ui.ui_nifti_viewer import NiftiViewer
+from utils import resource_path, get_app_dir
 
 LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
 TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
@@ -24,17 +25,17 @@ class WizardController(QObject):
 
         self.translator = QTranslator()
         self.settings = QSettings("GliAAns")
-        self.saved_lang = self.settings.value("language", "en", type=str)#self._load_saved_language()
+        self.saved_lang = self.settings.value("language", "en", type=str) # self._load_saved_language()
         self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
 
-        self.workspace_path = os.path.join(os.getcwd(), ".workspace")
+        self.workspace_path = get_app_dir() / "workspace"
         if not os.path.exists(self.workspace_path):
             os.makedirs(self.workspace_path)
 
 
         self.context = {
-            "workspace_path"            :   self.workspace_path,
+            "workspace_path"            :   str(self.workspace_path),
             "update_main_buttons"       :   self.update_buttons_state,
             "return_to_import"          :   self.return_to_import,
             "history"                   :   [],

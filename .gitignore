@@ -10,8 +10,15 @@
 /.log
 /.venv_wsl
 /build
-/deep_learning_runner.dist
 /dist
-/pipeline_runner.dist
+*.pyc
 *.spec
+*.pyc
+*.bin
+/main.dist
+nuitka-crash-report.xml
+/pipeline_runner
+/deep_learning/checkpoints
+/dist
+/pipeline_runner
 *.ckpt
