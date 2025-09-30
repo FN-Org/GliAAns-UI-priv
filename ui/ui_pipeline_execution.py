@@ -48,7 +48,7 @@ class PipelineExecutionPage(WizardPage):
         # Crea lo script temporaneo per la pipeline
         bin_dir = get_bin_path("pipeline_runner")
         self.pipeline_bin_path = os.path.join(bin_dir, "pipeline_runner")
-        log.error(f"PERCORSO BINARIO PIPELINE: {self.pipeline_bin_path}")
+        log.debug(f"Percorso binario pipeline: {self.pipeline_bin_path}")
         self._setup_ui()
 
     def _find_latest_config(self):
@@ -233,7 +233,7 @@ class PipelineExecutionPage(WizardPage):
             '--out-dir', self.pipeline_output_dir
         ]
 
-        log.error(f"{self.pipeline_bin_path} --config {self.config_path} --work-dir {self.workspace_path} --out-dir {self.pipeline_output_dir}")
+        log.debug(f"{self.pipeline_bin_path} --config {self.config_path} --work-dir {self.workspace_path} --out-dir {self.pipeline_output_dir}")
 
         # Avvia il processo
         self.pipeline_process.start(cmd[0],cmd[1:])

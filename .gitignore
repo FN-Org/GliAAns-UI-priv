@@ -17,8 +17,8 @@
 *.bin
 /main.dist
 nuitka-crash-report.xml
-/pipeline_runner.dist
+/pipeline_runner
 /deep_learning/checkpoints
 /dist
-/pipeline_runner.dist
+/pipeline_runner
 *.ckpt

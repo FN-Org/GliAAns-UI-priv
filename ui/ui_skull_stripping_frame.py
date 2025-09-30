@@ -376,11 +376,6 @@ class SkullStrippingPage(WizardPage):
 
         self.status_label.setText(summary)
 
-        # Se ci sono stati successi, aggiorna la UI
-        if success_count > 0:
-            if self.context and "update_main_buttons" in self.context:
-                self.context["update_main_buttons"]()
-
     def on_worker_finished(self):
         """Gestisce la fine del worker thread"""
         # Riabilita l'interfaccia
@@ -390,6 +385,10 @@ class SkullStrippingPage(WizardPage):
         if self.worker:
             self.worker.deleteLater()
             self.worker = None
+
+        # Se ci sono stati successi, aggiorna la UI
+        if self.context and "update_main_buttons" in self.context:
+            self.context["update_main_buttons"]()
 
     def back(self):
         # Non permettere di tornare indietro durante il processing
