@@ -78,20 +78,12 @@ def get_shell_path():
         print(f"Errore nel recuperare PATH dalla shell: {e}")
         return os.environ.get("PATH", "")
 
-def setup_fsl_env(log=None):
+def setup_fsl_env():
     """Configura le variabili di ambiente FSL necessarie"""
-    fsl_exe = shutil.which("fsl")
-    if not fsl_exe:
-        raise RuntimeError("FSL non trovato nel PATH")
-
-    fsl_dir = Path(fsl_exe).resolve().parent.parent  # .../bin/fsl -> .../
-    os.environ["FSLDIR"] = str(fsl_dir)
-    os.environ["PATH"] = str(fsl_dir / "bin") + os.pathsep + os.environ.get("PATH", "")
-
-    # formato output (FSL richiede che sia definito)
-    if "FSLOUTPUTTYPE" not in os.environ:
-        os.environ["FSLOUTPUTTYPE"] = "NIFTI_GZ"
-
-    if log:
-        log.info(f"FSLDIR set to {os.environ['FSLDIR']}")
-        log.info(f"FSLOUTPUTTYPE = {os.environ['FSLOUTPUTTYPE']}")
+    result = subprocess.run(
+        ["/bin/zsh", "-l", "-c", "echo $FSLDIR"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    return result.stdout.strip()

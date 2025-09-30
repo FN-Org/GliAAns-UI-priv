@@ -28,7 +28,7 @@ class WizardController(QObject):
         self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
 
-        self.workspace_path = get_app_dir() / ".workspace"
+        self.workspace_path = get_app_dir() / "workspace"
         if not os.path.exists(self.workspace_path):
             os.makedirs(self.workspace_path)
 

@@ -70,7 +70,7 @@ class SkullStripThread(QThread):
 
                 # Costruzione comando
                 if self.has_bet:
-                    setup_fsl_env(log)
+                    os.environ["FSLDIR"] = setup_fsl_env()
                     log.error(f"NIFTI file: {nifti_file}")
                     f_val = self.parameters.get('f_val', 0.5)
                     f_str = f"f{str(f_val).replace('.', '')}"
