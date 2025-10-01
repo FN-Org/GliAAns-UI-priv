@@ -12,6 +12,7 @@ PIPELINE_DIST     = pipeline_runner.dist
 ifeq ($(OS),Windows_NT)
     # ---- Windows ----
     PYTHON             = python3.11.exe
+    SEP 			   = ;
     MAIN_PYTHON        = $(VENV_DIR)\Scripts\python.exe
     MAIN_PIP           = $(VENV_DIR)\Scripts\pip
     PIPELINE_VENV_DIR  = $(PIPELINE_DIR)\$(VENV_DIR)
@@ -19,6 +20,7 @@ ifeq ($(OS),Windows_NT)
     PIPELINE_PYTHON    = $(PIPELINE_VENV_DIR)\Scripts\python.exe
     PIPELINE_RUNNER    = $(PIPELINE_DIR)\pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)\$(REQUIREMENTS)
+    PIPELINE_EXE 	   = pipeline_runner.exe
     ICON               = resources\GliAAns-logo.ico
     ICON_FLAG          = --windows-icon-from-ico=$(ICON)
     ATLAS              = $(PIPELINE_DIR)\atlas
@@ -36,6 +38,7 @@ else
         ICON_FLAG = --macos-app-icon=$(ICON)
     endif
     PYTHON             = python3.11
+    SEP		 		   = :
     MAIN_PYTHON        = $(VENV_DIR)/bin/python
     MAIN_PIP           = $(VENV_DIR)/bin/pip
     PIPELINE_VENV_DIR  = $(PIPELINE_DIR)/$(VENV_DIR)
@@ -43,6 +46,7 @@ else
     PIPELINE_PYTHON    = $(PIPELINE_VENV_DIR)/bin/python
     PIPELINE_RUNNER    = $(PIPELINE_DIR)/pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)/$(REQUIREMENTS)
+    PIPELINE_EXE 	   = pipeline_runner
     ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
@@ -81,7 +85,7 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	    --remove-output \
 	    --include-data-dir=$(ATLAS)=atlas \
 	    $(ICON_FLAG) \
-	    --output-filename=pipeline_runner.exe
+	    --output-filename=$(PIPELINE_EXE)
 
 # -------------------------
 # Compilazione app con PyInstaller
@@ -92,11 +96,11 @@ compile_app: $(VENV_DIR) $(PIPELINE_DIST)
 	    --onedir \
 	    --noconsole \
 	    --icon=$(ICON) \
-	    --add-data "resources;resources" \
-	    --add-data "translations;translations" \
-	    --add-data "$(PIPELINE_DIST);pipeline_runner" \
-	    --add-binary "$(HD_BET);hd-bet" \
-	    --add-binary "$(DCM2NIIX);dcm2niix" \
+	    --add-data "resources$(SEP)resources" \
+	    --add-data "translations$(SEP)translations" \
+	    --add-data "$(PIPELINE_DIST)$(SEP)pipeline_runner" \
+	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
+	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py

@@ -1619,6 +1619,7 @@ class NiftiViewer(QMainWindow):
             f"Error when saving: {error}"
         )
         log.critical(f"Error when saving ROI: {error}")
+
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads

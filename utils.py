@@ -11,12 +11,12 @@ def get_bin_path(name):
 
     # Caso 1: se estrae PyInstaller (usa sys._MEIPASS)
     if hasattr(sys, "_MEIPASS"):
-        candidate = os.path.join(sys._MEIPASS,name, exe_name)
+        candidate = os.path.join(sys._MEIPASS, name, exe_name)
         if os.path.exists(candidate):
             return candidate
 
     # Caso 2: se distribuito accanto al tuo .py o .exe
-    candidate = os.path.join(os.path.dirname(__file__),name,exe_name)
+    candidate = os.path.join(os.path.dirname(__file__), name, exe_name)
     if os.path.exists(candidate):
         return candidate
 
@@ -79,11 +79,20 @@ def get_shell_path():
         return os.environ.get("PATH", "")
 
 def setup_fsl_env():
-    """Configura le variabili di ambiente FSL necessarie"""
+    """
+    Carica le variabili di ambiente di FSL (FSLDIR, FSLOUTPUTTYPE, ecc.)
+    Restituisce una tupla (fsldir, fsloutputtype)
+    """
     result = subprocess.run(
-        ["/bin/zsh", "-l", "-c", "echo $FSLDIR"],
+        ["/bin/zsh", "-l", "-c", "source $FSLDIR/etc/fslconf/fsl.sh && echo $FSLDIR && echo $FSLOUTPUTTYPE"],
         capture_output=True,
         text=True,
         check=True
     )
-    return result.stdout.strip()
+
+    lines = result.stdout.strip().splitlines()
+    if len(lines) < 2:
+        raise RuntimeError("Impossibile leggere FSLDIR e FSLOUTPUTTYPE")
+
+    fsldir, fsloutputtype = lines[0], lines[1]
+    return fsldir, fsloutputtype

@@ -19,7 +19,7 @@ log = get_logger()
 class MainWindow(QMainWindow):
 
 
-    def __init__(self,context):
+    def __init__(self, context):
         super().__init__()
 
         self.context = context
