@@ -58,6 +58,7 @@ def compute_mask_numba_mm(img, x0, y0, z0, radius_mm, voxel_sizes,
                 dy_mm = (y - y0) * vy
                 dz_mm = (z - z0) * vz
                 if dx_mm * dx_mm + dy_mm * dy_mm + dz_mm * dz_mm <= r2:
+                    val = img[x, y, z]
                     if abs(img[x, y, z] - seed_intensity) <= diff:
                         mask[x, y, z] = 1
     return mask
@@ -1497,10 +1498,9 @@ class NiftiViewer(QMainWindow):
             32 if not self.automaticROI_overlay else self.automaticROI_radius_slider.value()
         )
 
-        max_diff = int((self.img_data.max() - self.img_data.min()) / 2)
-        self.automaticROI_diff_slider.setMaximum(max_diff)
+        self.automaticROI_diff_slider.setMaximum(1000)
         self.automaticROI_diff_slider.setValue(
-            int(max_diff * (16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
+            int(1000*(16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
         )
         self.automaticROI_sliders_group.setVisible(True)
         self.automaticROI_sliders_group.setEnabled(True)
@@ -1521,7 +1521,7 @@ class NiftiViewer(QMainWindow):
 
     def automaticROI_drawing(self):
         radius_mm = self.automaticROI_radius_slider.value()  # già in mm
-        difference = self.automaticROI_diff_slider.value()
+        difference = self.automaticROI_diff_slider.value()/1000
         x0, y0, z0 = self.automaticROI_seed_coordinates
 
         img_data = self.img_data[..., self.current_time] if self.is_4d else self.img_data
@@ -1538,6 +1538,7 @@ class NiftiViewer(QMainWindow):
         y_min, y_max = max(0, y0 - ry_vox), min(img_data.shape[1], y0 + ry_vox + 1)
         z_min, z_max = max(0, z0 - rz_vox), min(img_data.shape[2], z0 + rz_vox + 1)
 
+        val = self.img_data[x0, y0, z0]
         # Calcolo parallelo con numba
         mask = compute_mask_numba_mm(img_data, x0, y0, z0,
                                      radius_mm, self.voxel_sizes,
@@ -1551,7 +1552,7 @@ class NiftiViewer(QMainWindow):
             return
 
         radius = self.automaticROI_radius_slider.value()
-        difference = self.automaticROI_diff_slider.value()
+        difference = self.automaticROI_diff_slider.value()/10
 
         original_path = self.file_path
         if not original_path:
@@ -1576,7 +1577,7 @@ class NiftiViewer(QMainWindow):
 
         filename = os.path.basename(original_path)
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
-        new_base = f"{base_name}_r{radius:02d}_d{difference:02d}_mask"
+        new_base = f"{base_name}_r{radius:02d}_d{difference}%_mask"
         new_name = f"{new_base}.nii.gz"
 
         save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
