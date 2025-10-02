@@ -2,10 +2,11 @@ import platform
 
 import torch
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel, QGroupBox, QRadioButton, QButtonGroup, QSizePolicy, QWidget, QHBoxLayout, QToolTip, QMessageBox
+    QVBoxLayout, QLabel, QGroupBox, QRadioButton, QButtonGroup, QSizePolicy, QWidget, QHBoxLayout, QToolTip,
+    QMessageBox, QApplication
 )
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QCoreApplication
 
 from components.info_label import InfoLabel
 from ui.ui_mask_selection import NiftiSelectionPage
@@ -96,7 +97,7 @@ class ToolChoicePage(WizardPage):
                 dl_layout.setContentsMargins(0, 0, 0, 0)
                 dl_layout.setSpacing(5)
 
-                self.dl_info_label = InfoLabel(text="i",tooltip_text="To use this you need Linux and a CUDA capable GPU")
+                self.dl_info_label = InfoLabel(text="i",tooltip_text=QCoreApplication.translate("ToolSelectionFrame", "To use this function you need Linux and a CUDA capable GPU"))
 
                 dl_layout.addWidget(self.radio_dl)
                 dl_layout.addWidget(self.dl_info_label)
@@ -110,6 +111,10 @@ class ToolChoicePage(WizardPage):
         self.layout.addWidget(self.radio_group_box)
 
         self.selected_option = None
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def resizeEvent(self, event):
         """
@@ -166,8 +171,8 @@ class ToolChoicePage(WizardPage):
         if self.selected_option == 2 and (not has_gpu or not is_linux):
             QMessageBox.warning(
                 self,
-                "Not available for this platform",
-                f"The deep learning segmentation is not available for this platform: {platform.system()}",
+                QCoreApplication.translate("ToolSelectionFrame", "Not available for this platform"),
+                QCoreApplication.translate("ToolSelectionFrame", "The deep learning segmentation is not available for this platform: {0}").format(platform.system())
             )
             return self
 
@@ -195,3 +200,12 @@ class ToolChoicePage(WizardPage):
             button.setChecked(False)
         self.radio_group.setExclusive(True)
         self.selected_option = None
+
+    def _retranslate_ui(self):
+        self.title.setText(QApplication.translate("ToolSelectionFrame", "Select the Next Processing Step"))
+        self.radio_group_box.setTitle(QApplication.translate("ToolSelectionFrame", "Available Processes"))
+        self.radio_skull.setText(QApplication.translate("ToolSelectionFrame", "Skull Stripping"))
+        self.radio_draw.setText(QApplication.translate("ToolSelectionFrame", "Automatic Drawing"))
+        self.radio_dl.setText(QApplication.translate("ToolSelectionFrame", "Deep Learning Segmentation"))
+        self.radio_analysis.setText(QApplication.translate("ToolSelectionFrame", "Full Pipeline"))
+        self.dl_info_label.setToolTip(QApplication.translate("ToolSelectionFrame", "To use this function you need Linux and a CUDA capable GPU"))
