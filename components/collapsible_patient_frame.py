@@ -14,11 +14,9 @@ class ClickableFrame(QFrame):
         super().mousePressEvent(event)
         self.clicked.emit()
 
-
 class CollapsiblePatientFrame(QFrame):
-    def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, parent=None,
-                 save_callback=None):
-        super().__init__(parent)
+    def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, save_callback=None):
+        super().__init__()
         self.patient_id = patient_id
         self.workspace_path = workspace_path
         self.patterns = patterns

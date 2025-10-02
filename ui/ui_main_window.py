@@ -251,3 +251,6 @@ class MainWindow(QMainWindow):
         self.clear_pipeline_outputs_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Clear pipeline outputs"))
         self.language_actions["en"].setText(QtCore.QCoreApplication.translate("MainWindow", "English"))
         self.language_actions["it"].setText(QtCore.QCoreApplication.translate("MainWindow", "Italiano"))
+
+        self.next_button.setText(QtCore.QCoreApplication.translate("MainWindow", "Next"))
+        self.back_button.setText(QtCore.QCoreApplication.translate("MainWindow", "Back"))

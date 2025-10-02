@@ -5,7 +5,7 @@ import glob
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
                              QFrame, QGridLayout, QHBoxLayout,QSizePolicy)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 
 from ui.ui_pipeline_review import PipelineReviewPage
 from utils import resource_path
@@ -30,6 +30,10 @@ class PipelinePatientSelectionPage(WizardPage):
         self.patient_status = {}  # Memorizza lo stato di ogni paziente
 
         self._setup_ui()
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -120,7 +124,7 @@ class PipelinePatientSelectionPage(WizardPage):
         main_layout = QVBoxLayout(summary_frame)
 
         # Salvo come attributo per gestire font in resizeEvent
-        self.title_summary = QLabel("Pipeline Requirements Summary")
+        self.title_summary = QLabel(QCoreApplication.translate("PipelinePatientSelectionPage", "Pipeline Requirements Summary"))
         self.title_summary.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_summary.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; margin-bottom: 10px;")
         main_layout.addWidget(self.title_summary)
@@ -129,10 +133,9 @@ class PipelinePatientSelectionPage(WizardPage):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(15)
 
-        self.total_label = self._create_stat_pill(resource_path("resources/icon_total.png"), "Total Patients", "0")
-        self.eligible_label = self._create_stat_pill(resource_path("resources/icon_check.png"), "Eligible", "0", color="#27ae60")
-        self.not_eligible_label = self._create_stat_pill(resource_path("resources/icon_cross.png"), "Not Eligible", "0",
-                                                         color="#c0392b")
+        self.total_label = self._create_stat_pill(resource_path("resources/icon_total.png"), QCoreApplication.translate("PipelinePatientSelectionPage", "Total Patients"), "0")
+        self.eligible_label = self._create_stat_pill(resource_path("resources/icon_check.png"), QCoreApplication.translate("PipelinePatientSelectionPage", "Eligible"), "0", color="#27ae60")
+        self.not_eligible_label = self._create_stat_pill(resource_path("resources/icon_cross.png"), QCoreApplication.translate("PipelinePatientSelectionPage", "Not Eligible"), "0",color="#c0392b")
 
         for pill in [self.total_label, self.eligible_label, self.not_eligible_label]:
             pill.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -202,7 +205,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         requirements['flair'] = flair_found
         if not flair_found:
-            missing_files.append("FLAIR image (anat/*_flair.nii[.gz])")
+            missing_files.append(QCoreApplication.translate("PipelinePatientSelectionPage", "FLAIR image (anat/*_flair.nii[.gz])"))
 
         # 2. Verifica Skull Stripping
         skull_strip_patterns = [
@@ -218,7 +221,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         requirements['skull_stripping'] = skull_strip_found
         if not skull_strip_found:
-            missing_files.append("Skull stripped image (derivatives/skullstrips/.../anat/*_brain.nii[.gz])")
+            missing_files.append(QCoreApplication.translate("PipelinePatientSelectionPage", "Skull stripped image (derivatives/skullstrips/.../anat/*_brain.nii[.gz])"))
 
         # 3. Verifica Segmentation o Manual Mask
         segmentation_patterns = [
@@ -243,7 +246,7 @@ class PipelinePatientSelectionPage(WizardPage):
 
         requirements['segmentation'] = segmentation_found
         if not segmentation_found:
-            missing_files.append("Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])")
+            missing_files.append(QCoreApplication.translate("PipelinePatientSelectionPage", "Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])"))
 
         # Determina se il paziente è eligible
         is_eligible = all(requirements.values())
@@ -344,10 +347,10 @@ class PipelinePatientSelectionPage(WizardPage):
 
         # Status label
         if status['eligible']:
-            status_label = QLabel("✓ Ready for Pipeline")
+            status_label = QLabel(QCoreApplication.translate("PipelinePatientSelectionPage", "✓ Ready for Pipeline"))
             status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
         else:
-            status_label = QLabel("✗ Missing Requirements")
+            status_label = QLabel(QCoreApplication.translate("PipelinePatientSelectionPage", "✗ Missing Requirements"))
             status_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 10px;")
 
         status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -366,7 +369,7 @@ class PipelinePatientSelectionPage(WizardPage):
         req_labels = {
             'flair': 'FLAIR',
             'skull_stripping': 'Skull Strip',
-            'segmentation': 'Segmentation'
+            'segmentation': QCoreApplication.translate("PipelinePatientSelectionPage", 'Segmentation')
         }
 
         for req, label in req_labels.items():
@@ -387,7 +390,7 @@ class PipelinePatientSelectionPage(WizardPage):
             details_layout.addWidget(seg_type_label)
 
         # Pulsante di selezione (destra)
-        button = QPushButton("Select")
+        button = QPushButton(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
         button.setCheckable(True)
 
         if status['eligible']:
@@ -414,11 +417,11 @@ class PipelinePatientSelectionPage(WizardPage):
             # Mantieni la selezione precedente se presente
             is_selected = patient_id in self.selected_patients
             button.setChecked(is_selected)
-            button.setText("Selected" if is_selected else "Select")
+            button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected") if is_selected else QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
 
             button.clicked.connect(lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
         else:
-            button.setText("Not Eligible")
+            button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Not Eligible"))
             button.setEnabled(False)
             button.setStyleSheet("""
                 QPushButton {
@@ -451,7 +454,7 @@ class PipelinePatientSelectionPage(WizardPage):
         for patient_id, button in self.patient_buttons.items():
             if self.patient_status[patient_id]['eligible'] and not button.isChecked():
                 button.setChecked(True)
-                button.setText("Selected")
+                button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
                 self.selected_patients.add(patient_id)
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
@@ -461,7 +464,7 @@ class PipelinePatientSelectionPage(WizardPage):
         for patient_id, button in self.patient_buttons.items():
             if button.isChecked() and button.isEnabled():
                 button.setChecked(False)
-                button.setText("Select")
+                button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
                 self.selected_patients.discard(patient_id)
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
@@ -491,7 +494,7 @@ class PipelinePatientSelectionPage(WizardPage):
                 valid_selections.add(patient_id)
                 button = self.patient_buttons[patient_id]
                 button.setChecked(True)
-                button.setText("Selected")
+                button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
 
         self.selected_patients = valid_selections
 
@@ -499,10 +502,10 @@ class PipelinePatientSelectionPage(WizardPage):
         """Gestisce la selezione/deselezione di un paziente"""
         if is_selected:
             self.selected_patients.add(patient_id)
-            button.setText("Selected")
+            button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
         else:
             self.selected_patients.discard(patient_id)
-            button.setText("Select")
+            button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
@@ -563,10 +566,9 @@ class PipelinePatientSelectionPage(WizardPage):
                 valid_selections.add(patient_id)
                 button = self.patient_buttons[patient_id]
                 button.setChecked(True)
-                button.setText("Selected")
+                button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
 
         self.selected_patients = valid_selections
-
 
     def _build_pipeline_config(self):
         """Crea e salva un file JSON con la configurazione iniziale della pipeline.
@@ -845,4 +847,15 @@ class PipelinePatientSelectionPage(WizardPage):
             )
             pill.setMaximumHeight(max_pill_height)
 
+    def _retranslate_ui(self):
+        self.title.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select Patients for Pipeline Analysis"))
+        self.select_eligible_btn.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select All Eligible"))
+        self.deselect_all_btn.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Deselect All"))
+        self.refresh_btn.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Refresh Status"))
+        self.title_summary.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Pipeline Requirements Summary"))
 
+        self.total_label.label.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Total Patients"))
+        self.eligible_label.label.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Eligible"))
+        self.not_eligible_label.label.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Not Eligible"))
+
+        self._load_patients()

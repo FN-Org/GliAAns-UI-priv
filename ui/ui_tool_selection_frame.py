@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QSize, QCoreApplication
 
 from components.info_label import InfoLabel
-from ui.ui_mask_selection import NiftiSelectionPage
+from ui.ui_mask_selection import NiftiMaskSelectionPage
 from ui.ui_dl_selection import DlPatientSelectionPage
 from ui.ui_pipeline_patient_selection import PipelinePatientSelectionPage
 from ui.ui_skull_stripping_frame import SkullStrippingPage
@@ -157,7 +157,7 @@ class ToolChoicePage(WizardPage):
     def next(self, context):
         page_classes = {
             0: ("next_skull_stripping", SkullStrippingPage),
-            1: ("next_manual_draw", NiftiSelectionPage),
+            1: ("next_manual_draw", NiftiMaskSelectionPage),
             2: ("next_deep_learning", DlPatientSelectionPage),
             3: ("next_pipeline", PipelinePatientSelectionPage),
         }
