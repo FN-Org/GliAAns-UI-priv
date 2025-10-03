@@ -6,7 +6,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QDialog, QListWidget,
-    QListWidgetItem, QHBoxLayout, QLabel, QFrame, QScrollArea, QAbstractItemView
+    QListWidgetItem, QHBoxLayout, QLabel, QFrame, QScrollArea
 )
 
 
@@ -239,9 +239,6 @@ class FolderCard(QWidget):
 
         # Lista file moderna
         list_widget = QListWidget()
-        list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        list_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         list_widget.setStyleSheet("""
             QListWidget {
                 border: 1px solid #e0e0e0;

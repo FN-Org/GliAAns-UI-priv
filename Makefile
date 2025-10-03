@@ -5,7 +5,6 @@ VENV_DIR          = .venv
 PIPELINE_DIR      = pediatric_fdopa_pipeline
 REQUIREMENTS      = requirements.txt
 PIPELINE_DIST     = pipeline_runner.dist
-PIPELINE_NO_DIST  = pipeline_runner
 
 # -------------------------
 # Rilevamento OS
@@ -88,25 +87,18 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	    $(ICON_FLAG) \
 	    --output-filename=$(PIPELINE_EXE)
 
-$(PIPELINE_NO_DIST):$(PIPELINE_DIST)
-ifeq ($(OS),Windows_NT)
-	cmd /C move $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
-else
-	mv $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
-endif
-
 # -------------------------
 # Compilazione app con PyInstaller
 # -------------------------
 .PHONY: compile_app
-compile_app: $(VENV_DIR) $(PIPELINE_NO_DIST)
+compile_app: $(VENV_DIR) $(PIPELINE_DIST)
 	$(MAIN_PYTHON) -m PyInstaller \
 	    --onedir \
 	    --noconsole \
 	    --icon=$(ICON) \
 	    --add-data "resources$(SEP)resources" \
 	    --add-data "translations$(SEP)translations" \
-	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
+	    --add-data "$(PIPELINE_DIST)$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
 	    --name GliAAns-UI \
@@ -117,10 +109,10 @@ compile_app: $(VENV_DIR) $(PIPELINE_NO_DIST)
 # Target principali
 # -------------------------
 .PHONY: all
-all: setup-all app
+all: setup-all $(PIPELINE_DIST) compile_app
 
 .PHONY: app
-app: $(PIPELINE_NO_DIST) compile_app
+app: $(PIPELINE_DIST) compile_app
 
 # -------------------------
 # Pulizia cross-platform
