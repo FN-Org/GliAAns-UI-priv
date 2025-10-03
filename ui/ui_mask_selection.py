@@ -41,6 +41,7 @@ class NiftiMaskSelectionPage(WizardPage):
         # Bottone open NIfTI viewer
         self.viewer_button = QPushButton("Open NIfTI file")
         self.file_selector_widget.has_file.connect(self.viewer_button.setEnabled)
+        self.viewer_button.setEnabled(False)
         self.viewer_button.clicked.connect(self.open_nifti_viewer)
         self.layout.addWidget(self.viewer_button)
 
@@ -110,7 +111,11 @@ class NiftiMaskSelectionPage(WizardPage):
         pass
 
     def open_nifti_viewer(self):
-        self.context["open_nifti_viewer"](self.file_selector_widget.get_selected_files()[-1])
+        try:
+            file = self.file_selector_widget.get_selected_files()[-1]
+            self.context["open_nifti_viewer"](file)
+        except Exception:
+            log.exception("Error while opening Nifti viewer")
 
     def back(self):
         if self.previous_page:

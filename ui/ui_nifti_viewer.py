@@ -53,6 +53,7 @@ def compute_mask_numba_mm(img, x0, y0, z0, radius_mm, voxel_sizes,
                 dy_mm = (y - y0) * vy
                 dz_mm = (z - z0) * vz
                 if dx_mm * dx_mm + dy_mm * dy_mm + dz_mm * dz_mm <= r2:
+                    val = img[x, y, z]
                     if abs(img[x, y, z] - seed_intensity) <= diff:
                         mask[x, y, z] = 1
     return mask
@@ -1270,8 +1271,7 @@ class NiftiViewer(QMainWindow):
 
             # Create composite
             height, width = slice_data.shape
-            normalized_data = self.normalize_data_matplotlib_style(slice_data)
-            rgba_image = self.apply_colormap_matplotlib(normalized_data, self.colormap)
+            rgba_image = self.apply_colormap_matplotlib(slice_data, self.colormap)
             if self.overlay_enabled and overlay_slice is not None:
                 rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
 
@@ -1299,27 +1299,6 @@ class NiftiViewer(QMainWindow):
         except Exception as e:
             log.error(f"Error updating display {plane_idx}: {e}")
 
-    def normalize_data_matplotlib_style(self, data):
-        """Normalize data using matplotlib's approach for clear image display"""
-        if data.size == 0:
-            return data
-
-        # Remove NaN and infinite values
-        valid_data = data[np.isfinite(data)]
-        if valid_data.size == 0:
-            return np.zeros_like(data)
-
-        # Use robust percentile normalization like matplotlib
-        vmin, vmax = np.percentile(valid_data, [2, 98])
-
-        # Avoid division by zero
-        if vmax <= vmin:
-            vmax = vmin + 1
-
-        # Normalize to [0, 1]
-        normalized = np.clip((data - vmin) / (vmax - vmin), 0, 1)
-
-        return normalized
 
     def setup_time_series_plot(self):
         """Setup time series plot for 4D data"""
@@ -1365,13 +1344,11 @@ class NiftiViewer(QMainWindow):
             coords = self.current_coordinates
             bool_in_mask = False
             if self.overlay_data is not None and self.overlay_enabled:
-                # Normalizza overlay_data in modo coerente
-                overlay_norm = self.normalize_data_matplotlib_style(self.overlay_data)
 
                 # Calcola mask thresholded
-                overlay_max = np.max(overlay_norm) if np.max(overlay_norm) > 0 else 1
+                overlay_max = np.max(self.overlay_data) if np.max(self.overlay_data) > 0 else 1
                 threshold_value = self.overlay_threshold * overlay_max
-                threshold_mask = overlay_norm > threshold_value
+                threshold_mask = self.overlay_data > threshold_value
 
                 if threshold_mask[coords[0], coords[1], coords[2]]:
                     bool_in_mask = True
@@ -1462,14 +1439,13 @@ class NiftiViewer(QMainWindow):
             rgba_image_float = rgba_image.astype(np.float64)  # (H,W,4)
 
             if overlay_slice.size > 0:
-                overlay_normalized = self.normalize_data_matplotlib_style(overlay_slice)
 
-                overlay_max = np.max(overlay_normalized) if np.max(overlay_normalized) > 0 else 1
+                overlay_max = np.max(overlay_slice) if np.max(overlay_slice) > 0 else 1
                 threshold_value = self.overlay_threshold * overlay_max
-                overlay_mask = overlay_normalized > threshold_value
+                overlay_mask = overlay_slice > threshold_value
 
                 if np.any(overlay_mask):
-                    overlay_intensity = overlay_normalized * self.overlay_alpha
+                    overlay_intensity = overlay_slice * self.overlay_alpha
 
                     overlay_color = self.overlay_colors.get(self.colormap,np.array([0.0, 1.0, 0.0]))
                     rgba_image_float = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
@@ -1519,10 +1495,9 @@ class NiftiViewer(QMainWindow):
             32 if not self.automaticROI_overlay else self.automaticROI_radius_slider.value()
         )
 
-        max_diff = int((self.img_data.max() - self.img_data.min()) / 2)
-        self.automaticROI_diff_slider.setMaximum(max_diff)
+        self.automaticROI_diff_slider.setMaximum(1000)
         self.automaticROI_diff_slider.setValue(
-            int(max_diff * (16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
+            int(1000*(16 / 100)) if not self.automaticROI_overlay else self.automaticROI_diff_slider.value()
         )
         self.automaticROI_sliders_group.setVisible(True)
         self.automaticROI_sliders_group.setEnabled(True)
@@ -1543,7 +1518,7 @@ class NiftiViewer(QMainWindow):
 
     def automaticROI_drawing(self):
         radius_mm = self.automaticROI_radius_slider.value()  # già in mm
-        difference = self.automaticROI_diff_slider.value()
+        difference = self.automaticROI_diff_slider.value()/1000
         x0, y0, z0 = self.automaticROI_seed_coordinates
 
         img_data = self.img_data[..., self.current_time] if self.is_4d else self.img_data
@@ -1560,6 +1535,7 @@ class NiftiViewer(QMainWindow):
         y_min, y_max = max(0, y0 - ry_vox), min(img_data.shape[1], y0 + ry_vox + 1)
         z_min, z_max = max(0, z0 - rz_vox), min(img_data.shape[2], z0 + rz_vox + 1)
 
+        val = self.img_data[x0, y0, z0]
         # Calcolo parallelo con numba
         mask = compute_mask_numba_mm(img_data, x0, y0, z0,
                                      radius_mm, self.voxel_sizes,
@@ -1573,7 +1549,7 @@ class NiftiViewer(QMainWindow):
             return
 
         radius = self.automaticROI_radius_slider.value()
-        difference = self.automaticROI_diff_slider.value()
+        difference = self.automaticROI_diff_slider.value()/10
 
         original_path = self.file_path
         if not original_path:
@@ -1598,7 +1574,7 @@ class NiftiViewer(QMainWindow):
 
         filename = os.path.basename(original_path)
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
-        new_base = f"{base_name}_r{radius:02d}_d{difference:02d}_mask"
+        new_base = f"{base_name}_r{radius:02d}_d{difference}%_mask"
         new_name = f"{new_base}.nii.gz"
 
         save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
@@ -1641,6 +1617,7 @@ class NiftiViewer(QMainWindow):
             f"Error when saving: {error}"
         )
         log.critical(f"Error when saving ROI: {error}")
+
     def closeEvent(self, event):
         """Clean up on application exit"""
         # Clean up any running threads

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from typing import Any
 
@@ -25,7 +26,12 @@ class WizardController(QObject):
 
         self.translator = QTranslator()
         self.settings = QSettings("GliAAns")
-        self.saved_lang = self.settings.value("language", "en", type=str) # self._load_saved_language()
+        self.saved_lang = self.settings.value("language", "en", type=str)
+        log_debug = self.settings.value("debug_log",False,type=bool)
+        if log_debug:
+            logger.set_log_level(logging.DEBUG)
+
+
         self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
 

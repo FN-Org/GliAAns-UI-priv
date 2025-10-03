@@ -9,6 +9,7 @@ import pydicom
 from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
 
 from logger import get_logger
+from utils import get_bin_path
 
 log = get_logger()
 
@@ -423,8 +424,9 @@ class ImportThread(QThread):
         self.current_progress += 10
         self.progress.emit(self.current_progress)
         try:
+            log.debug("DCM2NIIX path:"+get_bin_path("dcm2niix"))
             command = [
-                "dcm2niix",
+                get_bin_path("dcm2niix"),
                 "-f", "%p_%s",  # Naming format
                 "-p", "y",  # Preserve original acquisition order
                 "-z", "y",  # Compress output as .nii.gz
