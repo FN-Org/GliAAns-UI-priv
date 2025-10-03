@@ -4,7 +4,7 @@ import re
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtWidgets import QTreeView, QMessageBox, QMenu, QFileDialog
-from PyQt6.QtGui import QFileSystemModel, QDesktopServices
+from PyQt6.QtGui import QFileSystemModel, QDesktopServices, QAction
 
 from components.file_role_dialog import FileRoleDialog
 from logger import get_logger
@@ -65,7 +65,15 @@ class WorkspaceTreeView(QTreeView):
             try:
                 self.context["open_nifti_viewer"](file_path)
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error when opening NIfTI file:\n{str(e)}")
+                QMessageBox.critical(
+                    self,
+                    QtCore.QCoreApplication.translate("TreeView", "Error"),
+                    QtCore.QCoreApplication.translate(
+                        "TreeView",
+                        "Error when opening NIfTI file:\n{0}"
+                    ).format(str(e))
+                )
+
                 log.error(f"Error opening file NIfTI:\n{str(e)}")
         else:
             # Tutti gli altri file → apri con applicazione di sistema
@@ -119,16 +127,16 @@ class WorkspaceTreeView(QTreeView):
     # --- Context Menu Action Groups ---
     def _add_workspace_actions(self, menu):
         return {
-            menu.addAction("Open Workspace in Explorer"): lambda *_: self._open_in_explorer(self.workspace_path),
-            menu.addAction("Add single File to Workspace"): lambda *_: self.add_file_to_workspace(None, False),
+            menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open workspace in explorer")): lambda *_: self._open_in_explorer(self.workspace_path),
+            menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file to workspace")): lambda *_: self.add_file_to_workspace(None, False),
         }
 
     def _add_folder_actions(self, menu, file_path):
-        open_action = menu.addAction("Open Folder in Explorer")
+        open_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open folder in explorer"))
         menu.addSeparator()
-        add_action = menu.addAction("Add single File to Folder")
-        remove_action = menu.addAction("Remove Folder from Workspace")
-        export_action = menu.addAction("Export Folder")
+        add_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file to folder"))
+        remove_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Remove folder from workspace"))
+        export_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export folder"))
 
         return {
             open_action: lambda *_: self._open_in_explorer(file_path),
@@ -138,17 +146,17 @@ class WorkspaceTreeView(QTreeView):
         }
 
     def _add_file_actions(self, menu, file_path, is_nifty):
-        open_action = menu.addAction("Open with system predefined")
+        open_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open with system predefined"))
         actions = {open_action: lambda *_: self._open_in_explorer(file_path)}
 
         if is_nifty:
-            nifti_action = menu.addAction("Open Nifti File")
+            nifti_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open NIfTI file"))
             actions[nifti_action] = lambda *_: self._open_nifti(file_path)
 
         menu.addSeparator()
-        add_action = menu.addAction("Add single File")
-        remove_action = menu.addAction("Remove File from Workspace")
-        export_action = menu.addAction("Export File")
+        add_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file"))
+        remove_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Remove file from workspace"))
+        export_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export file"))
 
         actions.update({
             add_action: lambda *_: self.add_file_to_workspace(file_path, False),
@@ -158,8 +166,8 @@ class WorkspaceTreeView(QTreeView):
         return actions
 
     def _add_multi_file_actions(self, menu):
-        export_action = menu.addAction("Export Files")
-        remove_action = menu.addAction("Remove Files from Workspace")
+        export_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export files"))
+        remove_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Remove Files from workspace"))
         return {
             export_action: lambda *_: self.export_files(self.selected_files, False),
             remove_action: lambda *_: self.remove_from_workspace(self.selected_files),
@@ -223,8 +231,8 @@ class WorkspaceTreeView(QTreeView):
     def _including_json(self,file_name, file_dir):
         answer = QMessageBox.information(
             self,
-            "Adding Json?",
-            "You want to include the JSON file if present?",
+            QtCore.QCoreApplication.translate("TreeView", "Adding Json?"),
+            QtCore.QCoreApplication.translate("TreeView", "You want to include the JSON file if present?"),
             QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel  # <-- aggiungo due pulsanti
         )
         if answer == QMessageBox.StandardButton.Ok:
@@ -305,15 +313,15 @@ class WorkspaceTreeView(QTreeView):
                 return
         if len(paths)<2:
             is_dir = os.path.isdir(paths[0])
-            item_type = "this folder: " if is_dir else "this file:"
-        else: item_type = "these files"
+            item_type = QtCore.QCoreApplication.translate("TreeView", "this folder: ") if is_dir else QtCore.QCoreApplication.translate("TreeView", "this file:")
+        else: item_type = QtCore.QCoreApplication.translate("TreeView", "these files")
 
         item_name = os.path.basename(paths[0]) if len(paths) == 1 else ""
-        message = f"Are you sure you want to remove {item_type} {item_name}?"
+        message = QtCore.QCoreApplication.translate("TreeView", "Are you sure you want to remove {0} {1}?").format(item_type, item_name)
 
         reply = QMessageBox.question(
             self,
-            "Confirm",
+            QtCore.QCoreApplication.translate("TreeView", "Confirm"),
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -330,18 +338,18 @@ class WorkspaceTreeView(QTreeView):
 
             if not success:
                 # Extract file extension
-                ext = os.path.splitext(path)[1] or "(unknown)"
+                ext = os.path.splitext(path)[1] or QtCore.QCoreApplication.translate("TreeView", "(unknown)")
                 QMessageBox.warning(
                     self,
-                    "No default application",
-                    f"No default application is registered for files with extension {ext}."
+                    QtCore.QCoreApplication.translate("TreeView", "No default application"),
+                    QtCore.QCoreApplication.translate("TreeView", "No default application is registered for files with extension {0}.").format(ext)
                 )
                 log.debug(f"No default application is registered for files with extension {ext}.")
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "Error",
-                f"An unexpected error occurred while opening the file:\n{e}"
+                QtCore.QCoreApplication.translate("TreeView", "Error"),
+                QtCore.QCoreApplication.translate("TreeView", "An unexpected error occurred while opening the file:\n{0}").format(e)
             )
             log.error(f"An unexpected error occurred while opening the file:\n{e}")
 
@@ -349,5 +357,8 @@ class WorkspaceTreeView(QTreeView):
         try:
             self.context["open_nifti_viewer"](file_path)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error opening file NIfTI:\n{str(e)}")
+            QMessageBox.critical(
+                self,
+                QtCore.QCoreApplication.translate("TreeView", "Error"),
+                QtCore.QCoreApplication.translate("TreeView", "Error opening file NIfTI:\n{0}").format(str(e)))
             log.error(f"Error opening file NIfTI:\n{str(e)}")

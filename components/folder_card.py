@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtCore import (
     pyqtProperty, QPropertyAnimation, QSize, Qt,
-    QEasingCurve, QSequentialAnimationGroup, QParallelAnimationGroup, pyqtSignal
+    QEasingCurve, QSequentialAnimationGroup, QParallelAnimationGroup, pyqtSignal, QCoreApplication
 )
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen
 from PyQt6.QtWidgets import (
@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 class FolderCard(QWidget):
     open_folder_requested = pyqtSignal(str)
 
-    def __init__(self, folder):
+    def __init__(self, context, folder):
         super().__init__()
 
         self.folder = folder
@@ -72,7 +72,7 @@ class FolderCard(QWidget):
         info_layout.addWidget(self.folder_name)
 
         # Stato/sottotitolo
-        self.status_label = QLabel("In attesa di file...")
+        self.status_label = QLabel(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
             font-size: 12px;
             color: #7f8c8d;
@@ -117,7 +117,7 @@ class FolderCard(QWidget):
         # Aggiorna UI
         file_count = len(self.files)
 
-        self.status_label.setText(f"{file_count} nuov{'o' if file_count == 1 else 'i'} file")
+        self.status_label.setText(QCoreApplication.translate("Components", "{file_count} new file").format(file_count=file_count))
         self.status_label.setStyleSheet("""
             font-size: 12px;
             color: #27ae60;
@@ -176,7 +176,7 @@ class FolderCard(QWidget):
     def reset_state(self):
         """Resetta lo stato della card"""
 
-        self.status_label.setText("In attesa di file...")
+        self.status_label.setText(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
             font-size: 12px;
             color: #7f8c8d;
@@ -209,7 +209,7 @@ class FolderCard(QWidget):
             return
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"File generati - {os.path.basename(self.folder)}")
+        dialog.setWindowTitle(QCoreApplication.translate("Components", "Generated file - {0}").format(os.path.basename(self.folder)))
         dialog.setModal(True)
         dialog.setMinimumSize(600, 500)
 
@@ -218,7 +218,7 @@ class FolderCard(QWidget):
         layout.setSpacing(16)
 
         # Header
-        header = QLabel(f"📊 {len(self.files)} file generat{'o' if len(self.files) == 1 else 'i'}")
+        header = QLabel(QCoreApplication.translate("Components", "📊 {0} generated file").format(len(self.files)))
         header.setStyleSheet("""
             font-size: 18px;
             font-weight: bold;
@@ -265,7 +265,7 @@ class FolderCard(QWidget):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(12)
 
-        btn_open_folder = QPushButton("📂 Apri Cartella")
+        btn_open_folder = QPushButton(QCoreApplication.translate("Components", "📂 Open Folder"))
         btn_open_folder.setStyleSheet("""
             QPushButton {
                 background-color: #3498db;
@@ -282,7 +282,7 @@ class FolderCard(QWidget):
         """)
         btn_open_folder.clicked.connect(lambda: self.open_folder_requested.emit(self.folder))
 
-        btn_close = QPushButton("Chiudi")
+        btn_close = QPushButton(QCoreApplication.translate("Components", "Close"))
         btn_close.setStyleSheet("""
             QPushButton {
                 background-color: #ecf0f1;

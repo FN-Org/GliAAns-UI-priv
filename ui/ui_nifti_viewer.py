@@ -34,11 +34,6 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.cm as cm
 
-
-_t = QtCore.QCoreApplication.translate
-
-
-
 # Numba
 from numba import njit, prange
 
@@ -88,7 +83,7 @@ class NiftiViewer(QMainWindow):
         self.context = context
 
         self.progress_dialog = None
-        self.setWindowTitle(_t("NIfTIViewer","NIfTI Image Viewer"))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("NIfTIViewer","NIfTI Image Viewer"))
         self.setMinimumSize(1000, 700)
         self.resize(1400, 1000)
 
@@ -176,6 +171,10 @@ class NiftiViewer(QMainWindow):
         self.init_ui()
         self.setup_connections()
 
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
+
     def init_ui(self):
         """Initialize the user interface"""
         # Central widget with splitter for responsive design
@@ -204,12 +203,12 @@ class NiftiViewer(QMainWindow):
         self.setStatusBar(self.status_bar)
 
         # Status bar (solo messaggio iniziale)
-        self.coord_label = QLabel(_t("NIfTIViewer", "Coordinates: (-, -, -)"))
-        self.value_label = QLabel(_t("NIfTIViewer", "Value: -"))
-        self.slice_info_label = QLabel(_t("NIfTIViewer", "Slice: -/-"))
+        self.coord_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Coordinates: (-, -, -)"))
+        self.value_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Value: -"))
+        self.slice_info_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Slice: -/-"))
 
         # Aggiungi solo il messaggio iniziale
-        self.status_bar.showMessage(_t("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
+        self.status_bar.showMessage(QtCore.QCoreApplication.translate("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
 
     def create_control_panel(self, parent):
         """Create the left control panel"""
@@ -232,15 +231,15 @@ class NiftiViewer(QMainWindow):
         file_layout = QVBoxLayout(file_group)
         file_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.open_btn = QPushButton(_t("NIfTIViewer", "📁 Open NIfTI"))
+        self.open_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "📁 Open NIfTI"))
         self.open_btn.setMinimumHeight(35)
         self.open_btn.setMaximumHeight(40)
         self.open_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         # Imposta tooltip per testo completo
-        self.open_btn.setToolTip(_t("NIfTIViewer", "Open NIfTI File"))
+        self.open_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Open NIfTI File"))
         file_layout.addWidget(self.open_btn)
 
-        self.file_info_label = QLabel(_t("NIfTIViewer", "No file loaded"))
+        self.file_info_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "No file loaded"))
         self.file_info_label.setWordWrap(True)
         self.file_info_label.setStyleSheet("font-size: 10px;")
         self.file_info_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
@@ -256,14 +255,14 @@ class NiftiViewer(QMainWindow):
         slice_layout = QVBoxLayout(slice_group)
         slice_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.slice_navigation_label = QLabel(_t("NIfTIViewer", "Slice Navigation:"))
+        self.slice_navigation_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Slice Navigation:"))
         self.slice_navigation_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.slice_navigation_label.setMaximumWidth(320)
         self.slice_navigation_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         slice_layout.addWidget(self.slice_navigation_label)
 
-        plane_names = [_t("NIfTIViewer", "Axial (Z)"), _t("NIfTIViewer", "Coronal (Y)"),
-                       _t("NIfTIViewer", "Sagittal (X)")]
+        plane_names = [QtCore.QCoreApplication.translate("NIfTIViewer", "Axial (Z)"), QtCore.QCoreApplication.translate("NIfTIViewer", "Coronal (Y)"),
+                       QtCore.QCoreApplication.translate("NIfTIViewer", "Sagittal (X)")]
 
         self.plane_labels = []
 
@@ -322,7 +321,7 @@ class NiftiViewer(QMainWindow):
         time_layout = QVBoxLayout(self.time_group)
         time_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.time_checkbox = QCheckBox(_t("NIfTIViewer", "Enable 4D Time Navigation"))
+        self.time_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Enable 4D Time Navigation"))
         self.time_checkbox.setChecked(False)
         self.time_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         time_layout.addWidget(self.time_checkbox)
@@ -350,7 +349,7 @@ class NiftiViewer(QMainWindow):
         self.time_spin.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         time_controls_layout.addWidget(self.time_spin, stretch=0)
 
-        self.time_point_label = QLabel(_t("NIfTIViewer", "Time Point:"))
+        self.time_point_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Time Point:"))
         self.time_point_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.time_point_label.setMaximumWidth(320)
         self.time_point_label.setStyleSheet("font-size: 11px;")
@@ -367,7 +366,7 @@ class NiftiViewer(QMainWindow):
         display_layout = QVBoxLayout(display_group)
         display_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.display_options_label = QLabel(_t("NIfTIViewer", "Display Options:"))
+        self.display_options_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Display Options:"))
         self.display_options_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.display_options_label.setMaximumWidth(320)
         self.display_options_label.setStyleSheet("font-weight: bold; font-size: 11px;")
@@ -379,16 +378,16 @@ class NiftiViewer(QMainWindow):
         colormap_layout.setContentsMargins(0, 0, 0, 0)
         colormap_layout.setSpacing(3)
 
-        self.colormap_label = QLabel(_t("NIfTIViewer", "Colormap:"))
+        self.colormap_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Colormap:"))
         self.colormap_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.colormap_label.setStyleSheet("font-size: 10px; font-weight: bold;")
         colormap_layout.addWidget(self.colormap_label)
 
         self.colormap_combo = QComboBox()
         self.colormap_combo.addItems(
-            [_t("NIfTIViewer", 'gray'), _t("NIfTIViewer", 'viridis'), _t("NIfTIViewer", 'plasma'),
-             _t("NIfTIViewer", 'inferno'), _t("NIfTIViewer", 'magma'), _t("NIfTIViewer", 'hot'),
-             _t("NIfTIViewer", 'cool'), _t("NIfTIViewer", 'bone')])
+            [QtCore.QCoreApplication.translate("NIfTIViewer", 'gray'), QtCore.QCoreApplication.translate("NIfTIViewer", 'viridis'), QtCore.QCoreApplication.translate("NIfTIViewer", 'plasma'),
+             QtCore.QCoreApplication.translate("NIfTIViewer", 'inferno'), QtCore.QCoreApplication.translate("NIfTIViewer", 'magma'), QtCore.QCoreApplication.translate("NIfTIViewer", 'hot'),
+             QtCore.QCoreApplication.translate("NIfTIViewer", 'cool'), QtCore.QCoreApplication.translate("NIfTIViewer", 'bone')])
         self.colormap_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.colormap_combo.setMaximumHeight(25)
         colormap_layout.addWidget(self.colormap_combo)
@@ -408,18 +407,18 @@ class NiftiViewer(QMainWindow):
         automaticROIbtns_layout.setContentsMargins(0, 0, 0, 0)
         automaticROIbtns_layout.setSpacing(3)
 
-        self.automaticROIbtn = QPushButton(_t("NIfTIViewer", "Auto ROI"))
+        self.automaticROIbtn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Auto ROI"))
         self.automaticROIbtn.setEnabled(False)
         self.automaticROIbtn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.automaticROIbtn.setMaximumHeight(30)
-        self.automaticROIbtn.setToolTip(_t("NIfTIViewer", "Automatic ROI Drawing"))
+        self.automaticROIbtn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI Drawing"))
         automaticROIbtns_layout.addWidget(self.automaticROIbtn)
 
-        self.automaticROI_save_btn = QPushButton(_t("NIfTIViewer", "Save ROI"))
+        self.automaticROI_save_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI"))
         self.automaticROI_save_btn.setEnabled(False)
         self.automaticROI_save_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.automaticROI_save_btn.setMaximumHeight(30)
-        self.automaticROI_save_btn.setToolTip(_t("NIfTIViewer", "Save ROI Drawing"))
+        self.automaticROI_save_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI Drawing"))
         automaticROIbtns_layout.addWidget(self.automaticROI_save_btn)
 
         automaticROIbtns_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -429,7 +428,7 @@ class NiftiViewer(QMainWindow):
         automaticROI_sliders_layout = QVBoxLayout(self.automaticROI_sliders_group)
         automaticROI_sliders_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.automaticROI_radius_label = QLabel(_t("NIfTIViewer", "Radius:"))
+        self.automaticROI_radius_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Radius:"))
         self.automaticROI_radius_label.setStyleSheet("font-size: 10px;")
         self.automaticROI_radius_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_radius_label)
@@ -460,7 +459,7 @@ class NiftiViewer(QMainWindow):
         radius_controls_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(radius_controls_widget)
 
-        self.automaticROI_diff_label = QLabel(_t("NIfTIViewer", "Difference:"))
+        self.automaticROI_diff_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Difference:"))
         self.automaticROI_diff_label.setStyleSheet("font-size: 10px;")
         self.automaticROI_diff_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_sliders_layout.addWidget(self.automaticROI_diff_label)
@@ -502,29 +501,29 @@ class NiftiViewer(QMainWindow):
         overlay_layout = QVBoxLayout(overlay_group)
         overlay_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.overlay_control_label = QLabel(_t("NIfTIViewer", "Overlay Controls:"))
+        self.overlay_control_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Controls:"))
         self.overlay_control_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.overlay_control_label.setMaximumWidth(320)
         self.overlay_control_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         overlay_layout.addWidget(self.overlay_control_label)
 
         # Overlay file button
-        self.overlay_btn = QPushButton(_t("NIfTIViewer", "Load Overlay"))
+        self.overlay_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Load Overlay"))
         self.overlay_btn.setMinimumHeight(30)
         self.overlay_btn.setMaximumHeight(35)
         self.overlay_btn.setEnabled(False)  # Enable only when base image is loaded
         self.overlay_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.overlay_btn.setToolTip(_t("NIfTIViewer", "Load NIfTI Overlay"))
+        self.overlay_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Load NIfTI Overlay"))
         overlay_layout.addWidget(self.overlay_btn)
 
         # Overlay enable/disable checkbox
-        self.overlay_checkbox = QCheckBox(_t("NIfTIViewer", "Show Overlay"))
+        self.overlay_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Show Overlay"))
         self.overlay_checkbox.setEnabled(False)
         self.overlay_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_checkbox)
 
         # Overlay alpha slider
-        self.alpha_overlay_label = QLabel(_t("NIfTIViewer", "Overlay Transparency:"))
+        self.alpha_overlay_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Transparency:"))
         self.alpha_overlay_label.setStyleSheet("font-size: 10px;")
         self.alpha_overlay_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.alpha_overlay_label)
@@ -557,7 +556,7 @@ class NiftiViewer(QMainWindow):
         overlay_layout.addWidget(alpha_controls_widget)
 
         # Overlay threshold slider
-        self.overlay_threshold_label = QLabel(_t("NIfTIViewer", "Overlay Threshold:"))
+        self.overlay_threshold_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Threshold:"))
         self.overlay_threshold_label.setStyleSheet("font-size: 10px;")
         self.overlay_threshold_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         overlay_layout.addWidget(self.overlay_threshold_label)
@@ -590,7 +589,7 @@ class NiftiViewer(QMainWindow):
         overlay_layout.addWidget(threshold_controls_widget)
 
         # Overlay info
-        self.overlay_info_label = QLabel(_t("NIfTIViewer", "No overlay loaded"))
+        self.overlay_info_label = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer", "No overlay loaded"))
         self.overlay_info_label.setWordWrap(True)
         self.overlay_info_label.setStyleSheet("font-size: 10px;")
         self.overlay_info_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
@@ -678,7 +677,7 @@ class NiftiViewer(QMainWindow):
 
         # Create three views in a 2x2 grid layout
         view_positions = [(0, 0), (0, 1), (1, 0)]
-        view_titles = [_t("NIfTIViewer","Axial"),_t("NIfTIViewer","Coronal"),_t("NIfTIViewer","Sagittal")]
+        view_titles = [QtCore.QCoreApplication.translate("NIfTIViewer","Axial"),QtCore.QCoreApplication.translate("NIfTIViewer","Coronal"),QtCore.QCoreApplication.translate("NIfTIViewer","Sagittal")]
 
         self.view_titles_labels = []
         for i, (row, col) in enumerate(view_positions):
@@ -723,7 +722,7 @@ class NiftiViewer(QMainWindow):
         self.fourth_widget.setFrameStyle(QFrame.Shape.StyledPanel)
         fourth_layout = QVBoxLayout(self.fourth_widget)
 
-        self.fourth_title = QLabel(_t("NIfTIViewer","Image Information"))
+        self.fourth_title = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer","Image Information"))
         self.fourth_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.fourth_title.setStyleSheet("font-weight: bold; padding: 4px;")
         fourth_layout.addWidget(self.fourth_title)
@@ -733,7 +732,7 @@ class NiftiViewer(QMainWindow):
         self.fourth_content_layout = QVBoxLayout(self.fourth_content)
 
         # Info text widget
-        self.info_text = QLabel(_t("NIfTIViewer","No image loaded"))
+        self.info_text = QLabel(QtCore.QCoreApplication.translate("NIfTIViewer","No image loaded"))
         self.info_text.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.info_text.setStyleSheet("color: #cccccc; font-size: 11px; padding: 10px;")
         self.info_text.setWordWrap(True)
@@ -791,8 +790,7 @@ class NiftiViewer(QMainWindow):
     def show_workspace_nii_dialog(self, is_overlay=False):
         if is_overlay:
             result = NiftiFileDialog.get_files(
-                self,
-                self.context["workspace_path"],
+                self.context,
                 allow_multiple=False,
                 has_existing_func=False,
                 label=None,
@@ -800,8 +798,7 @@ class NiftiViewer(QMainWindow):
             )
         else:
             result = NiftiFileDialog.get_files(
-                self,
-                self.context["workspace_path"],
+                self.context,
                 allow_multiple=False,
                 has_existing_func=False,
                 label=None
@@ -820,8 +817,8 @@ class NiftiViewer(QMainWindow):
         if is_overlay and self.img_data is None:
             QMessageBox.warning(
                 self,
-                _t("NIfTIViewer", "Warning"),
-                _t("NIfTIViewer", "Please load a base image first!")
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Warning"),
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Please load a base image first!")
             )
             log.warning("No base image")
             return
@@ -835,8 +832,8 @@ class NiftiViewer(QMainWindow):
         if file_path:
             # Show progress dialog
             self.progress_dialog = QProgressDialog(
-                _t("NIfTIViewer", "Loading NIfTI file..."),
-                _t("NIfTIViewer", "Cancel"), 0, 100, self
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Loading NIfTI file..."),
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Cancel"), 0, 100, self
             )
             self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
             self.progress_dialog.setMinimumDuration(0)
@@ -886,7 +883,7 @@ class NiftiViewer(QMainWindow):
             filename = os.path.basename(self.overlay_file_path)
             self.overlay_info_label.setText(
                 f"Overlay: {filename}\n" +
-                _t("NIfTIViewer", "Dimensions") +
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Dimensions") +
                 f":{self.overlay_dims}"
             )
 
@@ -901,7 +898,7 @@ class NiftiViewer(QMainWindow):
 
             # Messaggio nella status bar
             self.status_bar.showMessage(
-                _t("NIfTIViewer", "Overlay loaded") + f":{filename}"
+                QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay loaded") + f":{filename}"
             )
         else:
             # Automatic ROI and Overlay resetting
@@ -915,16 +912,16 @@ class NiftiViewer(QMainWindow):
             # Update file info
             filename = os.path.basename(self.file_path)
             if is_4d:
-                info_text = _t("NIfTIViewer", "File") + f":{filename}\n" + _t("NIfTIViewer",
-                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t(
+                info_text = QtCore.QCoreApplication.translate("NIfTIViewer", "File") + f":{filename}\n" + QtCore.QCoreApplication.translate("NIfTIViewer",
+                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + QtCore.QCoreApplication.translate(
                     "NIfTIViewer", "4D Time Series")
                 self.time_group.setVisible(True)
                 self.time_checkbox.setChecked(True)
                 self.time_checkbox.setEnabled(True)
                 self.setup_time_series_plot()
             else:
-                info_text = _t("NIfTIViewer", "File") + f":{filename}\n" + _t("NIfTIViewer",
-                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n" + _t(
+                info_text = QtCore.QCoreApplication.translate("NIfTIViewer", "File") + f":{filename}\n" + QtCore.QCoreApplication.translate("NIfTIViewer",
+                                                                              "Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n" + QtCore.QCoreApplication.translate(
                     "NIfTIViewer", "3D Volume")
                 self.time_group.setVisible(False)
                 self.time_checkbox.setChecked(False)
@@ -948,7 +945,7 @@ class NiftiViewer(QMainWindow):
     def on_load_error(self, error_message):
         """Handle file loading errors"""
         self.progress_dialog.close()
-        QMessageBox.critical(self, _t("NIfTIViewer","Error Loading File"), _t("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
+        QMessageBox.critical(self, QtCore.QCoreApplication.translate("NIfTIViewer","Error Loading File"), QtCore.QCoreApplication.translate("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
         log.critical(f"Error loading NIftI file: {error_message}")
         thread_to_cancel = self.sender()
         if thread_to_cancel in self.threads:
@@ -1167,8 +1164,8 @@ class NiftiViewer(QMainWindow):
             else:
                 value = self.img_data[img_coords[0], img_coords[1], img_coords[2]]
 
-            self.coord_label.setText(_t("NIfTIViewer","Coordinates")+f": ({img_coords[0]}, {img_coords[1]}, {img_coords[2]})")
-            self.value_label.setText(_t("NIfTIViewer","Value")+f": {value:.2f}")
+            self.coord_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Coordinates")+f": ({img_coords[0]}, {img_coords[1]}, {img_coords[2]})")
+            self.value_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Value")+f": {value:.2f}")
 
         except (IndexError, ValueError):
             pass
@@ -1191,16 +1188,16 @@ class NiftiViewer(QMainWindow):
         self.coord_displays[2].setText(f"({coords[1]}, {coords[2]})")
 
         # Update status bar
-        self.coord_label.setText(_t("NIfTIViewer","Coordinates")+f": ({coords[0]}, {coords[1]}, {coords[2]})")
+        self.coord_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Coordinates")+f": ({coords[0]}, {coords[1]}, {coords[2]})")
 
         try:
             if self.is_4d:
                 value = self.img_data[coords[0], coords[1], coords[2], self.current_time]
             else:
                 value = self.img_data[coords[0], coords[1], coords[2]]
-            self.value_label.setText(_t("NIfTIViewer","Value")+ f": {value:.2f}")
+            self.value_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Value")+ f": {value:.2f}")
         except (IndexError, ValueError):
-            self.value_label.setText(_t("NIfTIViewer","Value")+f": -")
+            self.value_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Value")+f": -")
 
     def update_cross_view_lines(self):
         """Update crosshair lines across all views to show current position"""
@@ -1341,7 +1338,7 @@ class NiftiViewer(QMainWindow):
         self.time_plot_axes.set_facecolor('black')
 
         # Update title and add canvas
-        self.fourth_title.setText(_t("NIfTIViewer","Tracer Concentration Curve"))
+        self.fourth_title.setText(QtCore.QCoreApplication.translate("NIfTIViewer","Tracer Concentration Curve"))
         self.fourth_content_layout.addWidget(self.time_plot_canvas)
 
     def hide_time_series_plot(self):
@@ -1355,7 +1352,7 @@ class NiftiViewer(QMainWindow):
             self.time_plot_axes = None
             self.time_plot_figure = None
 
-        self.fourth_title.setText(_t("NIfTIViewer", "Image Information"))
+        self.fourth_title.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Image Information"))
         self.info_text.show()
 
     def update_time_series_plot(self):
@@ -1399,18 +1396,18 @@ class NiftiViewer(QMainWindow):
             self.time_plot_axes.set_facecolor('black')
 
             # Plot time series
-            self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=_t("NIfTIViewer",'Concentration'))
+            self.time_plot_axes.plot(time_points, time_series, 'c-', linewidth=2, label=QtCore.QCoreApplication.translate("NIfTIViewer",'Concentration'))
             if std_series is not None:
                 self.time_plot_axes.fill_between(time_points, time_series - std_series, time_series + std_series, alpha=0.2, color='c')
 
             # Add current time indicator
             self.time_indicator_line = self.time_plot_axes.axvline(
-                x=self.current_time, color='yellow', linewidth=2, alpha=0.8, label=_t("NIfTIViewer",'Current Time')
+                x=self.current_time, color='yellow', linewidth=2, alpha=0.8, label=QtCore.QCoreApplication.translate("NIfTIViewer",'Current Time')
             )
 
             # Styling
-            self.time_plot_axes.set_xlabel(_t("NIfTIViewer","Time Point"), color='white')
-            self.time_plot_axes.set_ylabel(_t("NIfTIViewer","Signal Intensity"), color='white')
+            self.time_plot_axes.set_xlabel(QtCore.QCoreApplication.translate("NIfTIViewer","Time Point"), color='white')
+            self.time_plot_axes.set_ylabel(QtCore.QCoreApplication.translate("NIfTIViewer","Signal Intensity"), color='white')
             if bool_in_mask:
                 self.time_plot_axes.set_title(f'Mean in overlay mask', color='white')
             else:
@@ -1453,9 +1450,9 @@ class NiftiViewer(QMainWindow):
         # Update slice info in status bar
         if self.img_data is not None:
             spatial_dims = self.dims[:3] if self.is_4d else self.dims
-            slice_info = _t("NIfTIViewer","Slices")+f": {self.current_slices[0] + 1}/{spatial_dims[2]} | {self.current_slices[1] + 1}/{spatial_dims[1]} | {self.current_slices[2] + 1}/{spatial_dims[0]}"
+            slice_info = QtCore.QCoreApplication.translate("NIfTIViewer","Slices")+f": {self.current_slices[0] + 1}/{spatial_dims[2]} | {self.current_slices[1] + 1}/{spatial_dims[1]} | {self.current_slices[2] + 1}/{spatial_dims[0]}"
             if self.is_4d:
-                slice_info += f" | "+_t("NIfTIViewer","Time")+f": {self.current_time + 1}/{self.dims[3]}"
+                slice_info += f" | "+QtCore.QCoreApplication.translate("NIfTIViewer","Time")+f": {self.current_time + 1}/{self.dims[3]}"
             self.slice_info_label.setText(slice_info)
 
     def create_overlay_composite(self, rgba_image, overlay_slice, colormap):
@@ -1536,7 +1533,7 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_drawing()
 
         self.overlay_info_label.setText(
-            f"Overlay:"+ _t("NIfTIViewer", "Automatic ROI Drawing"))
+            f"Overlay:"+ QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI Drawing"))
 
         self.toggle_overlay(True)
         self.overlay_checkbox.setChecked(True)
@@ -1677,7 +1674,7 @@ class NiftiViewer(QMainWindow):
         self.overlay_checkbox.setEnabled(False)
         self.overlay_info_label.setText(
             f"Overlay:\n" +
-            _t("NIfTIViewer", "Dimensions")
+            QtCore.QCoreApplication.translate("NIfTIViewer", "Dimensions")
         )
 
 
@@ -1695,63 +1692,71 @@ class NiftiViewer(QMainWindow):
         return np.pad(volume, pads, mode="constant", constant_values=constant_value)
 
     def _retranslate_ui(self):
-        self.setWindowTitle(_t("NIfTIViewer", "NIfTI Image Viewer"))
+        self.setWindowTitle(QtCore.QCoreApplication.translate("NIfTIViewer", "NIfTI Image Viewer"))
 
-        self.status_bar.showMessage(_t("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
+        self.status_bar.showMessage(QtCore.QCoreApplication.translate("NIfTIViewer", "Ready - Open a NIfTI file to begin"))
 
-        self.coord_label.setText(_t("NIfTIViewer", "Coordinates: (-, -, -)"))
-        self.value_label.setText(_t("NIfTIViewer", "Value: -"))
-        self.slice_info_label.setText(_t("NIfTIViewer", "Slice: -/-"))
+        self.coord_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Coordinates: (-, -, -)"))
+        self.value_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Value: -"))
+        self.slice_info_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Slice: -/-"))
 
-        self.open_btn.setText(_t("NIfTIViewer", "📁 Open NIfTI File"))
+        self.open_btn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "📁 Open NIfTI File"))
 
-        self.file_info_label.setText(_t("NIfTIViewer","No file loaded"))
+        self.file_info_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer","No file loaded"))
 
-        plane_names = [_t("NIfTIViewer", "Axial (Z)"), _t("NIfTIViewer", "Coronal (Y)"),
-                       _t("NIfTIViewer", "Sagittal (X)")]
+        plane_names = [QtCore.QCoreApplication.translate("NIfTIViewer", "Axial (Z)"), QtCore.QCoreApplication.translate("NIfTIViewer", "Coronal (Y)"),
+                       QtCore.QCoreApplication.translate("NIfTIViewer", "Sagittal (X)")]
         for i,name in enumerate(plane_names):
-            self.plane_labels[i].setText(_t("NIfTIViewer", name))
+            self.plane_labels[i].setText(QtCore.QCoreApplication.translate("NIfTIViewer", name))
 
-        self.time_checkbox.setText(_t("NIfTIViewer", "Enable 4D Time Navigation"))
+        self.time_checkbox.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Enable 4D Time Navigation"))
 
-        self.time_point_label.setText(_t("NIfTIViewer", "Time Point:"))
+        self.time_point_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Time Point:"))
 
-        self.display_options_label.setText(_t("NIfTIViewer", "Display Options:"))
+        self.display_options_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Display Options:"))
 
         colormap_names = ['gray', 'viridis','plasma', 'inferno','magma','hot','cool','bone']
 
         for i,name in enumerate(colormap_names):
             self.colormap_combo.setItemText(i, name)
 
-        self.colormap_label.setText(_t("NIfTIViewer", "Colormap:"))
-        self.overlay_control_label.setText(_t("NIfTIViewer", "Overlay Controls:"))
+        self.colormap_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Colormap:"))
+        self.overlay_control_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Controls:"))
 
-        self.overlay_btn.setText(_t("NIfTIViewer", "Load NIfTI Overlay"))
+        self.overlay_btn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Load NIfTI Overlay"))
 
-        self.overlay_checkbox.setText(_t("NIfTIViewer", "Show Overlay"))
+        self.overlay_checkbox.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Show Overlay"))
 
-        self.alpha_overlay_label.setText(_t("NIfTIViewer", "Overlay Transparency:"))
+        self.alpha_overlay_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Transparency:"))
 
-        self.overlay_threshold_label.setText(_t("NIfTIViewer", "Overlay Threshold:"))
+        self.overlay_threshold_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Threshold:"))
 
-        self.overlay_info_label.setTetx(_t("NIfTIViewer", "No overlay loaded"))
+        self.overlay_info_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No overlay loaded"))
 
-        view_titles = [_t("NIfTIViewer", "Axial"), _t("NIfTIViewer", "Coronal"), _t("NIfTIViewer", "Sagittal")]
+        view_titles = [QtCore.QCoreApplication.translate("NIfTIViewer", "Axial"), QtCore.QCoreApplication.translate("NIfTIViewer", "Coronal"), QtCore.QCoreApplication.translate("NIfTIViewer", "Sagittal")]
         for i,title in enumerate(view_titles):
             self.view_titles_labels[i].setText(title)
 
-        self.fourth_title.setText(_t("NIfTIViewer", self.fourth_title.text()))
-        self.info_text.setText(_t("NIfTIViewer", "No image loaded"))
+        self.fourth_title.setText(QtCore.QCoreApplication.translate("NIfTIViewer", self.fourth_title.text()))
+        self.info_text.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No image loaded"))
 
-        filename = os.path.basename(self.file_path)
-        dims = self.dims
-        if self.is_4d:
-            info_text = _t("NIfTIViewer","File")+ f":{filename}\n"+_t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + _t("NIfTIViewer","4D Time Series")
+        if self.file_path:
+            filename = os.path.basename(self.file_path)
+            dims = self.dims
+            if self.is_4d:
+                info_text = QtCore.QCoreApplication.translate("NIfTIViewer", "File") + f": {filename}\n" + \
+                            QtCore.QCoreApplication.translate("NIfTIViewer",
+                                                              "Dimensions") + f": {dims[0]}×{dims[1]}×{dims[2]}×{dims[3]}\n" + \
+                            QtCore.QCoreApplication.translate("NIfTIViewer", "4D Time Series")
+            else:
+                info_text = QtCore.QCoreApplication.translate("NIfTIViewer", "File") + f": {filename}\n" + \
+                            QtCore.QCoreApplication.translate("NIfTIViewer",
+                                                              "Dimensions") + f": {dims[0]}×{dims[1]}×{dims[2]}\n" + \
+                            QtCore.QCoreApplication.translate("NIfTIViewer", "3D Volume")
 
+            self.file_info_label.setText(info_text)
+            self.info_text.setText(info_text)
         else:
-            info_text = _t("NIfTIViewer","File")+ f":{filename}\n" + _t("NIfTIViewer","Dimensions") + f":{dims[0]}×{dims[1]}×{dims[2]}\n"+ _t("NIfTIViewer","3D Volume")
-
-        self.file_info_label.setText(info_text)
-        self.info_text.setText(info_text)
-
-        #if self.overlay_data is not None
+            # fallback quando nessun file è ancora stato caricato
+            self.file_info_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No file loaded"))
+            self.info_text.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No image loaded"))

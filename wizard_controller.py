@@ -1,10 +1,10 @@
 import json
 import os
+from typing import Any
 
 from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QPushButton
 
-from components.ui_button import UiButton
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 from ui.ui_import_frame import ImportFrame
 from ui.ui_main_window import MainWindow
@@ -34,7 +34,7 @@ class WizardController(QObject):
             os.makedirs(self.workspace_path)
 
 
-        self.context = {
+        self.context: dict[str, Any] = {
             "workspace_path"            :   str(self.workspace_path),
             "update_main_buttons"       :   self.update_buttons_state,
             "return_to_import"          :   self.return_to_import,
@@ -96,8 +96,8 @@ class WizardController(QObject):
         )
 
     def create_buttons(self):
-        self.next_button = UiButton(text="Next", context=self)
-        self.back_button = UiButton(text="Back", context=self)
+        self.next_button = QPushButton("Next")
+        self.back_button = QPushButton("Back")
         self.next_button.clicked.connect(self.go_to_next_page)
         self.back_button.clicked.connect(self.go_to_previous_page)
 

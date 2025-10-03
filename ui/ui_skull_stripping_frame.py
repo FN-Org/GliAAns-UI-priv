@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
     QProgressBar
 )
-from PyQt6.QtCore import Qt,pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 import os
 import subprocess
 
@@ -25,12 +25,15 @@ class SkullStrippingPage(WizardPage):
         self.previous_page = previous_page
         self.next_page = None
 
-
         self.worker = None  # Per tenere traccia del worker thread
 
         self.has_cuda = torch.cuda.is_available()
 
         self._setup_ui()
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def _setup_ui(self):
         self.processing.connect(self.set_processing_mode)
@@ -87,9 +90,9 @@ class SkullStrippingPage(WizardPage):
             self.f_box = QGroupBox()
 
             f_layout = QHBoxLayout()
-            f_label = QLabel(
+            self.f_label = QLabel(
                 "Fractional intensity threshold, smaller values give larger brain outline estimates")
-            f_layout.addWidget(f_label)
+            f_layout.addWidget(self.f_label)
 
             self.f_spinbox = QDoubleSpinBox()
             self.f_spinbox.setRange(0.0, 1.0)
@@ -112,13 +115,14 @@ class SkullStrippingPage(WizardPage):
             self.layout.addWidget(self.advanced_btn)
 
             # Opzioni avanzate nascoste in un QGroupBox
+            self.is_checked = False
             self.advanced_box = QGroupBox()
             self.advanced_layout = QVBoxLayout()
 
             # Sezione 1: Output options (checkboxes)
-            output_label = QLabel("Advanced options:")
-            output_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
-            self.advanced_layout.addWidget(output_label)
+            self.output_label = QLabel("Advanced options:")
+            self.output_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+            self.advanced_layout.addWidget(self.output_label)
 
             self.opt_brain_extracted = QCheckBox("Output brain-extracted image")
             self.opt_brain_extracted.setChecked(True)  # Checked by default come in FSL
@@ -137,10 +141,10 @@ class SkullStrippingPage(WizardPage):
             self.advanced_layout.addWidget(self.opt_o)
 
             # Sezione 2: Threshold gradient
-            threshold_layout = QHBoxLayout()
-            threshold_label = QLabel(
+            self.threshold_layout = QHBoxLayout()
+            self.threshold_label = QLabel(
                 "Threshold gradient; positive values give larger brain outline at bottom, smaller at top")
-            threshold_layout.addWidget(threshold_label)
+            self.threshold_layout.addWidget(self.threshold_label)
 
             self.g_spinbox = QDoubleSpinBox()
             self.g_spinbox.setRange(-1.0, 1.0)
@@ -149,15 +153,15 @@ class SkullStrippingPage(WizardPage):
             self.g_spinbox.setDecimals(1)
             self.g_spinbox.setMinimumWidth(60)
             self.g_spinbox.setMaximumWidth(80)
-            threshold_layout.addWidget(self.g_spinbox)
+            self.threshold_layout.addWidget(self.g_spinbox)
 
-            threshold_layout.addStretch()
-            self.advanced_layout.addLayout(threshold_layout)
+            self.threshold_layout.addStretch()
+            self.advanced_layout.addLayout(self.threshold_layout)
 
             # Sezione 3: Coordinates
             coords_layout = QHBoxLayout()
-            coords_label = QLabel("Coordinates (voxels) for centre of initial brain surface sphere")
-            coords_layout.addWidget(coords_label)
+            self.coords_label = QLabel("Coordinates (voxels) for centre of initial brain surface sphere")
+            coords_layout.addWidget(self.coords_label)
 
             # X coordinate
             self.c_x_spinbox = QSpinBox()
@@ -262,15 +266,15 @@ class SkullStrippingPage(WizardPage):
         return False
 
     def toggle_advanced(self):
-        is_checked = self.advanced_btn.isChecked()
-        self.advanced_box.setVisible(is_checked)
-        self.advanced_btn.setText("Hide Advanced Options" if is_checked else "Show Advanced Options")
+        self.is_checked = self.advanced_btn.isChecked()
+        self.advanced_box.setVisible(self.is_checked)
+        self.advanced_btn.setText("Hide Advanced Options" if self.is_checked else "Show Advanced Options")
 
     def run_bet(self):
         """Avvia il processing in background usando QThread"""
         selected_files = self.file_selector_widget.get_selected_files()
         if not selected_files:
-            QMessageBox.warning(self, "No files", "Please select at least one NIfTI file first.")
+            QMessageBox.warning(self, QCoreApplication.translate("SkullStrippingFrame", "No files"), QCoreApplication.translate("SkullStrippingFrame", "Please select at least one NIfTI file first."))
             return
         parameters = None
         if self.has_bet:
@@ -316,7 +320,7 @@ class SkullStrippingPage(WizardPage):
         self.canceled = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
-            self.status_label.setText("Cancelling...")
+            self.status_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Cancelling..."))
             self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")
 
     def set_processing_mode(self, processing):
@@ -364,14 +368,19 @@ class SkullStrippingPage(WizardPage):
 
         # Aggiorna il messaggio di stato finale
         if success_count > 0:
-            summary = f"Skull Stripping completed successfully for {success_count} file(s)"
+            summary = QCoreApplication.translate("SkullStrippingFrame", "Skull Stripping completed successfully for {0} file(s)").format(success_count)
             if failed_files:
-                summary += f"\n{len(failed_files)} file(s) failed: {', '.join([os.path.basename(f) for f in failed_files])}"
+                failed_summary = QCoreApplication.translate("SkullStrippingFrame",
+                                   "{count} file(s) failed: {files}").format(
+                    count=len(failed_files),
+                    files=', '.join([os.path.basename(f) for f in failed_files])
+                )
+                summary += f"\n{failed_summary}"
                 self.status_label.setStyleSheet("color: #FF9800; font-weight: bold; font-size: 12pt; padding: 5px;")
             else:
                 self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12pt; padding: 5px;")
         else:
-            summary = f"All {len(failed_files)} file(s) failed to process"
+            summary = QCoreApplication.translate("SkullStrippingFrame", "All {0} file(s) failed to process").format(len(failed_files))
             self.status_label.setStyleSheet("color: #FF0000; font-weight: bold; font-size: 12pt; padding: 5px;")
 
         self.status_label.setText(summary)
@@ -393,8 +402,10 @@ class SkullStrippingPage(WizardPage):
     def back(self):
         # Non permettere di tornare indietro durante il processing
         if self.worker and self.worker.isRunning():
-            QMessageBox.warning(self, "Processing in progress",
-                                "Cannot go back while skull stripping is in progress. Please wait or cancel the operation.")
+            QMessageBox.warning(
+                self,
+                QCoreApplication.translate("SkullStrippingFrame", "Processing in progress"),
+                QCoreApplication.translate("SkullStrippingFrame", "Cannot go back while skull stripping is in progress. Please wait or cancel the operation."))
             log.warning("Processing in progress")
             return None
 
@@ -432,7 +443,7 @@ class SkullStrippingPage(WizardPage):
         # Reset advanced options
         self.advanced_btn.setChecked(False)
         self.advanced_box.setVisible(False)
-        self.advanced_btn.setText("Show Advanced Options")
+        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
 
         # Reset advanced checkboxes
         self.opt_brain_extracted.setChecked(True)
@@ -456,3 +467,28 @@ class SkullStrippingPage(WizardPage):
 
         # Clear status message
         self.status_label.setText("")
+
+    def _retranslate_ui(self):
+        self.title.setText(QCoreApplication.translate("SkullStrippingFrame", "Select a NIfTI file for Skull Stripping"))
+        self.f_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Fractional intensity threshold, smaller values give larger brain outline estimates"))
+        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
+        self.output_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Advanced options:"))
+        self.opt_brain_extracted.setText(QCoreApplication.translate("SkullStrippingFrame", "Output brain-extracted image"))
+        self.opt_m.setText(QCoreApplication.translate("SkullStrippingFrame", "Output binary brain mask image"))
+        self.opt_t.setText(QCoreApplication.translate("SkullStrippingFrame", "Apply thresholding to brain and mask image"))
+        self.opt_s.setText(QCoreApplication.translate("SkullStrippingFrame", "Output exterior skull surface image"))
+        self.opt_o.setText(QCoreApplication.translate("SkullStrippingFrame", "Output brain surface overlaid onto original image"))
+        self.threshold_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Threshold gradient; positive values give larger brain outline at bottom, smaller at top"))
+        self.coords_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Coordinates (voxels) for centre of initial brain surface sphere"))
+
+        if self.has_bet:
+            self.info_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Using tool: <a href='https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET'>BET from FSL toolkit</a>"))
+        else:
+            self.info_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Using tool: <a href='https://github.com/MIC-DKFZ/HD-BET'>hd-bet</a> <br>"
+                "To use BET from FSL toolkit, you have to be on linux and follow the instructions at: <a href='https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index'>FSL installation</a>"
+            ))
+        self.info_label.setToolTip(QCoreApplication.translate("SkullStrippingFrame", "Open link"))
+
+        self.run_button.setText(QCoreApplication.translate("SkullStrippingFrame", "Run Skull Stripping"))
+        self.cancel_button.setText(QCoreApplication.translate("SkullStrippingFrame", "Cancel"))
+        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Hide Advanced Options") if self.is_checked else QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))

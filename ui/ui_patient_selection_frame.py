@@ -4,7 +4,7 @@ import sys
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QGridLayout, QHBoxLayout, \
     QMessageBox, QSizePolicy
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
 from ui.ui_tool_selection_frame import ToolChoicePage
@@ -36,8 +36,8 @@ class PatientSelectionPage(WizardPage):
 
         top_buttons_layout = QHBoxLayout()
 
-        select_all_btn = QPushButton("Select All")
-        deselect_all_btn = QPushButton("Deselect All")
+        self.select_all_btn = QPushButton("Select All")
+        self.deselect_all_btn = QPushButton("Deselect All")
 
         btn_style = """
                     QPushButton {
@@ -52,30 +52,17 @@ class PatientSelectionPage(WizardPage):
                     }
                 """
 
-        select_all_btn.setStyleSheet(btn_style)
-        deselect_all_btn.setStyleSheet(btn_style)
+        self.select_all_btn.setStyleSheet(btn_style)
+        self.deselect_all_btn.setStyleSheet(btn_style)
 
-        select_all_btn.clicked.connect(self._select_all_patients)
-        deselect_all_btn.clicked.connect(self._deselect_all_patients)
+        self.select_all_btn.clicked.connect(self._select_all_patients)
+        self.deselect_all_btn.clicked.connect(self._deselect_all_patients)
 
         top_buttons_layout.addStretch()
-        top_buttons_layout.addWidget(select_all_btn)
-        top_buttons_layout.addWidget(deselect_all_btn)
+        top_buttons_layout.addWidget(self.select_all_btn)
+        top_buttons_layout.addWidget(self.deselect_all_btn)
 
         self.layout.addLayout(top_buttons_layout)
-
-        # self.scroll_area = QScrollArea()
-        # self.scroll_area.setWidgetResizable(True)
-        # self.scroll_area.setStyleSheet("""
-        #     QScrollArea {
-        #         font-size: 13px;
-        #         border: 1px solid #bdc3c7;
-        #         border-radius: 10px;
-        #         padding: 5px;
-        #     }
-        # """)
-        # self.scroll_content = QWidget()
-        # self.grid_layout = QGridLayout(self.scroll_content)
 
         # Area scroll per i pazienti
         self.scroll_area = QScrollArea()
@@ -98,6 +85,10 @@ class PatientSelectionPage(WizardPage):
 
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def _update_column_count(self):
         # Margine di sicurezza per padding/bordi
@@ -162,9 +153,11 @@ class PatientSelectionPage(WizardPage):
         unselected_ids = [os.path.basename(p) for p in to_delete]
 
         if to_delete:
-            reply = QMessageBox.question(self, "Confirm Cleanup",
-                                         f"{len(to_delete)} unselected patient(s) will be removed from the workspace. Continue?",
-                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            reply = QMessageBox.question(
+                self,
+                QCoreApplication.translate("PatientSelectionFrame", "Confirm Cleanup"),
+                QCoreApplication.translate("PatientSelectionFrame", "{0} unselected patient(s) will be removed from the workspace. Continue?").format(len(to_delete)),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
             if reply == QMessageBox.StandardButton.No:
                 return None
@@ -251,7 +244,7 @@ class PatientSelectionPage(WizardPage):
             label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
             # Pulsante di selezione
-            button = QPushButton("Select")
+            button = QPushButton(QCoreApplication.translate("PatientSelectionFrame", "Select"))
             button.setCheckable(True)
             button.setStyleSheet("""
                 QPushButton {
@@ -267,7 +260,7 @@ class PatientSelectionPage(WizardPage):
 
             is_selected = patient_id in self.selected_patients
             button.setChecked(is_selected)
-            button.setText("Selected" if is_selected else "Select")
+            button.setText(QCoreApplication.translate("PatientSelectionFrame", "Selected") if is_selected else QCoreApplication.translate("PatientSelectionFrame", "Select"))
 
             button.clicked.connect(lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
 
@@ -276,8 +269,6 @@ class PatientSelectionPage(WizardPage):
             # Aggiunta di tutti i widget nello stesso contenitore (stesso "card")
             profile_layout.addWidget(image)
             profile_layout.addWidget(label)
-            # patient_layout.addWidget(image)
-            # patient_layout.addWidget(label)
             patient_layout.addWidget(profile)
             patient_layout.addStretch()  # Aggiunge spazio tra label e pulsante
             patient_layout.addWidget(button)
@@ -289,7 +280,7 @@ class PatientSelectionPage(WizardPage):
         for patient_id, button in self.patient_buttons.items():
             if not button.isChecked():
                 button.setChecked(True)
-                button.setText("Selected")
+                button.setText(QCoreApplication.translate("PatientSelectionFrame", "Selected"))
                 self.selected_patients.add(patient_id)
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
@@ -298,7 +289,7 @@ class PatientSelectionPage(WizardPage):
         for patient_id, button in self.patient_buttons.items():
             if button.isChecked():
                 button.setChecked(False)
-                button.setText("Select")
+                button.setText(QCoreApplication.translate("PatientSelectionFrame", "Select"))
                 self.selected_patients.discard(patient_id)
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
@@ -327,10 +318,10 @@ class PatientSelectionPage(WizardPage):
     def _toggle_patient(self, patient_id, is_selected, button):
         if is_selected:
             self.selected_patients.add(patient_id)
-            button.setText("Selected")
+            button.setText(QCoreApplication.translate("PatientSelectionFrame", "Selected"))
         else:
             self.selected_patients.discard(patient_id)
-            button.setText("Select")
+            button.setText(QCoreApplication.translate("PatientSelectionFrame", "Select"))
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
@@ -351,4 +342,10 @@ class PatientSelectionPage(WizardPage):
         self.patient_buttons.clear()
 
         # Ricarica i pazienti da zero
+        self._load_patients()
+
+    def _retranslate_ui(self):
+        self.title.setText(QCoreApplication.translate("PatientSelectionFrame", "Select Patients to Analyze"))
+        self.select_all_btn.setText(QCoreApplication.translate("PatientSelectionFrame", "Select All"))
+        self.deselect_all_btn.setText(QCoreApplication.translate("PatientSelectionFrame", "Deselect All"))
         self._load_patients()

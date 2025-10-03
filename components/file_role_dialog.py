@@ -1,6 +1,7 @@
 import os
 import re
 
+from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget, QLabel, QRadioButton, QButtonGroup, QFrame, QGroupBox, \
     QComboBox, QDialogButtonBox
 
@@ -13,16 +14,16 @@ class FileRoleDialog(QDialog):
         self.role = role
         self.main = main
 
-        self.setWindowTitle("File role")
+        self.setWindowTitle(QCoreApplication.translate("Components", "File role"))
         self.workspace_path = workspace_path
         layout = QVBoxLayout(self)
         if main is None and subj is None:
             # --- Livello Main/Derivatives ---
             self.level1_widget = QWidget()
             level1_layout = QVBoxLayout(self.level1_widget)
-            self.pos_label = QLabel("Position:")
+            self.pos_label = QLabel(QCoreApplication.translate("Components", "Position:"))
             level1_layout.addWidget(self.pos_label)
-            self.opt_main = QRadioButton("main subject files")
+            self.opt_main = QRadioButton(QCoreApplication.translate("Components", "main subject files"))
             self.opt_derivatives = QRadioButton("derivatives")
             level1_layout.addWidget(self.opt_main)
             level1_layout.addWidget(self.opt_derivatives)
@@ -38,7 +39,7 @@ class FileRoleDialog(QDialog):
 
             self.derivative_extra_frame = QFrame()
             derivative_extra_layout = QVBoxLayout(self.derivative_extra_frame)
-            self.derivative_extra_label = QLabel("What derivative:")
+            self.derivative_extra_label = QLabel(QCoreApplication.translate("Components", "What derivative:"))
             derivative_extra_layout.addWidget(self.derivative_extra_label)
 
             self.derivative_extra_button_group = QButtonGroup(self)
@@ -60,7 +61,7 @@ class FileRoleDialog(QDialog):
         elif main == "derivatives":
             self.derivative_extra_frame = QFrame(self)
             derivative_extra_layout = QVBoxLayout(self.derivative_extra_frame)
-            self.derivative_extra_label = QLabel("What derivative:")
+            self.derivative_extra_label = QLabel(QCoreApplication.translate("Components", "What derivative:"))
             derivative_extra_layout.addWidget(self.derivative_extra_label)
 
             self.derivative_extra_button_group = QButtonGroup(self)
@@ -85,7 +86,7 @@ class FileRoleDialog(QDialog):
 
         if subj is None:
             # --- Livello Subject ---
-            self.level2_widget = QGroupBox("Subject")
+            self.level2_widget = QGroupBox(QCoreApplication.translate("Components", "Subject"))
             level2_layout = QVBoxLayout(self.level2_widget)
 
             subjects = [os.path.basename(p) for p in self._find_patient_dirs()]
@@ -107,7 +108,7 @@ class FileRoleDialog(QDialog):
             # --- Livello Anat/Sess ---
             self.level3_widget = QWidget()
             level3_layout = QVBoxLayout(self.level3_widget)
-            self.role_label = QLabel("Role:")
+            self.role_label = QLabel(QCoreApplication.translate("Components", "Role:"))
             level3_layout.addWidget(self.role_label)
             self.button_third_group = QButtonGroup(self)
             self.anat_button = QRadioButton("anat")

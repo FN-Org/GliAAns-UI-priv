@@ -1,9 +1,10 @@
+from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QPushButton, QLabel
 
 
 class CollapsibleInfoFrame(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, context):
+        super().__init__()
         self.setObjectName("info_frame")
         self.setStyleSheet("""
             QFrame#info_frame {
@@ -43,7 +44,7 @@ class CollapsibleInfoFrame(QFrame):
         self.content_layout.setContentsMargins(8, 4, 8, 4)
         self.content_layout.setSpacing(4)
 
-        info_text = QLabel("""
+        self.info_text = QLabel("""
             <style>
                 .info-list { margin: 0; padding-left: 1rem; }
                 .info-list li { margin-bottom: 0.3rem; line-height: 1.3; }
@@ -54,20 +55,35 @@ class CollapsibleInfoFrame(QFrame):
               <li><strong>White frames</strong> show patients with auto-selected files.</li>
             </ul>
         """)
-        info_text.setStyleSheet("""
+        self.info_text.setStyleSheet("""
             color: #000000;
             font-size: 12px;
             line-height: 1.4;
             padding: 2px 0;
         """)
-        info_text.setWordWrap(True)
-        self.content_layout.addWidget(info_text)
+        self.info_text.setWordWrap(True)
+        self.content_layout.addWidget(self.info_text)
         self.layout.addWidget(self.content_frame)
         self.is_collapsed = False
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def toggle_content(self):
         self.is_collapsed = not self.is_collapsed
         self.content_frame.setVisible(not self.is_collapsed)
-        self.toggle_button.setText(
-            "Configuration Instructions" if not self.is_collapsed else "Configuration Instructions"
-        )
+
+    def _retranslate_ui(self):
+        self.toggle_button.setText(QCoreApplication.translate("Components", "Configuration Instructions"))
+        self.info_text.setText(QCoreApplication.translate("Components", """
+            <style>
+                .info-list { margin: 0; padding-left: 1rem; }
+                .info-list li { margin-bottom: 0.3rem; line-height: 1.3; }
+            </style>
+            <ul class="info-list" role="list">
+              <li><strong>Yellow frames</strong> indicate patients with <strong>multiple files</strong>. 
+                <br> Requires <strong>medical review</strong> and manual selection.</li>
+              <li><strong>White frames</strong> show patients with auto-selected files.</li>
+            </ul>
+        """))

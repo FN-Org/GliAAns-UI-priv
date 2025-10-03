@@ -1,323 +1,1597 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="it_IT">
+<TS version="2.1" language="it_IT" sourcelanguage="en_US">
 <context>
-    <name>MainWindow</name>
+    <name>Components</name>
     <message>
-        <source>Glioma Patient Data Importer</source>
-        <translation>Importatore Dati Pazienti con Glioma</translation>
+        <location filename="../components/collapsible_info_frame.py" line="78"/>
+        <source>Configuration Instructions</source>
+        <translation>Istruzioni per la configurazione</translation>
     </message>
     <message>
-        <source>Import or select patients&apos; data</source>
-        <translation>Importa o seleziona i dati dei pazienti</translation>
+        <location filename="../components/collapsible_info_frame.py" line="79"/>
+        <source>
+            &lt;style&gt;
+                .info-list { margin: 0; padding-left: 1rem; }
+                .info-list li { margin-bottom: 0.3rem; line-height: 1.3; }
+            &lt;/style&gt;
+            &lt;ul class=&quot;info-list&quot; role=&quot;list&quot;&gt;
+              &lt;li&gt;&lt;strong&gt;Yellow frames&lt;/strong&gt; indicate patients with &lt;strong&gt;multiple files&lt;/strong&gt;. 
+                &lt;br&gt; Requires &lt;strong&gt;medical review&lt;/strong&gt; and manual selection.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;White frames&lt;/strong&gt; show patients with auto-selected files.&lt;/li&gt;
+            &lt;/ul&gt;
+        </source>
+        <translation>&lt;style&gt;
+.info-list { margin: 0; padding-left: 1rem; }
+.info-list li { margin-bottom: 0.3rem; line-height: 1.3; }
+&lt;/style&gt;
+&lt;ul class=&quot;info-list&quot; role=&quot;list&quot;&gt;
+&lt;li&gt;&lt;strong&gt;Le cornici gialle&lt;/strong&gt; indicano i pazienti con &lt;strong&gt;file multipli&lt;/strong&gt;.
+&lt;br&gt; Richiede &lt;strong&gt;revisione medica&lt;/strong&gt; e selezione manuale.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Le cornici bianche&lt;/strong&gt; indicano i pazienti con file selezionati automaticamente.&lt;/li&gt;
+&lt;/ul&gt;</translation>
     </message>
     <message>
-        <source>Next</source>
-        <translation>Avanti</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="328"/>
+        <location filename="../components/collapsible_patient_frame.py" line="111"/>
+        <source>Patient: {0}</source>
+        <translation>Paziente {0}</translation>
     </message>
     <message>
-        <source>File</source>
-        <translation>File</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="322"/>
+        <location filename="../components/collapsible_patient_frame.py" line="118"/>
+        <source>Patient: {patient}</source>
+        <translation>Paziente {patient}</translation>
     </message>
     <message>
-        <source>Settings</source>
-        <translation>Impostazioni</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="331"/>
+        <location filename="../components/collapsible_patient_frame.py" line="177"/>
+        <source>No file found</source>
+        <translation>Nessun file trovato</translation>
     </message>
     <message>
-        <source>Help</source>
-        <translation>Aiuto</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="333"/>
+        <location filename="../components/collapsible_patient_frame.py" line="216"/>
+        <source>Save Patient Configuration</source>
+        <translation>Salva la configurazione del paziente</translation>
     </message>
     <message>
-        <source>Workspace</source>
-        <translation>Area di lavoro</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="267"/>
+        <location filename="../components/collapsible_patient_frame.py" line="240"/>
+        <source>&lt;span style=&apos;color:red;&apos;&gt;No PET4D file selected&lt;/span&gt;</source>
+        <translation>&lt;span style=&apos;color:red;&apos;&gt;Nessun file PET4D selezionato&lt;/span&gt;</translation>
     </message>
     <message>
-        <source>Export</source>
-        <translation>Esporta</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="276"/>
+        <location filename="../components/collapsible_patient_frame.py" line="249"/>
+        <source>JSON related: &lt;strong&gt;{rel_json}&lt;/strong&gt;</source>
+        <translation>JSON associato: &lt;strong&gt;{rel_json}&lt;/strong&gt;</translation>
     </message>
     <message>
-        <source>Clear link</source>
-        <translation>Rimuovi collegamento</translation>
+        <location filename="../components/collapsible_patient_frame.py" line="280"/>
+        <location filename="../components/collapsible_patient_frame.py" line="253"/>
+        <source>&lt;span style=&apos;color:red;&apos;&gt;Error: associated JSON file not found&lt;/span&gt;</source>
+        <translation>&lt;span style=&apos;color:red;&apos;&gt;Errore: JSON file associato non trovato&lt;/span&gt;</translation>
     </message>
     <message>
-        <source>Clear copies</source>
-        <translation>Rimuovi copie</translation>
+        <location filename="../components/file_role_dialog.py" line="17"/>
+        <source>File role</source>
+        <translation>Ruolo del file</translation>
     </message>
     <message>
-        <source>Clear all</source>
-        <translation>Rimuovi tutto</translation>
+        <location filename="../components/file_role_dialog.py" line="24"/>
+        <source>Position:</source>
+        <translation>Posizione:</translation>
     </message>
     <message>
-        <source>Import</source>
-        <translation>Importa</translation>
+        <location filename="../components/file_role_dialog.py" line="26"/>
+        <source>main subject files</source>
+        <translation>file di argomento principale</translation>
     </message>
     <message>
-        <source>Language</source>
-        <translation>Lingua</translation>
+        <location filename="../components/file_role_dialog.py" line="64"/>
+        <location filename="../components/file_role_dialog.py" line="42"/>
+        <source>What derivative:</source>
+        <translation>Quale derivative:</translation>
     </message>
     <message>
-        <source>English</source>
-        <translation>English</translation>
+        <location filename="../components/file_role_dialog.py" line="89"/>
+        <source>Subject</source>
+        <translation>Soggetto</translation>
     </message>
     <message>
-        <source>Italiano</source>
-        <translation>Italiano</translation>
+        <location filename="../components/file_role_dialog.py" line="111"/>
+        <source>Role:</source>
+        <translation>Ruolo:</translation>
+    </message>
+    <message>
+        <location filename="../components/file_selector_widget.py" line="112"/>
+        <source>Choose NIfTI File(s)</source>
+        <translation>Selezionare NIfTI file</translation>
+    </message>
+    <message>
+        <location filename="../components/file_selector_widget.py" line="113"/>
+        <source>Clear Selection</source>
+        <translation>Cancella selezione</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="179"/>
+        <location filename="../components/folder_card.py" line="75"/>
+        <source>Waiting for files...</source>
+        <translation>In attesa dei file...</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="120"/>
+        <source>{file_count} new file</source>
+        <translation>{file_count} nuovi file</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="212"/>
+        <source>Generated file - {0}</source>
+        <translation>File generati - {0}</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="221"/>
+        <source>📊 {0} generated file</source>
+        <translation>📊 {0} file generati</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="268"/>
+        <source>📂 Open Folder</source>
+        <translation>📂 Apri Cartella</translation>
+    </message>
+    <message>
+        <location filename="../components/folder_card.py" line="285"/>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="17"/>
+        <source>Select NIfTI Files ({0})</source>
+        <translation>Seleziona file NIfTI ({0})</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="47"/>
+        <source>Filters</source>
+        <translation>Filtri</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="51"/>
+        <source>Search files (FLAIR, T1, T2, etc.)</source>
+        <translation>Cerca file (FLAIR, T1, T2, ecc.)</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="53"/>
+        <source>Search:</source>
+        <translation>Cerca:</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="58"/>
+        <source>All subjects or type subject ID...</source>
+        <translation>Tutti gli argomenti o digita ID argomento...</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="59"/>
+        <source>Subject:</source>
+        <translation>Soggetto:</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="64"/>
+        <source>All sessions...</source>
+        <translation>Tutte le sessioni...</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="65"/>
+        <source>Session:</source>
+        <translation>Sessioni:</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="70"/>
+        <source>All modalities...</source>
+        <translation>Tutte le modalità...</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="71"/>
+        <source>Modality:</source>
+        <translation>Modalità:</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="217"/>
+        <location filename="../components/nifti_file_selector.py" line="75"/>
+        <source>All types</source>
+        <translation>Tutti i tipi</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="76"/>
+        <source>Data type:</source>
+        <translation>Tipo di dati:</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="79"/>
+        <source>Show only files without existing {0}s</source>
+        <translation>Mostra solo i file senza {0} esistenti</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="80"/>
+        <source>Show only files with existing {0}s</source>
+        <translation>Mostra solo i file con {0} esistenti</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="105"/>
+        <source>Reset Filters</source>
+        <translation>Reimposta filtri</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="106"/>
+        <source>Select All Visible</source>
+        <translation>Seleziona tutto ciò che è visibile</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="107"/>
+        <source>Deselect All</source>
+        <translation>Deseleziona tutti</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="294"/>
+        <location filename="../components/nifti_file_selector.py" line="151"/>
+        <source>Unknown</source>
+        <translation>Sconosciuto</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="211"/>
+        <location filename="../components/nifti_file_selector.py" line="158"/>
+        <source>All subjects</source>
+        <translation>Tutti i soggetti</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="213"/>
+        <location filename="../components/nifti_file_selector.py" line="161"/>
+        <source>All sessions</source>
+        <translation>Tutte le sessioni</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="215"/>
+        <location filename="../components/nifti_file_selector.py" line="164"/>
+        <source>All modalities</source>
+        <translation>Tutte le modalità</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="180"/>
+        <source>{0}
+✓ Existing {1}</source>
+        <translation>{0}
+✓ Esistente {1}</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="182"/>
+        <source>{0}
+○ No {1}</source>
+        <translation>{0}
+○ Nessun {1}</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="187"/>
+        <source>Showing {0} of {1} files</source>
+        <translation>Visualizzazione di {0} di {1} file</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="189"/>
+        <source> ({0} with existing {1}s)</source>
+        <translation> ({0} con {1} esistenti)</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="278"/>
+        <source>No selection</source>
+        <translation>Nessuna selezione</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="279"/>
+        <source>Please select at least one visible NIfTI file.</source>
+        <translation>Selezionare almeno un file NIfTI visibile.</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="308"/>
+        <source>Existing {0} Detected</source>
+        <translation>Rilevato {0} esistente</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="310"/>
+        <source>this patient</source>
+        <translation>questo paziente</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="311"/>
+        <source>A {0} already exists for {1}.</source>
+        <translation>Esiste già un {0} per {1}.</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="313"/>
+        <source>{0}s already exist for {1} patients: {2}</source>
+        <translation>{0} esistono già per {1} pazienti: {2}</translation>
+    </message>
+    <message>
+        <location filename="../components/nifti_file_selector.py" line="314"/>
+        <source>You can still proceed to create additional {0}s. Continue?</source>
+        <translation>Puoi comunque procedere alla creazione di ulteriori {0}. Continuare?</translation>
+    </message>
+    <message>
+        <source>📁 {0}</source>
+        <translation type="vanished">📁 {0}</translation>
+    </message>
+    <message>
+        <source>&lt;span style=&apos;color:red;&apos;&gt;Nessun file PET4D selezionato&lt;/span&gt;</source>
+        <translation type="vanished">&lt;span style=&apos;color:red;&apos;&gt;Nessun file PET4D selezionato&lt;/span&gt;</translation>
     </message>
 </context>
-
 <context>
-    <name>NIfTIViewer</name>
+    <name>ImportFrame</name>
     <message>
-        <source>Not a valid NIfTI file</source>
-        <translation>NIfTI file non valido</translation>
+        <location filename="../ui/ui_import_frame.py" line="90"/>
+        <source>Select Folder</source>
+        <translation>Seleziona cartella</translation>
     </message>
     <message>
-        <source>NIfTI Image Viewer</source>
-        <translation>Visualizzatore di immagini NIfTI</translation>
+        <location filename="../ui/ui_import_frame.py" line="109"/>
+        <source>Importing files...</source>
+        <translation>Importando i file...</translation>
     </message>
     <message>
-        <source>gray</source>
-        <translation>scala di grigi</translation>
-    </message>
-    <message>
-        <source>Ready - Open a NIfTI file to begin</source>
-        <translation>Pronto - Apri un file NIfTI per iniziare</translation>
-    </message>
-    <message>
-        <source>Coordinates: (-, -, -)</source>
-        <translation>Coordinate: (-, -, -)</translation>
-    </message>
-    <message>
-        <source>Value: -</source>
-        <translation>Valore: -</translation>
-    </message>
-    <message>
-        <source>Slice: -/-</source>
-        <translation>Slice: -/-</translation>
-    </message>
-    <message>
-        <source>📁 Open NIfTI File</source>
-        <translation>📁 Apri NIfTI File</translation>
-    </message>
-    <message>
-        <source>No file loaded</source>
-        <translation>Nessun file caricato</translation>
-    </message>
-    <message>
-        <source>Slice Navigation:</source>
-        <translation>Navigazione slice:</translation>
-    </message>
-    <message>
-        <source>Axial (Z)</source>
-        <translation>Assiale (Z)</translation>
-    </message>
-    <message>
-        <source>Coronal (Y)</source>
-        <translation>Coronale (Y)</translation>
-    </message>
-    <message>
-        <source>Sagittal (X)</source>
-        <translation>Sagittale (X)</translation>
-    </message>
-    <message>
-        <source>Enable 4D Time Navigation</source>
-        <translation>Abilita la navigazione nel tempo 4D</translation>
-    </message>
-    <message>
-        <source>Time Point:</source>
-        <translation>Punto nel tempo:</translation>
-    </message>
-    <message>
-        <source>Display Options:</source>
-        <translation>Opzioni Display:</translation>
-    </message>
-    <message>
-        <source>Colormap:</source>
-        <translation>Mappa colori:</translation>
-    </message>
-    <message>
-        <source>gray</source>
-        <translation>scala di grigi</translation>
-    </message>
-    <message>
-        <source>viridis</source>
-        <translation>viridis</translation>
-    </message>
-    <message>
-        <source>plasma</source>
-        <translation>plasma</translation>
-    </message>
-    <message>
-        <source>inferno</source>
-        <translation>inferno</translation>
-    </message
-    <message>
-        <source>magma</source>
-        <translation>magma</translation>
-    </message>
-    <message>
-        <source>hot</source>
-        <translation>caldo</translation>
-    </message>
-    <message>
-        <source>cool</source>
-        <translation>freddo</translation>
-    </message>
-    <message>
-        <source>bone</source>
-        <translation>bone</translation>
-    </message>
-    <message>
-        <source>Overlay Controls:</source>
-        <translation>Controlli Overlay:</translation>
-    </message>
-    <message>
-        <source>Load NIfTI Overlay</source>
-        <translation>Carica un Overlay NIfTI</translation>
-    </message>
-    <message>
-        <source>Show Overlay</source>
-        <translation>Mostra Overlay</translation>
-    </message>
-    <message>
-        <source>Overlay Transparency:</source>
-        <translation>Trasparenza Overlay:</translation>
-    </message>
-    <message>
-        <source>Overlay Threshold:</source>
-        <translation>Limite Overlay:</translation>
-    </message>
-    <message>
-        <source>No overlay loaded</source>
-        <translation>Nessun overlay caricato</translation>
-    </message>
-    <message>
-        <source>Axial</source>
-        <translation>Assiale</translation>
-    </message>
-    <message>
-        <source>Coronal</source>
-        <translation>Coronale</translation>
-    </message>
-    <message>
-        <source>Sagittal</source>
-        <translation>Sagittale</translation>
-    </message>
-    <message>
-        <source>Image Information</source>
-        <translation>Informazioni dell'Immagine</translation>
-    </message>
-    <message>
-        <source>No image loaded</source>
-        <translation>Nessuna immagine caricata</translation>
-    </message>
-    <message>
-        <source>Open NIfTI File</source>
-        <translation>Apri file NIfTI</translation>
-    </message>
-    <message>
-        <source>Loading NIfTI file...</source>
-        <translation>Caricamento file NIfTI</translation>
-    </message>
-    <message>
+        <location filename="../ui/ui_import_frame.py" line="109"/>
         <source>Cancel</source>
         <translation>Annulla</translation>
     </message>
     <message>
+        <location filename="../ui/ui_import_frame.py" line="135"/>
+        <source>Error Importing Files</source>
+        <translation>Errore importando i file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_import_frame.py" line="136"/>
+        <source>Failed to import files:
+{0}</source>
+        <translation>Impossibile importare i file:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_import_frame.py" line="175"/>
+        <source>Import or select patients&apos; data</source>
+        <translation>Trascina o seleziona i dati del paziente da importare</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="141"/>
+        <source>Are you sure you want to delete completely {0}?
+</source>
+        <translation>Sei sicuro di voler cancellare completamente {0}?
+</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="147"/>
+        <source>WARNING: All data will be removed and you will be returned to the import page.</source>
+        <translation>ATTENZIONE: Tutti i dati verranno rimossi e ritornerai alla pagina di import.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="150"/>
+        <source>Confirm deletion</source>
+        <translation>Conferma eliminazione</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="199"/>
+        <source>Success!</source>
+        <translation>Successo!</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="221"/>
+        <source>Export file info</source>
+        <translation>Esporta informazioni file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="222"/>
+        <source>To export a file/folder, right click on it in the left view</source>
+        <translation>Per esportare un file/cartella, fare clic con il pulsante destro del mouse su di esso nella vista a sinistra</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="240"/>
+        <source>GliAAns UI</source>
+        <translation>GliAAns UI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="241"/>
         <source>File</source>
         <translation>File</translation>
     </message>
     <message>
+        <location filename="../ui/ui_main_window.py" line="242"/>
+        <source>Workspace</source>
+        <translation>Ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="243"/>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="244"/>
+        <source>Help</source>
+        <translation>Aiuto</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="245"/>
+        <source>Language</source>
+        <translation>Lingua</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="247"/>
+        <source>Import file</source>
+        <translation>Importa file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="248"/>
+        <source>Export file/folder</source>
+        <translation>Esporta file/cartella</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="249"/>
+        <source>Clear workspace</source>
+        <translation>Cancella ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="250"/>
+        <source>Export Workspace</source>
+        <translation>Esporta ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="251"/>
+        <source>Clear pipeline outputs</source>
+        <translation>Cancella output pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="252"/>
+        <source>English</source>
+        <translation>Inglese</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="253"/>
+        <source>Italiano</source>
+        <translation>Italiano</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="255"/>
+        <source>Next</source>
+        <translation>Avanti</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_main_window.py" line="256"/>
+        <source>Back</source>
+        <translation>Indietro</translation>
+    </message>
+</context>
+<context>
+    <name>NIfTIViewer</name>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1695"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="86"/>
+        <source>NIfTI Image Viewer</source>
+        <translation>Visualizzatore di immagini NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1699"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="206"/>
+        <source>Coordinates: (-, -, -)</source>
+        <translation>Coordinate: (-, -, -)</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1700"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="207"/>
+        <source>Value: -</source>
+        <translation>Valore: -</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1701"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="208"/>
+        <source>Slice: -/-</source>
+        <translation>Slice: -/-</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1697"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="211"/>
+        <source>Ready - Open a NIfTI file to begin</source>
+        <translation>Pronto - Apri un file NIfTI per iniziare</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="234"/>
+        <source>📁 Open NIfTI</source>
+        <translation>📁 Apri NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="239"/>
+        <source>Open NIfTI File</source>
+        <translation>Apri file NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1761"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1705"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="242"/>
+        <source>No file loaded</source>
+        <translation>Nessun file caricato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="258"/>
+        <source>Slice Navigation:</source>
+        <translation>Navigazione slice:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1707"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="264"/>
+        <source>Axial (Z)</source>
+        <translation>Assiale (Z)</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1707"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="264"/>
+        <source>Coronal (Y)</source>
+        <translation>Coronale (Y)</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1708"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="265"/>
+        <source>Sagittal (X)</source>
+        <translation>Sagittale (X)</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1712"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="324"/>
+        <source>Enable 4D Time Navigation</source>
+        <translation>Abilita la navigazione temporale 4D</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1714"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="352"/>
+        <source>Time Point:</source>
+        <translation>Punto temporale:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1716"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="369"/>
+        <source>Display Options:</source>
+        <translation>Opzioni di visualizzazione:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1723"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="381"/>
+        <source>Colormap:</source>
+        <translation>Mappa dei colori:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="388"/>
+        <source>gray</source>
+        <translation>grigio</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="388"/>
+        <source>viridis</source>
+        <translation>viridis</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="388"/>
+        <source>plasma</source>
+        <translation>plasma</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
+        <source>inferno</source>
+        <translation>inferno</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
+        <source>magma</source>
+        <translation>magma</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
+        <source>hot</source>
+        <translation>hot</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
+        <source>cool</source>
+        <translation>cool</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
+        <source>bone</source>
+        <translation>osso</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="410"/>
+        <source>Auto ROI</source>
+        <translation>ROI Automatico</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1536"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="414"/>
+        <source>Automatic ROI Drawing</source>
+        <translation>Automatic ROI Drawing</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="417"/>
+        <source>Save ROI</source>
+        <translation>Salva ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="421"/>
+        <source>Save ROI Drawing</source>
+        <translation>Salva disegno ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="431"/>
+        <source>Radius:</source>
+        <translation>Raggio:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="462"/>
+        <source>Difference:</source>
+        <translation>Differenza:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1724"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="504"/>
+        <source>Overlay Controls:</source>
+        <translation>Controlli overlay:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="511"/>
+        <source>Load Overlay</source>
+        <translation>Carica overlay</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1726"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="516"/>
+        <source>Load NIfTI Overlay</source>
+        <translation>Carica overlay NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1728"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="520"/>
+        <source>Show Overlay</source>
+        <translation>Mostra overlay</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1730"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="526"/>
+        <source>Overlay Transparency:</source>
+        <translation>Trasparenza overlay:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1732"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="559"/>
+        <source>Overlay Threshold:</source>
+        <translation>Soglia overlay:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1734"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="592"/>
+        <source>No overlay loaded</source>
+        <translation>Nessun overlay caricato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1736"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="680"/>
+        <source>Axial</source>
+        <translation>Assiale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1736"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="680"/>
+        <source>Coronal</source>
+        <translation>Coronale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1736"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="680"/>
+        <source>Sagittal</source>
+        <translation>Sagittale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1355"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="725"/>
+        <source>Image Information</source>
+        <translation>Informazioni sull&apos;immagine</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1762"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1741"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="735"/>
+        <source>No image loaded</source>
+        <translation>Nessuna immagine caricata</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="820"/>
+        <source>Warning</source>
+        <translation>Avvertimento</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="821"/>
+        <source>Please load a base image first!</source>
+        <translation>Per favore, carica prima un&apos;immagine di base!</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="835"/>
+        <source>Loading NIfTI file...</source>
+        <translation>Caricamento del file NIfTI...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="836"/>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1753"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1748"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1677"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="923"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="915"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="886"/>
         <source>Dimensions</source>
         <translation>Dimensioni</translation>
     </message>
     <message>
-        <source>4D Time Series</source>
-        <translation>Serie Temporale 4D</translation>
-    </message>
-    <message>
-        <source>3D Volume</source>
-        <translation>Volume 3D</translation>
-    </message>
-    <message>
-        <source>Error Loading File</source>
-        <translation>Errore nel caricamento del File</translation>
-    </message>
-    <message>
-        <source>Failed to load NIfTI file</source>
-        <translation>Caricamento NIfTI file fallito</translation>
-    </message>
-    <message>
-        <source>Warning</source>
-        <translation>Attenzione</translation>
-    </message>
-    <message>
-        <source>Please load a base image first!</source>
-        <translation>Carica un immagine come base prima!</translation>
-    </message>
-    <message>
-        <source>Open NIfTI Overlay File</source>
-        <translation>Apri un file di Overlay NIfTI</translation>
-    </message>
-    <message>
-        <source>Dimension Mismatch</source>
-        <translation>Le dimensioni non combaciano</translation>
-    </message>
-    <message>
-        <source>Overlay dimensions</source>
-        <translation>Dimensioni Overlay</translation>
-    </message>
-    <message>
-        <source>don't match base image dimensions</source>
-        <translation>non combaciano con le dimensioni dell'immagine di base</translation>
-    </message>
-    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="901"/>
         <source>Overlay loaded</source>
         <translation>Overlay caricato</translation>
     </message>
     <message>
-        <source>Error</source>
-        <translation>Errore</translation>
+        <location filename="../ui/ui_nifti_viewer.py" line="1752"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1747"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="923"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="915"/>
+        <source>File</source>
+        <translation>File</translation>
     </message>
     <message>
-        <source>Failed to load overlay</source>
-        <translation>Caricamento Overlay fallito</translation>
+        <location filename="../ui/ui_nifti_viewer.py" line="1750"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="916"/>
+        <source>4D Time Series</source>
+        <translation>Serie temporale 4D</translation>
     </message>
     <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1755"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="924"/>
+        <source>3D Volume</source>
+        <translation>Volume 3D</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="948"/>
+        <source>Error Loading File</source>
+        <translation>Errore durante il caricamento del file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="948"/>
+        <source>Failed to load NIfTI file</source>
+        <translation>Impossibile caricare il file NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1191"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1167"/>
         <source>Coordinates</source>
         <translation>Coordinate</translation>
     </message>
     <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1200"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1198"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1168"/>
         <source>Value</source>
         <translation>Valore</translation>
     </message>
     <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1341"/>
         <source>Tracer Concentration Curve</source>
-        <translation>Curva di Concentrazione Tracciante</translation>
+        <translation>Curva di concentrazione del tracciante</translation>
     </message>
     <message>
-        <source>Time Point</source>
-        <translation>Tempo</translation>
-    </message>
-    <message>
-        <source>Signal Intensity</source>
-        <translation>Intensità Segnale</translation>
-    </message>
-    <message>
-        <source>Slices</source>
-        <translation>Slices</translation>
-    </message>
-    <message>
-        <source>Time</source>
-        <translation>Tempo</translation>
-    </message>
-    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1399"/>
         <source>Concentration</source>
         <translation>Concentrazione</translation>
     </message>
     <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1405"/>
         <source>Current Time</source>
-        <translation>Tempo Corrente</translation>
+        <translation>Ora corrente</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1409"/>
+        <source>Time Point</source>
+        <translation>Punto temporale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1410"/>
+        <source>Signal Intensity</source>
+        <translation>Intensità del segnale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1453"/>
+        <source>Slices</source>
+        <translation>Slices</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1455"/>
+        <source>Time</source>
+        <translation>Tempo</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="1703"/>
+        <source>📁 Open NIfTI File</source>
+        <translation>📁 Apri file NIfTI</translation>
+    </message>
+</context>
+<context>
+    <name>NiftiMaskSelectionPage</name>
+    <message>
+        <location filename="../ui/ui_mask_selection.py" line="130"/>
+        <source>Select a NIfTI file for Automatic Drawing</source>
+        <translation>Seleziona un NIfTI file per l&apos;Automatic Drawing</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_mask_selection.py" line="131"/>
+        <source>Open NIfTI file</source>
+        <translation>Aprire file NIfTI</translation>
+    </message>
+</context>
+<context>
+    <name>PatientSelectionFrame</name>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="158"/>
+        <source>Confirm Cleanup</source>
+        <translation>Conferma eliminazione</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="159"/>
+        <source>{0} unselected patient(s) will be removed from the workspace. Continue?</source>
+        <translation>{0} pazienti non selezionati verranno rimossi dall&apos;ambiente di lavoro. Continuare?</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="324"/>
+        <location filename="../ui/ui_patient_selection_frame.py" line="292"/>
+        <location filename="../ui/ui_patient_selection_frame.py" line="263"/>
+        <location filename="../ui/ui_patient_selection_frame.py" line="247"/>
+        <source>Select</source>
+        <translation>Seleziona</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="321"/>
+        <location filename="../ui/ui_patient_selection_frame.py" line="283"/>
+        <location filename="../ui/ui_patient_selection_frame.py" line="263"/>
+        <source>Selected</source>
+        <translation>Selezionato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="348"/>
+        <source>Select Patients to Analyze</source>
+        <translation>Seleziona i pazienti da analizzare</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="349"/>
+        <source>Select All</source>
+        <translation>Seleziona tutti</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_patient_selection_frame.py" line="350"/>
+        <source>Deselect All</source>
+        <translation>Deseleziona tutti</translation>
+    </message>
+</context>
+<context>
+    <name>PipelineExecutionPage</name>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="489"/>
+        <location filename="../ui/ui_pipeline_execution.py" line="105"/>
+        <source>Preparing to start...</source>
+        <translation>Inizializzazione in corso...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="229"/>
+        <source>Starting pipeline execution...</source>
+        <translation>Inizio esecuzione pipeline...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="246"/>
+        <source>ERROR: Failed to start pipeline process</source>
+        <translation>ERRORE: inizio esecuzione pipeline fallito</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="247"/>
+        <source>Failed to start pipeline process</source>
+        <translation>Inizio esecuzione pipeline fallito</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="254"/>
+        <source>Process exited with code {exit_code}</source>
+        <translation>Processo terminato con codice {exit_code}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="259"/>
+        <source>Failed to start process</source>
+        <translation>Inizio esecuzione fallita</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="260"/>
+        <source>Process crashed</source>
+        <translation>Processo bloccato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="261"/>
+        <source>Process timed out</source>
+        <translation>Processo scaduto</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="262"/>
+        <source>Write error</source>
+        <translation>Errore di scrittura</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="263"/>
+        <source>Read error</source>
+        <translation>Errore di lettura</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="264"/>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="266"/>
+        <source>Process error: {error}</source>
+        <translation>Errore di processo: {error}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="295"/>
+        <source>ERROR: </source>
+        <translation>ERRORE: </translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="297"/>
+        <source>ERROR: {error}</source>
+        <translation>ERRORE: {error}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="298"/>
+        <source>PROGRESS: </source>
+        <translation>PROGRESSO: </translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="301"/>
+        <source>FINISHED: </source>
+        <translation>FINITO: </translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="322"/>
+        <source>Initializing pipeline...</source>
+        <translation>Inizializzazione pipeline...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="326"/>
+        <source>Processing patient: {patient_id}</source>
+        <translation>Elaborando paziente: {patient_id}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="328"/>
+        <source>Processing patient data...</source>
+        <translation>Elaborazione dei dati del paziente...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="330"/>
+        <source>Performing statistical analysis...</source>
+        <translation>Esecuzione di analisi statistiche...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="332"/>
+        <source>Saving results...</source>
+        <translation>Salvando i risultati...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="345"/>
+        <source>All patients processed successfully.</source>
+        <translation>Tutti i pazienti elaborati con successo.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="352"/>
+        <source>Pipeline execution completed successfully!</source>
+        <translation>Esecuzione della pipeline completata con successo!</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="353"/>
+        <source>Results saved in: {pipeline_output_dir}</source>
+        <translation>Risultati salvati in: {pipeline_output_dir}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="365"/>
+        <source>An error occurred during execution.</source>
+        <translation>Si è verificato un errore durante l&apos;esecuzione.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="376"/>
+        <source>ERROR: {error_message}</source>
+        <translation>ERRORE: {error_message}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="405"/>
+        <source>Stopping pipeline...</source>
+        <translation>Arresto della pipeline...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="415"/>
+        <source>Pipeline stopped by user.</source>
+        <translation>Pipeline interrotta dall&apos;utente.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="418"/>
+        <source>Execution was interrupted by user.</source>
+        <translation>L&apos;esecuzione è stata interrota dall&apos;utente.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="448"/>
+        <source>Confirm</source>
+        <translation>Conferma</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="449"/>
+        <source>You want to return to the import page?</source>
+        <translation>Vuoi tornare alla pagina di importazione?</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="508"/>
+        <source>Pipeline Execution</source>
+        <translation>Esecuzione della Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="509"/>
+        <source>Stop Pipeline</source>
+        <translation>Arresto Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_execution.py" line="510"/>
+        <source>Execution Log:</source>
+        <translation>Registro dell&apos;Esecuzione:</translation>
+    </message>
+</context>
+<context>
+    <name>PipelinePatientSelectionPage</name>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="855"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="127"/>
+        <source>Pipeline Requirements Summary</source>
+        <translation>Riassunto requisiti per Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="857"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="136"/>
+        <source>Total Patients</source>
+        <translation>Pazienti totali</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="858"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="137"/>
+        <source>Eligible</source>
+        <translation>Idoneo</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="859"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="424"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="138"/>
+        <source>Not Eligible</source>
+        <translation>Non idoneo</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="208"/>
+        <source>FLAIR image (anat/*_flair.nii[.gz])</source>
+        <translation>Immagine FLAIR (anat/*_flair.nii[.gz])</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="224"/>
+        <source>Skull stripped image (derivatives/skullstrips/.../anat/*_brain.nii[.gz])</source>
+        <translation>Immagine skull stripped (derivatives/skullstrips/.../anat/*_brain.nii[.gz])</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="249"/>
+        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
+        <translation>Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="350"/>
+        <source>✓ Ready for Pipeline</source>
+        <translation>✓ Pronto per la Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="353"/>
+        <source>✗ Missing Requirements</source>
+        <translation>✗ Requisiti mancanti</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="372"/>
+        <source>Segmentation</source>
+        <translation>Segmentazione</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="508"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="467"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="420"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="393"/>
+        <source>Select</source>
+        <translation>Seleziona</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="569"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="505"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="497"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="457"/>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="420"/>
+        <source>Selected</source>
+        <translation>Selezionato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="851"/>
+        <source>Select Patients for Pipeline Analysis</source>
+        <translation>Selezione pazienti per analisi con Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="852"/>
+        <source>Select All Eligible</source>
+        <translation>Seleziona tutti gli idonei</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="853"/>
+        <source>Deselect All</source>
+        <translation>Deseleziona tutti</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_patient_selection.py" line="854"/>
+        <source>Refresh Status</source>
+        <translation>Aggiorna stato</translation>
+    </message>
+</context>
+<context>
+    <name>PipelineReviewPage</name>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="227"/>
+        <source>Configuration Incomplete</source>
+        <translation>Configurazione incompleta</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="228"/>
+        <source>Some patients still require configuration review.</source>
+        <translation>Alcuni pazienti richiedono revisione alla configurazione.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="231"/>
+        <source>Please review and save configuration for: {patients}</source>
+        <translation>Per favore revisiona e salva la configurazione per: {patients}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="279"/>
+        <source>Pipeline Configuration Review</source>
+        <translation>Revisione configurazioni per Pipeline</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="280"/>
+        <source>Reviewing: {0}</source>
+        <translation>Revisione: {0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_pipeline_review.py" line="281"/>
+        <source>&lt;strong&gt;Click&lt;/strong&gt; a frame to review file selections. &lt;strong&gt;Save&lt;/strong&gt; yellow frames after selection.</source>
+        <translation>&lt;strong&gt;Fai clic&lt;/strong&gt; su un frame per rivedere le selezioni dei file. &lt;strong&gt;Salva&lt;/strong&gt; i frame gialli dopo la selezione.</translation>
+    </message>
+</context>
+<context>
+    <name>SkullStrippingFrame</name>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="277"/>
+        <source>No files</source>
+        <translation>Nessun file selezionato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="277"/>
+        <source>Please select at least one NIfTI file first.</source>
+        <translation>Per favore selezionare almeno un NIfTI file.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="323"/>
+        <source>Cancelling...</source>
+        <translation>Cancellazione...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="371"/>
+        <source>Skull Stripping completed successfully for {0} file(s)</source>
+        <translation>Skull Strip completato con successo per {0} file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="373"/>
+        <source>{count} file(s) failed: {files}</source>
+        <translation>{count} file falliti: {files}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="383"/>
+        <source>All {0} file(s) failed to process</source>
+        <translation>Elaborazione di tutti i {0} file fallita</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="407"/>
+        <source>Processing in progress</source>
+        <translation>Elaborazione in corso</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="408"/>
+        <source>Cannot go back while skull stripping is in progress. Please wait or cancel the operation.</source>
+        <translation>Impossibile tornare indietro mentre l&apos;esecuzione dello skull strip è in corso. Per favore aspettare o cancellare l&apos;operazione.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="494"/>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="474"/>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="446"/>
+        <source>Show Advanced Options</source>
+        <translation>Mostra opzioni avanzate</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="472"/>
+        <source>Select a NIfTI file for Skull Stripping</source>
+        <translation>Selezionare un NIfTI file per procedere con lo skull stripping</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="473"/>
+        <source>Fractional intensity threshold, smaller values give larger brain outline estimates</source>
+        <translation>Soglia di intensità frazionaria, valori più piccoli forniscono stime più ampie del contorno del cervello</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="475"/>
+        <source>Advanced options:</source>
+        <translation>Opzioni avanzate:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="476"/>
+        <source>Output brain-extracted image</source>
+        <translation>Immagine estratta dal cervello in uscita</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="477"/>
+        <source>Output binary brain mask image</source>
+        <translation>Immagine della maschera cerebrale binaria in uscita</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="478"/>
+        <source>Apply thresholding to brain and mask image</source>
+        <translation>Applicare la soglia al cervello e mascherare l&apos;immagine</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="479"/>
+        <source>Output exterior skull surface image</source>
+        <translation>Immagine della superficie esterna del cranio in uscita</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="480"/>
+        <source>Output brain surface overlaid onto original image</source>
+        <translation>Superficie cerebrale di output sovrapposta all&apos;immagine originale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="481"/>
+        <source>Threshold gradient; positive values give larger brain outline at bottom, smaller at top</source>
+        <translation>Gradiente di soglia; i valori positivi danno un contorno del cervello più grande in basso, più piccolo in alto</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="482"/>
+        <source>Coordinates (voxels) for centre of initial brain surface sphere</source>
+        <translation>Coordinate (voxel) per il centro della sfera iniziale della superficie cerebrale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="485"/>
+        <source>Using tool: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET&apos;&gt;BET from FSL toolkit&lt;/a&gt;</source>
+        <translation>Utilizzo dello strumento: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET&apos;&gt;BET dal toolkit FSL&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="487"/>
+        <source>Using tool: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;To use BET from FSL toolkit, you have to be on linux and follow the instructions at: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;FSL installation&lt;/a&gt;</source>
+        <translation>Utilizzo dello strumento: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;Per utilizzare BET dal toolkit FSL, è necessario essere su Linux e seguire le istruzioni su: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;Installazione FSL&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="490"/>
+        <source>Open link</source>
+        <translation>Apri link</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="492"/>
+        <source>Run Skull Stripping</source>
+        <translation>Eseguire lo skull stripping</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="493"/>
+        <source>Cancel</source>
+        <translation>Cancellare</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_frame.py" line="494"/>
+        <source>Hide Advanced Options</source>
+        <translation>Nascondi opzioni avanzate</translation>
+    </message>
+</context>
+<context>
+    <name>Threads</name>
+    <message>
+        <location filename="../threads/import_thread.py" line="174"/>
+        <location filename="../threads/import_thread.py" line="164"/>
+        <location filename="../threads/import_thread.py" line="39"/>
+        <source>Invalid folders path</source>
+        <translation>Percorso delle cartelle non valido</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="445"/>
+        <source>Conversion error: {0}</source>
+        <translation>Errore di conversione: {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="449"/>
+        <source>Import canceled</source>
+        <translation>Importazione annullata</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="452"/>
+        <source>Failed to convert DICOM: {0}</source>
+        <translation>Impossibile convertire DICOM: {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/nifti_utils_threads.py" line="67"/>
+        <source>Not a valid NIfTI file</source>
+        <translation>Non è un file NIfTI valido</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="51"/>
+        <source>Processing {0} ({1}/{2})</source>
+        <translation>Elaborazione {0} ({1}/{2})</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="61"/>
+        <source>Cannot extract subject ID</source>
+        <translation>Impossibile estrarre l&apos;ID del soggetto</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="109"/>
+        <source>Error executing command</source>
+        <translation>Errore durante l&apos;esecuzione del comando</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="23"/>
+        <source>Missing src or dst</source>
+        <translation>Manca src o dst</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="28"/>
+        <source>Successfully copied {0} to {1}</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="31"/>
+        <source>Missing src</source>
+        <translation>src mancante</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="35"/>
+        <source>Successfully deleted {0}</source>
+        <translation>Eliminato con successo {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="37"/>
+        <source>Error src:{0}, dst:{1},{2}</source>
+        <translation>Errore src:{0}, dst:{1},{2}</translation>
+    </message>
+</context>
+<context>
+    <name>ToolSelectionFrame</name>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="211"/>
+        <location filename="../ui/ui_tool_selection_frame.py" line="100"/>
+        <source>To use this function you need Linux and a CUDA capable GPU</source>
+        <translation>Per utilizzare questa funzione è necessario un sistema operativo Linux e una GPU con CUDA</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="174"/>
+        <source>Not available for this platform</source>
+        <translation>Non disponibile per questa piattaforma</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="175"/>
+        <source>The deep learning segmentation is not available for this platform: {0}</source>
+        <translation>La segmentazione tramite deep learning non è disponibile per questa piattaforma: {0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="205"/>
+        <source>Select the Next Processing Step</source>
+        <translation>Seleziona il prossimo passo</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="206"/>
+        <source>Available Processes</source>
+        <translation>Processi disponibili</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="207"/>
+        <source>Skull Stripping</source>
+        <translation>Skull Stripping</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="208"/>
+        <source>Automatic Drawing</source>
+        <translation>Automatic Drawing</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="209"/>
+        <source>Deep Learning Segmentation</source>
+        <translation>Segmentazione tramite Deep Learning</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_tool_selection_frame.py" line="210"/>
+        <source>Full Pipeline</source>
+        <translation>Pipeline Analisi Completa</translation>
+    </message>
+    <message>
+        <source>To use this you need Linux and a CUDA capable GPU</source>
+        <translation type="vanished">Per usare questa funzione è necessario un sistema operativo Linux e una GPU con CUDA</translation>
+    </message>
+</context>
+<context>
+    <name>TreeView</name>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="362"/>
+        <location filename="../ui/ui_workspace_tree_view.py" line="351"/>
+        <location filename="../ui/ui_workspace_tree_view.py" line="70"/>
+        <source>Error</source>
+        <translation>Errore</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="71"/>
+        <source>Error when opening NIfTI file:
+{0}</source>
+        <translation>Errore nell&apos;aprire il file NIfTI:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="130"/>
+        <source>Open workspace in explorer</source>
+        <translation>Aprire ambiente di lavoro in explorer</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="131"/>
+        <source>Add single file to workspace</source>
+        <translation>Aggiungere un file singolo all&apos;ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="135"/>
+        <source>Open folder in explorer</source>
+        <translation>Aprire la cartella in explorer</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="137"/>
+        <source>Add single file to folder</source>
+        <translation>Aggiungere un file alla cartella</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="138"/>
+        <source>Remove folder from workspace</source>
+        <translation>Rimuovere la cartella dall&apos;ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="139"/>
+        <source>Export folder</source>
+        <translation>Esporta cartella</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="149"/>
+        <source>Open with system predefined</source>
+        <translation>Aprire con l&apos;applicazione predefinita di sistema</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="153"/>
+        <source>Open NIfTI file</source>
+        <translation>Aprire file NIfTI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="157"/>
+        <source>Add single file</source>
+        <translation>Aggiungere un file singolo</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="158"/>
+        <source>Remove file from workspace</source>
+        <translation>Cancella file dall&apos;ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="159"/>
+        <source>Export file</source>
+        <translation>Esporta file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="169"/>
+        <source>Export files</source>
+        <translation>Esporta file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="170"/>
+        <source>Remove Files from workspace</source>
+        <translation>Rimuovere i file dall&apos;ambiente di lavoro</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="234"/>
+        <source>Adding Json?</source>
+        <translation>Aggiungere JSON?</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="235"/>
+        <source>You want to include the JSON file if present?</source>
+        <translation>Si vuole aggiungere il file JSON se presente?</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="316"/>
+        <source>this folder: </source>
+        <translation>questa cartella: </translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="316"/>
+        <source>this file:</source>
+        <translation>questo file:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="317"/>
+        <source>these files</source>
+        <translation>questi file</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="320"/>
+        <source>Are you sure you want to remove {0} {1}?</source>
+        <translation>Sei sicuro di voler rimuovere {0} {1}?</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="324"/>
+        <source>Confirm</source>
+        <translation>Conferma</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="341"/>
+        <source>(unknown)</source>
+        <translation>(sconosciuto)</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="344"/>
+        <source>No default application</source>
+        <translation>Nessuna applicazione di default</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="345"/>
+        <source>No default application is registered for files with extension {0}.</source>
+        <translation>Nessuna applicazione di default è stata impostata per l&apos;apertura di file con estenzione {0}.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="352"/>
+        <source>An unexpected error occurred while opening the file:
+{0}</source>
+        <translation>Si è verificato un errore imprevisto durante l&apos;apertura del file:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_workspace_tree_view.py" line="363"/>
+        <source>Error opening file NIfTI:
+{0}</source>
+        <translation>Errore nell&apos;apertura del file NIfTI: {0}</translation>
+    </message>
+    <message>
+        <source>Open Workspace in Explorer</source>
+        <translation type="vanished">Aprire l&apos;ambiente di lavoro in explorer</translation>
+    </message>
+    <message>
+        <source>Add single File to Workspace</source>
+        <translation type="vanished">Aggiungere un file all&apos;ambiente di lavoro</translation>
+    </message>
+    <message>
+        <source>Remove files from workspace</source>
+        <translation type="vanished">Rimuovere i file dall&apos;ambiente di lavoro</translation>
     </message>
 </context>
 </TS>

@@ -22,3 +22,5 @@ nuitka-crash-report.xml
 /dist
 /pipeline_runner
 *.ckpt
+/pediatric_fdopa_pipeline
+/pipeline_runner.dist

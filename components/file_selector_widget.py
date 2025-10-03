@@ -4,14 +4,14 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QPushButton, QListWidgetItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 
 from components.nifti_file_selector import NiftiFileDialog
 
 
 class FileSelectorWidget(QWidget):
     has_file = pyqtSignal(bool)
-    def __init__(self,context,has_existing_function,label,allow_multiple,processing=None,forced_filters=None, parent=None):
+    def __init__(self, context, has_existing_function, label, allow_multiple, processing=None, forced_filters=None, parent=None):
         super().__init__(parent)
 
         self.context = context
@@ -55,6 +55,10 @@ class FileSelectorWidget(QWidget):
         button_layout.addStretch()
 
         file_selector_layout.addWidget(button_container)
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def open_tree_dialog(self):
         results = NiftiFileDialog.get_files(
@@ -103,3 +107,7 @@ class FileSelectorWidget(QWidget):
     def set_processing_mode(self,processing):
         self.file_button.setEnabled(not processing)
         self.clear_button.setEnabled(not processing and bool(self.selected_files))
+
+    def _retranslate_ui(self):
+        self.file_button.setText(QCoreApplication.translate("Components", "Choose NIfTI File(s)"))
+        self.clear_button.setText(QCoreApplication.translate("Components", "Clear Selection"))

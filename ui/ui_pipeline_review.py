@@ -10,11 +10,10 @@ from ui.ui_pipeline_execution import PipelineExecutionPage
 from wizard_state import WizardPage
 from logger import get_logger
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtWidgets import QVBoxLayout, QLabel
 
 log = get_logger()
-
 
 
 class PipelineReviewPage(WizardPage):
@@ -32,6 +31,10 @@ class PipelineReviewPage(WizardPage):
         self.main_layout = QVBoxLayout(self)
 
         self._setup_ui()
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def _find_latest_config(self):
         """Trova il file config con l'ID più alto nella cartella pipeline."""
@@ -84,43 +87,43 @@ class PipelineReviewPage(WizardPage):
                 widget.deleteLater()
 
         # Header
-        header = QLabel("Pipeline Configuration Review")
-        header.setStyleSheet("""
+        self.header = QLabel("Pipeline Configuration Review")
+        self.header.setStyleSheet("""
             font-size: 16px;
             font-weight: bold;
             margin: 6px 0;
         """)
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
+        self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.header)
 
         # Config file info
-        config_info = QLabel(f"Reviewing: {os.path.basename(self.config_path)}")
-        config_info.setStyleSheet("""
+        self.config_info = QLabel(f"Reviewing: {os.path.basename(self.config_path)}")
+        self.config_info.setStyleSheet("""
             font-size: 11px;
             color: #666;
             font-style: italic;
             margin-bottom: 6px;
         """)
-        config_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        config_info.setWordWrap(True)
-        layout.addWidget(config_info)
+        self.config_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.config_info.setWordWrap(True)
+        layout.addWidget(self.config_info)
 
         # Collapsible instructions
-        info_frame = CollapsibleInfoFrame()
+        info_frame = CollapsibleInfoFrame(self.context)
         layout.addWidget(info_frame)
 
         # Info label
-        info_label = QLabel(
+        self.info_label = QLabel(
             "<strong>Click</strong> a frame to review file selections. <strong>Save</strong> yellow frames after selection."
         )
-        info_label.setStyleSheet("""
+        self.info_label.setStyleSheet("""
             color: #666;
             font-size: 12px;
             margin: 6px 0;
         """)
-        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_label.setWordWrap(True)
-        layout.addWidget(info_label)
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_label.setWordWrap(True)
+        layout.addWidget(self.info_label)
 
         # Scroll area
         scroll = QScrollArea()
@@ -155,7 +158,8 @@ class PipelineReviewPage(WizardPage):
             }
             multiple_choice = bool(files.get("need_revision", False))
             frame = CollapsiblePatientFrame(
-                patient_id, files, self.workspace_path,
+                self.context,
+                patient_id, files,
                 patient_patterns, multiple_choice,
                 save_callback=self._save_single_patient
             )
@@ -220,9 +224,15 @@ class PipelineReviewPage(WizardPage):
             from PyQt6.QtWidgets import QMessageBox
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle("Configuration Incomplete")
-            msg.setText("Some patients still require configuration review.")
-            msg.setInformativeText(f"Please review and save configuration for: {', '.join(unsaved_patients)}")
+            msg.setWindowTitle(QCoreApplication.translate("PipelineReviewPage", "Configuration Incomplete"))
+            msg.setText(QCoreApplication.translate("PipelineReviewPage", "Some patients still require configuration review."))
+            patients_list = ", ".join(unsaved_patients)
+            msg.setInformativeText(
+                QCoreApplication.translate(
+                    "PipelineReviewPage",
+                    "Please review and save configuration for: {patients}"
+                ).format(patients=patients_list)
+            )
             msg.exec()
             return self  # Resta sulla pagina corrente
 
@@ -264,3 +274,8 @@ class PipelineReviewPage(WizardPage):
             self.previous_page.on_enter()
             return self.previous_page
         return None
+
+    def _retranslate_ui(self):
+        self.header.setText(QCoreApplication.translate("PipelineReviewPage", "Pipeline Configuration Review"))
+        self.config_info.setText(QCoreApplication.translate("PipelineReviewPage", "Reviewing: {0}").format(os.path.basename(self.config_path)))
+        self.info_label.setText(QCoreApplication.translate("PipelineReviewPage", "<strong>Click</strong> a frame to review file selections. <strong>Save</strong> yellow frames after selection."))
