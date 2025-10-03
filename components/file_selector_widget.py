@@ -62,8 +62,7 @@ class FileSelectorWidget(QWidget):
 
     def open_tree_dialog(self):
         results = NiftiFileDialog.get_files(
-            self,
-            self.context["workspace_path"],
+            context=self.context,
             allow_multiple=self.allow_multiple,
             has_existing_func=self.has_existing_function,
             label=self.label,

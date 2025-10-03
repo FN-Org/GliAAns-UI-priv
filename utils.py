@@ -37,7 +37,7 @@ def resource_path(relative_path):
     """Restituisce il path assoluto sia in dev che in exe PyInstaller"""
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    return os.path.join(os.path.dirname(__file__), relative_path)
 
 def get_shell_path():
     system = platform.system()

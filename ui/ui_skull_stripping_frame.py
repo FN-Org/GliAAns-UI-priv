@@ -380,7 +380,10 @@ class SkullStrippingPage(WizardPage):
             else:
                 self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12pt; padding: 5px;")
         else:
-            summary = QCoreApplication.translate("SkullStrippingFrame", "All {0} file(s) failed to process").format(len(failed_files))
+            failed_files_num = len(failed_files)
+            if failed_files_num == 0:
+                failed_files_num = ""
+            summary = QCoreApplication.translate("SkullStrippingFrame", "All {0} file(s) failed to process").format(failed_files_num)
             self.status_label.setStyleSheet("color: #FF0000; font-weight: bold; font-size: 12pt; padding: 5px;")
 
         self.status_label.setText(summary)
@@ -470,19 +473,29 @@ class SkullStrippingPage(WizardPage):
 
     def _retranslate_ui(self):
         self.title.setText(QCoreApplication.translate("SkullStrippingFrame", "Select a NIfTI file for Skull Stripping"))
-        self.f_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Fractional intensity threshold, smaller values give larger brain outline estimates"))
-        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
-        self.output_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Advanced options:"))
-        self.opt_brain_extracted.setText(QCoreApplication.translate("SkullStrippingFrame", "Output brain-extracted image"))
-        self.opt_m.setText(QCoreApplication.translate("SkullStrippingFrame", "Output binary brain mask image"))
-        self.opt_t.setText(QCoreApplication.translate("SkullStrippingFrame", "Apply thresholding to brain and mask image"))
-        self.opt_s.setText(QCoreApplication.translate("SkullStrippingFrame", "Output exterior skull surface image"))
-        self.opt_o.setText(QCoreApplication.translate("SkullStrippingFrame", "Output brain surface overlaid onto original image"))
-        self.threshold_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Threshold gradient; positive values give larger brain outline at bottom, smaller at top"))
-        self.coords_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Coordinates (voxels) for centre of initial brain surface sphere"))
+
 
         if self.has_bet:
+            self.f_label.setText(QCoreApplication.translate("SkullStrippingFrame",
+                                                            "Fractional intensity threshold, smaller values give larger brain outline estimates"))
+            self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
+            self.output_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Advanced options:"))
+            self.opt_brain_extracted.setText(
+                QCoreApplication.translate("SkullStrippingFrame", "Output brain-extracted image"))
+            self.opt_m.setText(QCoreApplication.translate("SkullStrippingFrame", "Output binary brain mask image"))
+            self.opt_t.setText(
+                QCoreApplication.translate("SkullStrippingFrame", "Apply thresholding to brain and mask image"))
+            self.opt_s.setText(QCoreApplication.translate("SkullStrippingFrame", "Output exterior skull surface image"))
+            self.opt_o.setText(
+                QCoreApplication.translate("SkullStrippingFrame", "Output brain surface overlaid onto original image"))
+            self.threshold_label.setText(QCoreApplication.translate("SkullStrippingFrame",
+                                                                    "Threshold gradient; positive values give larger brain outline at bottom, smaller at top"))
+            self.coords_label.setText(QCoreApplication.translate("SkullStrippingFrame",
+                                                                 "Coordinates (voxels) for centre of initial brain surface sphere"))
             self.info_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Using tool: <a href='https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET'>BET from FSL toolkit</a>"))
+            self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame",
+                                                                 "Hide Advanced Options") if self.is_checked else QCoreApplication.translate(
+                "SkullStrippingFrame", "Show Advanced Options"))
         else:
             self.info_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Using tool: <a href='https://github.com/MIC-DKFZ/HD-BET'>hd-bet</a> <br>"
                 "To use BET from FSL toolkit, you have to be on linux and follow the instructions at: <a href='https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index'>FSL installation</a>"
@@ -491,4 +504,3 @@ class SkullStrippingPage(WizardPage):
 
         self.run_button.setText(QCoreApplication.translate("SkullStrippingFrame", "Run Skull Stripping"))
         self.cancel_button.setText(QCoreApplication.translate("SkullStrippingFrame", "Cancel"))
-        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Hide Advanced Options") if self.is_checked else QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))

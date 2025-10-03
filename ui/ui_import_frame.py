@@ -5,7 +5,7 @@ import os
 from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QFileDialog, QListView, QTreeView, QMessageBox, \
-    QProgressDialog
+    QProgressDialog, QApplication
 
 from threads.import_thread import ImportThread
 from ui.ui_patient_selection_frame import PatientSelectionPage
@@ -32,7 +32,9 @@ class ImportFrame(WizardPage):
         frame_layout = QHBoxLayout(self)
         self.drop_label = QLabel("Import or select patients' data")
         self.drop_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.drop_label.setFont(QFont("", 14))
+        font = QApplication.font()
+        font.setPointSize(14)
+        self.drop_label.setFont(font)
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
 

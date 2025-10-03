@@ -6,14 +6,13 @@ from typing import Any
 from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication, QPushButton
 
+import logger
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 from ui.ui_import_frame import ImportFrame
 from ui.ui_main_window import MainWindow
 from ui.ui_nifti_viewer import NiftiViewer
 from utils import resource_path, get_app_dir
 
-LANG_CONFIG_PATH = os.path.join(os.getcwd(), "config_lang.json")
-TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
 
 class WizardController(QObject):
     language_changed = pyqtSignal(str)
@@ -119,14 +118,8 @@ class WizardController(QObject):
     def set_language(self, lang_code):
         self.save_language(lang_code)
 
-        if self.translator.load(f"{TRANSLATIONS_DIR}/{lang_code}.qm"):
+        if self.translator.load(f"{resource_path('translations')}/{lang_code}.qm"):
             QApplication.instance().installTranslator(self.translator)
-
-    def _load_saved_language(self):
-        if os.path.exists(LANG_CONFIG_PATH):
-            with open(LANG_CONFIG_PATH, "r") as f:
-                return json.load(f).get("lang", "en")
-        return "en"
 
     def save_language(self, lang_code):
         self.settings.setValue("language", lang_code)

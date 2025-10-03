@@ -172,7 +172,7 @@ class CollapsiblePatientFrame(QFrame):
                 all_files.extend(glob.glob(pat))
             all_files_rel = [os.path.relpath(f, self.workspace_path) for f in all_files]
 
-            if self.locked:
+            if self.locked or len(all_files_rel) == 1:
                 self.chosen_file = self.files.get(category, "")
                 self.file_label = QLabel(self.chosen_file if self.chosen_file else QCoreApplication.translate("Components", "No file found"))
                 category_layout.addWidget(category_label)
