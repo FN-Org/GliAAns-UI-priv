@@ -3,7 +3,7 @@ import json
 import nibabel as nib
 import numpy as np
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
 
 
 class SaveNiftiThread(QThread):
@@ -64,7 +64,7 @@ class ImageLoadThread(QThread):
             self.progress.emit(30)
 
             if not isinstance(img, (nib.Nifti1Image, nib.Nifti2Image)):
-                raise ValueError("Not a valid NIfTI file")
+                raise ValueError(QCoreApplication.translate("Threads", "Not a valid NIfTI file"))
 
             # Porta l'immagine nello spazio canonico (RAS+)
             canonical_img = nib.as_closest_canonical(img)

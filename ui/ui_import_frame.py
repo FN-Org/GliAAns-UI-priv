@@ -37,8 +37,8 @@ class ImportFrame(WizardPage):
         frame_layout.addWidget(self.drop_label)
 
         self._retranslate_ui()
-        if context and hasattr(context, "language_changed"):
-            context.language_changed.connect(self._retranslate_ui)
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
@@ -87,7 +87,7 @@ class ImportFrame(WizardPage):
             self.open_folder_dialog()
 
     def open_folder_dialog(self):
-        dialog = QFileDialog(self.context["main_window"], "Select Folder")
+        dialog = QFileDialog(self.context["main_window"], QCoreApplication.translate("ImportFrame", "Select Folder"))
         dialog.setFileMode(QFileDialog.FileMode.Directory)
         dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         dialog.setOption(QFileDialog.Option.ReadOnly, True)
@@ -106,8 +106,7 @@ class ImportFrame(WizardPage):
             self._handle_import(unique_folders)
 
     def _handle_import(self, folders_path):
-
-        self.progress_dialogs.append(QProgressDialog("Importing files...","Cancel",
+        self.progress_dialogs.append(QProgressDialog(QCoreApplication.translate("ImportFrame", "Importing files..."), QCoreApplication.translate("ImportFrame", "Cancel"),
                                                0, 100, self.context["main_window"]))
         self.progress_dialogs[-1].setWindowModality(Qt.WindowModality.NonModal)
         self.progress_dialogs[-1].setMinimumDuration(0)
@@ -133,8 +132,8 @@ class ImportFrame(WizardPage):
         self.progress_dialogs[index].close()
         QMessageBox.critical(
             self.context["main_window"],
-            "Error Importing Files",
-            "Failed to import files" + f":\n{error}"
+            QCoreApplication.translate("ImportFrame", "Error Importing Files"),
+            QCoreApplication.translate("ImportFrame", "Failed to import files:\n{0}").format(error),
         )
         log.error(f"Error Importing Files: {error}")
 
@@ -173,5 +172,4 @@ class ImportFrame(WizardPage):
         event.accept()
 
     def _retranslate_ui(self):
-        _ = QCoreApplication.translate
-        self.drop_label.setText(_("MainWindow", "Import or select patients' data"))
+        self.drop_label.setText(QCoreApplication.translate("ImportFrame", "Import or select patients' data"))

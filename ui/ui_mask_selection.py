@@ -1,6 +1,6 @@
 
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton,)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 
 import os
 
@@ -11,7 +11,7 @@ from logger import get_logger
 log = get_logger()
 
 
-class NiftiSelectionPage(WizardPage):
+class NiftiMaskSelectionPage(WizardPage):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
@@ -23,7 +23,7 @@ class NiftiSelectionPage(WizardPage):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        self.title = QLabel("Select a NIfTI file for Manual/Automatic Drawing")
+        self.title = QLabel("Select a NIfTI file for Automatic Drawing")
         self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
@@ -45,7 +45,9 @@ class NiftiSelectionPage(WizardPage):
         self.viewer_button.clicked.connect(self.open_nifti_viewer)
         self.layout.addWidget(self.viewer_button)
 
-
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def has_existing_mask(self, nifti_file_path, workspace_path):
         """
@@ -128,3 +130,7 @@ class NiftiSelectionPage(WizardPage):
         self.selected_file = None
         self.file_selector_widget.clear_selected_files()
         self.viewer_button.setEnabled(False)
+
+    def _retranslate_ui(self):
+        self.title.setText(QCoreApplication.translate("NiftiMaskSelectionPage", "Select a NIfTI file for Automatic Drawing"))
+        self.viewer_button.setText(QCoreApplication.translate("NiftiMaskSelectionPage", "Open NIfTI file"))

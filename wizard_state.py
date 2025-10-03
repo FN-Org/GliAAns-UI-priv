@@ -26,5 +26,5 @@ class WizardPage(QWidget):
     def back(self):
         pass
 
-    def retranslateUi(self):
+    def _retranslate_ui(self):
         pass

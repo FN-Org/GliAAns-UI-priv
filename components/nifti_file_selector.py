@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QCheckBox, QListWidget, QListWidgetItem, QPushButton, QDialogButtonBox,
     QMessageBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QBrush, QColor
 import os
 import logging
@@ -11,13 +11,13 @@ import logging
 log = logging.getLogger(__name__)
 
 class NiftiFileDialog(QDialog):
-    def __init__(self, parent, workspace_path, allow_multiple=None, has_existing_func=None, label=None, forced_filters=None):
-        super().__init__(parent)
+    def __init__(self, context, allow_multiple=None, has_existing_func=None, label=None, forced_filters=None):
+        super().__init__()
         self.label = label
-        self.setWindowTitle(f"Select NIfTI Files ({self.label})")
+        self.setWindowTitle(QCoreApplication.translate("Components", "Select NIfTI Files ({0})").format(self.label))
         self.resize(700, 650)
 
-        self.workspace_path = workspace_path
+        self.workspace_path = context["workspace_path"]
         self.allow_multiple = allow_multiple
         self.has_existing_func = has_existing_func or (lambda *_: False)
         self.forced_filters = forced_filters or {}
@@ -33,8 +33,8 @@ class NiftiFileDialog(QDialog):
 
     # === Public API ===
     @staticmethod
-    def get_files(parent, workspace_path, allow_multiple=True, has_existing_func=None, label="mask",forced_filters=None):
-        dialog = NiftiFileDialog(parent, workspace_path, allow_multiple, has_existing_func, label,forced_filters)
+    def get_files(context, allow_multiple=True, has_existing_func=None, label="mask",forced_filters=None):
+        dialog = NiftiFileDialog(context, allow_multiple, has_existing_func, label,forced_filters)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             return dialog.selected_files
         return None
@@ -44,40 +44,40 @@ class NiftiFileDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # === Filters ===
-        filter_group = QGroupBox("Filters")
+        filter_group = QGroupBox(QCoreApplication.translate("Components", "Filters"))
         filter_layout = QGridLayout(filter_group)
 
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search files (FLAIR, T1, T2, etc.)")
+        self.search_bar.setPlaceholderText(QCoreApplication.translate("Components", "Search files (FLAIR, T1, T2, etc.)"))
         self.search_bar.setClearButtonEnabled(True)
-        filter_layout.addWidget(QLabel("Search:"), 0, 0)
+        filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Search:")), 0, 0)
         filter_layout.addWidget(self.search_bar, 0, 1, 1, 3)
 
         self.subject_combo = QComboBox()
         self.subject_combo.setEditable(True)
-        self.subject_combo.lineEdit().setPlaceholderText("All subjects or type subject ID...")
-        filter_layout.addWidget(QLabel("Subject:"), 1, 0)
+        self.subject_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All subjects or type subject ID..."))
+        filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Subject:")), 1, 0)
         filter_layout.addWidget(self.subject_combo, 1, 1)
 
         self.session_combo = QComboBox()
         self.session_combo.setEditable(True)
-        self.session_combo.lineEdit().setPlaceholderText("All sessions...")
-        filter_layout.addWidget(QLabel("Session:"), 1, 2)
+        self.session_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All sessions..."))
+        filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Session:")), 1, 2)
         filter_layout.addWidget(self.session_combo, 1, 3)
 
         self.modality_combo = QComboBox()
         self.modality_combo.setEditable(True)
-        self.modality_combo.lineEdit().setPlaceholderText("All modalities...")
-        filter_layout.addWidget(QLabel("Modality:"), 2, 0)
+        self.modality_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All modalities..."))
+        filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Modality:")), 2, 0)
         filter_layout.addWidget(self.modality_combo, 2, 1)
 
         self.datatype_combo = QComboBox()
-        self.datatype_combo.addItems(["All types", "anat", "func", "dwi", "fmap", "perf"])
-        filter_layout.addWidget(QLabel("Data type:"), 2, 2)
+        self.datatype_combo.addItems([QCoreApplication.translate("Components", "All types"), "anat", "func", "dwi", "fmap", "perf"])
+        filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Data type:")), 2, 2)
         filter_layout.addWidget(self.datatype_combo, 2, 3)
 
-        self.no_flag_checkbox = QCheckBox(f"Show only files without existing {self.label}s")
-        self.with_flag_checkbox = QCheckBox(f"Show only files with existing {self.label}s")
+        self.no_flag_checkbox = QCheckBox(QCoreApplication.translate("Components", "Show only files without existing {0}s").format(self.label))
+        self.with_flag_checkbox = QCheckBox(QCoreApplication.translate("Components", "Show only files with existing {0}s").format(self.label))
         if self.label is None:
             self.no_flag_checkbox.setVisible(False)
             self.with_flag_checkbox.setVisible(False)
@@ -102,9 +102,9 @@ class NiftiFileDialog(QDialog):
         # === Buttons ===
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
 
-        reset_button = QPushButton("Reset Filters")
-        select_all_button = QPushButton("Select All Visible")
-        deselect_all_button = QPushButton("Deselect All")
+        reset_button = QPushButton(QCoreApplication.translate("Components", "Reset Filters"))
+        select_all_button = QPushButton(QCoreApplication.translate("Components", "Select All Visible"))
+        deselect_all_button = QPushButton(QCoreApplication.translate("Components", "Deselect All"))
 
         self.buttons.addButton(reset_button, QDialogButtonBox.ButtonRole.ResetRole)
         self.buttons.addButton(select_all_button, QDialogButtonBox.ButtonRole.ActionRole)
@@ -148,20 +148,20 @@ class NiftiFileDialog(QDialog):
 
                     # modality
                     filename_noext = os.path.splitext(os.path.splitext(f)[0])[0]
-                    modality = filename_noext.split("_")[-1] or "Unknown"
+                    modality = filename_noext.split("_")[-1] or QCoreApplication.translate("Components", "Unknown")
                     modalities_set.add(modality)
 
                     # existing flag (mask/skull strip)
                     if self.has_existing_func(full_path, self.workspace_path):
                         self.files_with_flag.add(relative_path)
 
-        self.subject_combo.addItem("All subjects")
+        self.subject_combo.addItem(QCoreApplication.translate("Components", "All subjects"))
         self.subject_combo.addItems(sorted(subjects_set))
 
-        self.session_combo.addItem("All sessions")
+        self.session_combo.addItem(QCoreApplication.translate("Components", "All sessions"))
         self.session_combo.addItems(sorted(sessions_set))
 
-        self.modality_combo.addItem("All modalities")
+        self.modality_combo.addItem(QCoreApplication.translate("Components", "All modalities"))
         self.modality_combo.addItems(sorted(modalities_set))
 
         self._update_info_label(len(self.all_nii_files))
@@ -177,16 +177,16 @@ class NiftiFileDialog(QDialog):
             item = QListWidgetItem(relative_path)
             if relative_path in self.files_with_flag:
                 item.setForeground(QBrush(QColor(255, 193, 7)))
-                item.setToolTip(f"{self.relative_to_absolute[relative_path]}\n✓ Existing {self.label}")
+                item.setToolTip(QCoreApplication.translate("Components", "{0}\n✓ Existing {1}").format(self.relative_to_absolute[relative_path], self.label))
             else:
-                item.setToolTip(f"{self.relative_to_absolute[relative_path]}\n○ No {self.label}")
+                item.setToolTip(QCoreApplication.translate("Components", "{0}\n○ No {1}").format(self.relative_to_absolute[relative_path], self.label))
             self.file_list.addItem(item)
 
     # === Helpers ===
     def _update_info_label(self, visible_count):
-        info_text = f"Showing {visible_count} of {len(self.all_nii_files)} files"
+        info_text = QCoreApplication.translate("Components", "Showing {0} of {1} files").format(visible_count, len(self.all_nii_files))
         if self.files_with_flag:
-            info_text += f" ({len(self.files_with_flag)} with existing {self.label}s)"
+            info_text += QCoreApplication.translate("Components", " ({0} with existing {1}s)").format(len(self.files_with_flag), self.label)
         self.info_label.setText(info_text)
         self.info_label.setStyleSheet("color: gray; font-size: 10px;")
 
@@ -208,13 +208,13 @@ class NiftiFileDialog(QDialog):
 
             if search_text and search_text not in relative_path.lower():
                 should_show = False
-            if selected_subject != "All subjects" and selected_subject not in relative_path:
+            if selected_subject != QCoreApplication.translate("Components", "All subjects") and selected_subject not in relative_path:
                 should_show = False
-            if selected_session != "All sessions" and selected_session not in relative_path:
+            if selected_session != QCoreApplication.translate("Components", "All sessions") and selected_session not in relative_path:
                 should_show = False
-            if selected_modality != "All modalities" and selected_modality not in relative_path:
+            if selected_modality != QCoreApplication.translate("Components", "All modalities") and selected_modality not in relative_path:
                 should_show = False
-            if selected_datatype != "All types" and f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
+            if selected_datatype != QCoreApplication.translate("Components", "All types") and f"/{selected_datatype}/" not in relative_path and f"\\{selected_datatype}\\" not in relative_path:
                 should_show = False
 
             has_flag = relative_path in self.files_with_flag
@@ -273,7 +273,10 @@ class NiftiFileDialog(QDialog):
     def _accept(self):
         selected_items = [item for item in self.file_list.selectedItems() if not item.isHidden()]
         if not selected_items:
-            QMessageBox.warning(self, "No selection", f"Please select at least one visible NIfTI file.")
+            QMessageBox.warning(
+                self,
+                QCoreApplication.translate("Components", "No selection"),
+                QCoreApplication.translate("Components", "Please select at least one visible NIfTI file."))
             log.info("No selection")
             return
 
@@ -288,7 +291,7 @@ class NiftiFileDialog(QDialog):
             session = next((p for p in path_parts if p.startswith('ses-')), None)
             filename = os.path.basename(abs_path)
             filename_noext = os.path.splitext(os.path.splitext(filename)[0])[0]
-            modality = filename_noext.split("_")[-1] or "Unknown"
+            modality = filename_noext.split("_")[-1] or QCoreApplication.translate("Components", "Unknown")
             datatype = next((p for p in path_parts if p in ["anat", "func", "dwi", "fmap", "perf"]), None)
 
             has_flag = relative_path in self.files_with_flag
@@ -302,13 +305,13 @@ class NiftiFileDialog(QDialog):
             unique_subjects = sorted({s for _, s in warnings if s})
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle(f"Existing {self.label.title()} Detected")
+            msg.setWindowTitle(QCoreApplication.translate("Components", "Existing {0} Detected").format(self.label.title()))
             if len(unique_subjects) == 1:
-                subject_display = unique_subjects[0] or "this patient"
-                msg.setText(f"A {self.label} already exists for {subject_display}.")
+                subject_display = unique_subjects[0] or QCoreApplication.translate("Components", "this patient")
+                msg.setText(QCoreApplication.translate("Components", "A {0} already exists for {1}.").format(self.label, subject_display))
             else:
-                msg.setText(f"{self.label.title()}s already exist for {len(unique_subjects)} patients: {', '.join(unique_subjects)}")
-            msg.setInformativeText(f"You can still proceed to create additional {self.label}s. Continue?")
+                msg.setText(QCoreApplication.translate("Components", "{0}s already exist for {1} patients: {2}").format(self.label.title(), len(unique_subjects), ', '.join(unique_subjects)))
+            msg.setInformativeText(QCoreApplication.translate("Components", "You can still proceed to create additional {0}s. Continue?").format(self.label))
             msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if msg.exec() == QMessageBox.StandardButton.No:
                 return

@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QFrame, QHBoxLayout, QScrollArea,QGridLayout,
     QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer, QProcess
+from PyQt6.QtCore import Qt, QTimer, QProcess, QCoreApplication
 
 from components.circular_progress_bar import CircularProgress
 from components.folder_card import FolderCard
@@ -54,6 +54,10 @@ class PipelineExecutionPage(WizardPage):
         log.debug(f"Percorso binario pipeline: {self.pipeline_bin_path}")
         self._setup_ui()
 
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
+
     def _find_latest_config(self):
         """Trova il file config con l'ID più alto nella cartella pipeline."""
         import glob
@@ -90,18 +94,18 @@ class PipelineExecutionPage(WizardPage):
         main_layout = QVBoxLayout(self)
 
         # Header
-        header = QLabel("Pipeline Execution")
-        header.setStyleSheet("""
+        self.header = QLabel("Pipeline Execution")
+        self.header.setStyleSheet("""
             font-size: 24px; 
             font-weight: bold; 
             color: #2c3e50;
             margin-bottom: 10px;
         """)
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(header)
+        self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.header)
 
         # Current operation
-        self.current_operation = QLabel("Preparing to start...")
+        self.current_operation = QLabel(QCoreApplication.translate("PipelineExecutionPage", "Preparing to start..."))
         self.current_operation.setStyleSheet("""
             font-size: 13px;
             color: #7f8c8d;
@@ -133,7 +137,7 @@ class PipelineExecutionPage(WizardPage):
         self.watch_dirs = self.get_sub_list(self.config_path)
         self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
         for d in self.watch_dirs:
-            card = FolderCard(d)
+            card = FolderCard(self.context, d)
             card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
             scroll_layout.addWidget(card)
             self.folder_cards[d] = card
@@ -148,15 +152,15 @@ class PipelineExecutionPage(WizardPage):
         content_layout.setRowStretch(2, 1)  # log text fixed
 
         # --- Log section ---
-        log_label = QLabel("Execution Log:")
-        log_label.setStyleSheet("""
+        self.log_label = QLabel("Execution Log:")
+        self.log_label.setStyleSheet("""
             font-size: 16px;
             font-weight: bold;
             color: #2c3e50;
             margin-top: 15px;
             margin-bottom: 5px;
         """)
-        content_layout.addWidget(log_label, 1, 0, 1, 2)
+        content_layout.addWidget(self.log_label, 1, 0, 1, 2)
 
         self.log_text = QTextEdit()
         self.log_text.setStyleSheet("""
@@ -225,7 +229,7 @@ class PipelineExecutionPage(WizardPage):
 
         # Aggiorna lo stile del frame di stato
 
-        self._log_message("Starting pipeline execution...")
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Starting pipeline execution..."))
 
         # Prepara gli argomenti per il processo
         python_executable = sys.executable  # Usa lo stesso interprete Python
@@ -242,27 +246,27 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_process.start(cmd[0],cmd[1:])
 
         if not self.pipeline_process.waitForStarted(3000):
-            self._log_message("ERROR: Failed to start pipeline process")
-            self._on_pipeline_error("Failed to start pipeline process")
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "ERROR: Failed to start pipeline process"))
+            self._on_pipeline_error(QCoreApplication.translate("PipelineExecutionPage", "Failed to start pipeline process"))
 
     def _on_process_finished(self, exit_code, exit_status):
         """Chiamato quando il processo termina."""
         if exit_code == 0 and exit_status == QProcess.ExitStatus.NormalExit:
             self._on_pipeline_finished()
         else:
-            self._on_pipeline_error(f"Process exited with code {exit_code}")
+            self._on_pipeline_error(QCoreApplication.translate("PipelineExecutionPage", "Process exited with code {exit_code}").format(exit_code=exit_code))
 
     def _on_process_error(self, error):
         """Chiamato quando si verifica un errore nel processo."""
         error_messages = {
-            QProcess.ProcessError.FailedToStart: "Failed to start process",
-            QProcess.ProcessError.Crashed: "Process crashed",
-            QProcess.ProcessError.Timedout: "Process timed out",
-            QProcess.ProcessError.WriteError: "Write error",
-            QProcess.ProcessError.ReadError: "Read error",
-            QProcess.ProcessError.UnknownError: "Unknown error"
+            QProcess.ProcessError.FailedToStart: QCoreApplication.translate("PipelineExecutionPage", "Failed to start process"),
+            QProcess.ProcessError.Crashed: QCoreApplication.translate("PipelineExecutionPage", "Process crashed"),
+            QProcess.ProcessError.Timedout: QCoreApplication.translate("PipelineExecutionPage", "Process timed out"),
+            QProcess.ProcessError.WriteError: QCoreApplication.translate("PipelineExecutionPage", "Write error"),
+            QProcess.ProcessError.ReadError: QCoreApplication.translate("PipelineExecutionPage", "Read error"),
+            QProcess.ProcessError.UnknownError: QCoreApplication.translate("PipelineExecutionPage", "Unknown error")
         }
-        error_msg = error_messages.get(error, f"Process error: {error}")
+        error_msg = error_messages.get(error, QCoreApplication.translate("PipelineExecutionPage", "Process error: {error}").format(error=error))
         self._on_pipeline_error(error_msg)
 
     def _on_stdout_ready(self):
@@ -291,13 +295,13 @@ class PipelineExecutionPage(WizardPage):
             message = line[5:]  # Rimuove "LOG: "
             self._log_message(message)
             self._update_current_operation(message)
-        elif line.startswith("ERROR: "):
+        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "ERROR: ")):
             error_msg = line[7:]  # Rimuove "ERROR: "
-            self._log_message(f"ERROR: {error_msg}")
-        elif line.startswith("PROGRESS: "):
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error}").format(error=error_msg))
+        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "PROGRESS: ")):
             progress_info = line[10:]  # Rimuove "PROGRESS: "
             self._update_progress(progress_info)
-        elif line.startswith("FINISHED: "):
+        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: ")):
             message = line[10:]  # Rimuove "FINISHED: "
             self._log_message(message)
         else:
@@ -318,17 +322,17 @@ class PipelineExecutionPage(WizardPage):
     def _update_current_operation(self, message):
         """Aggiorna l'operazione corrente basandosi sul messaggio."""
         if "Starting pipeline" in message:
-            self.current_operation.setText("Initializing pipeline...")
+            self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Initializing pipeline..."))
         elif "Processing patient" in message or "sub-" in message:
             patient_id = self._extract_patient_id_from_log(message)
             if patient_id:
-                self.current_operation.setText(f"Processing patient: {patient_id}")
+                self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Processing patient: {patient_id}").format(patient_id=patient_id))
             else:
-                self.current_operation.setText("Processing patient data...")
+                self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Processing patient data..."))
         elif "analysis" in message.lower():
-            self.current_operation.setText("Performing statistical analysis...")
+            self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Performing statistical analysis..."))
         elif "saving" in message.lower() or "csv" in message.lower():
-            self.current_operation.setText("Saving results...")
+            self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Saving results..."))
 
     def _extract_patient_id_from_log(self, message):
         """Estrae l'ID del paziente dal messaggio di log."""
@@ -341,15 +345,15 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_completed = True
 
         # Aggiorna UI per stato "completato"
-        self.current_operation.setText("All patients processed successfully.")
+        self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "All patients processed successfully."))
         self.progress_bar.setValue(100)
 
 
         # Abilita i pulsanti appropriati
         self.stop_button.setEnabled(False)
 
-        self._log_message("Pipeline execution completed successfully!")
-        self._log_message(f"Results saved in: {self.pipeline_output_dir}")
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Pipeline execution completed successfully!"))
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Results saved in: {pipeline_output_dir}").format(pipeline_output_dir=self.pipeline_output_dir))
 
         # Cleanup del processo
         self.pipeline_process = None
@@ -361,7 +365,7 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_error = error_message
 
         # Aggiorna UI per stato "errore"
-        self.current_operation.setText("An error occurred during execution.")
+        self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "An error occurred during execution."))
         self.current_operation.setStyleSheet("""
             color: #c0392b;
             font-weight: bold;
@@ -372,7 +376,7 @@ class PipelineExecutionPage(WizardPage):
         # Abilita i pulsanti appropriati
         self.stop_button.setEnabled(False)
 
-        self._log_message(f"ERROR: {error_message}")
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error_message}").format(error_message=error_message))
 
         # Cleanup del processo
         self.pipeline_process = None
@@ -401,7 +405,7 @@ class PipelineExecutionPage(WizardPage):
     def _on_stop_clicked(self):
         """Gestisce il click sul pulsante Stop."""
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
-            self._log_message("Stopping pipeline...")
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Stopping pipeline..."))
 
             # Prova prima una terminazione gentile
             self.pipeline_process.terminate()
@@ -411,10 +415,10 @@ class PipelineExecutionPage(WizardPage):
                 self.pipeline_process.kill()
                 self.pipeline_process.waitForFinished(3000)
 
-            self._log_message("Pipeline stopped by user.")
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Pipeline stopped by user."))
 
             # Resetta UI
-            self.current_operation.setText("Execution was interrupted by user.")
+            self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution was interrupted by user."))
             self.progress_bar.setValue(0)
 
             self.stop_button.setEnabled(False)
@@ -444,8 +448,8 @@ class PipelineExecutionPage(WizardPage):
 
     def next(self, context):
         msg_box = QMessageBox()
-        msg_box.setWindowTitle("Confirm")
-        msg_box.setText("You want to return to the import page?")
+        msg_box.setWindowTitle(QCoreApplication.translate("PipelineExecutionPage", "Confirm"))
+        msg_box.setText(QCoreApplication.translate("PipelineExecutionPage", "You want to return to the import page?"))
         msg_box.setIcon(QMessageBox.Icon.Question)
 
         # Bottoni standard: OK e Cancel
@@ -485,7 +489,7 @@ class PipelineExecutionPage(WizardPage):
 
         self.stop_button.setEnabled(False)
 
-        self.current_operation.setText("Preparing to start...")
+        self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "Preparing to start..."))
         self.current_operation.setStyleSheet("""
                     font-size: 13px;
                     color: #7f8c8d;
@@ -497,10 +501,13 @@ class PipelineExecutionPage(WizardPage):
         self.pipeline_error = None
         self.pipeline_completed = False
 
-
-
     def __del__(self):
         """Cleanup quando l'oggetto viene distrutto."""
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
             self.pipeline_process.kill()
             self.pipeline_process.waitForFinished(1000)
+
+    def _retranslate_ui(self):
+        self.header.setText(QCoreApplication.translate("PipelineExecutionPage", "Pipeline Execution"))
+        self.stop_button.setText(QCoreApplication.translate("PipelineExecutionPage", "Stop Pipeline"))
+        self.log_text.clear().setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))

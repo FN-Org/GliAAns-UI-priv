@@ -12,8 +12,6 @@ from PyQt6.QtGui import QAction, QActionGroup
 from threads.utils_threads import CopyDeleteThread
 from logger import get_logger,set_log_level
 
-TRANSLATIONS_DIR = os.path.join(os.getcwd(), "translations")
-
 log = get_logger()
 
 class MainWindow(QMainWindow):
@@ -40,7 +38,6 @@ class MainWindow(QMainWindow):
     # UI SETUP
     # --------------------------
     def _setup_ui(self):
-        self.setObjectName("MainWindow")
         self.resize(950, 650)
         self.setMinimumSize(950, 650)
 
@@ -75,8 +72,8 @@ class MainWindow(QMainWindow):
 
         # File
         self.file_menu = self.menu_bar.addMenu("File")
-        self.import_action = QAction("Import File", self)
-        self.export_action = QAction("Export File/Folder", self)
+        self.import_action = QAction("Import file", self)
+        self.export_action = QAction("Export file/folder", self)
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
 
@@ -140,28 +137,17 @@ class MainWindow(QMainWindow):
         if lang_code in self.language_actions:
             self.language_actions[lang_code].setChecked(True)
 
-    def _retranslate_ui(self):
-        _ = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_("MainWindow", "GliAAns UI"))
-        self.file_menu.setTitle(_("MainWindow", "File"))
-        self.workspace_menu.setTitle(_("MainWindow", "Workspace"))
-        self.settings_menu.setTitle(_("MainWindow", "Settings"))
-        self.help_menu.setTitle(_("MainWindow", "Help"))
-        self.language_menu.setTitle(_("MainWindow", "Language"))
-
-        self.import_action.setText(_("MainWindow", "Import"))
-        self.export_action.setText(_("MainWindow", "Export"))
-        self.clear_all_action.setText(_("MainWindow", "Clear workspace"))
-        self.language_actions["en"].setText(_("MainWindow", "English"))
-        self.language_actions["it"].setText(_("MainWindow", "Italiano"))
-
     def clear_folder(self,folder_path,folder_name,return_to_import):
-        message = f"Sei sicuro di voler cancellare completamente {folder_name}?\n"
+        message = QtCore.QCoreApplication.translate(
+            "MainWindow",
+            "Are you sure you want to delete completely {0}?\n"
+        ).format(folder_name)
+
         if return_to_import:
-            message += "ATTENZIONE: Tutti i dati verranno rimossi e tornerai alla pagina di import."
+            message += QtCore.QCoreApplication.translate("MainWindow", "WARNING: All data will be removed and you will be returned to the import page.")
         reply = QMessageBox.question(
             self,
-            "Conferma eliminazione",
+            QtCore.QCoreApplication.translate("MainWindow", "Confirm deletion"),
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
@@ -210,7 +196,7 @@ class MainWindow(QMainWindow):
         if show:
             QMessageBox.information(
                 self,
-                "Success!",
+                QtCore.QCoreApplication.translate("MainWindow", "Success!"),
                 msg
                 )
         thread_to_remove = self.sender()
@@ -232,8 +218,8 @@ class MainWindow(QMainWindow):
     def export_file_info(self):
         QMessageBox.information(
             self,
-            "Export file info",
-            "To export a file/folder, right click on it in the left view"
+            QtCore.QCoreApplication.translate("MainWindow", "Export file info"),
+            QtCore.QCoreApplication.translate("MainWindow", "To export a file/folder, right click on it in the left view")
         )
 
     def new_thread(self,thread):
@@ -249,3 +235,22 @@ class MainWindow(QMainWindow):
             set_log_level(logging.DEBUG)
         else:
             set_log_level(logging.ERROR)
+
+    def _retranslate_ui(self):
+        self.setWindowTitle(QtCore.QCoreApplication.translate("MainWindow", "GliAAns UI"))
+        self.file_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "File"))
+        self.workspace_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Workspace"))
+        self.settings_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Settings"))
+        self.help_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Help"))
+        self.language_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Language"))
+
+        self.import_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Import file"))
+        self.export_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Export file/folder"))
+        self.clear_all_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Clear workspace"))
+        self.export_workspace_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Export Workspace"))
+        self.clear_pipeline_outputs_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Clear pipeline outputs"))
+        self.language_actions["en"].setText(QtCore.QCoreApplication.translate("MainWindow", "English"))
+        self.language_actions["it"].setText(QtCore.QCoreApplication.translate("MainWindow", "Italiano"))
+
+        self.next_button.setText(QtCore.QCoreApplication.translate("MainWindow", "Next"))
+        self.back_button.setText(QtCore.QCoreApplication.translate("MainWindow", "Back"))
