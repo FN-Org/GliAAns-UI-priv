@@ -74,6 +74,37 @@
         <translation>&lt;span style=&apos;color:red;&apos;&gt;Errore: JSON file associato non trovato&lt;/span&gt;</translation>
     </message>
     <message>
+        <location filename="../components/file_role_dialog.py" line="17"/>
+        <source>File role</source>
+        <translation>Ruolo del file</translation>
+    </message>
+    <message>
+        <location filename="../components/file_role_dialog.py" line="24"/>
+        <source>Position:</source>
+        <translation>Posizione:</translation>
+    </message>
+    <message>
+        <location filename="../components/file_role_dialog.py" line="26"/>
+        <source>main subject files</source>
+        <translation>file di argomento principale</translation>
+    </message>
+    <message>
+        <location filename="../components/file_role_dialog.py" line="64"/>
+        <location filename="../components/file_role_dialog.py" line="42"/>
+        <source>What derivative:</source>
+        <translation>Quale derivative:</translation>
+    </message>
+    <message>
+        <location filename="../components/file_role_dialog.py" line="89"/>
+        <source>Subject</source>
+        <translation>Soggetto</translation>
+    </message>
+    <message>
+        <location filename="../components/file_role_dialog.py" line="111"/>
+        <source>Role:</source>
+        <translation>Ruolo:</translation>
+    </message>
+    <message>
         <location filename="../components/file_selector_widget.py" line="112"/>
         <source>Choose NIfTI File(s)</source>
         <translation>Selezionare NIfTI file</translation>
@@ -1281,6 +1312,76 @@
         <location filename="../ui/ui_skull_stripping_frame.py" line="494"/>
         <source>Hide Advanced Options</source>
         <translation>Nascondi opzioni avanzate</translation>
+    </message>
+</context>
+<context>
+    <name>Threads</name>
+    <message>
+        <location filename="../threads/import_thread.py" line="174"/>
+        <location filename="../threads/import_thread.py" line="164"/>
+        <location filename="../threads/import_thread.py" line="39"/>
+        <source>Invalid folders path</source>
+        <translation>Percorso delle cartelle non valido</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="445"/>
+        <source>Conversion error: {0}</source>
+        <translation>Errore di conversione: {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="449"/>
+        <source>Import canceled</source>
+        <translation>Importazione annullata</translation>
+    </message>
+    <message>
+        <location filename="../threads/import_thread.py" line="452"/>
+        <source>Failed to convert DICOM: {0}</source>
+        <translation>Impossibile convertire DICOM: {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/nifti_utils_threads.py" line="67"/>
+        <source>Not a valid NIfTI file</source>
+        <translation>Non è un file NIfTI valido</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="51"/>
+        <source>Processing {0} ({1}/{2})</source>
+        <translation>Elaborazione {0} ({1}/{2})</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="61"/>
+        <source>Cannot extract subject ID</source>
+        <translation>Impossibile estrarre l&apos;ID del soggetto</translation>
+    </message>
+    <message>
+        <location filename="../threads/skull_stripping_thread.py" line="109"/>
+        <source>Error executing command</source>
+        <translation>Errore durante l&apos;esecuzione del comando</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="23"/>
+        <source>Missing src or dst</source>
+        <translation>Manca src o dst</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="28"/>
+        <source>Successfully copied {0} to {1}</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="31"/>
+        <source>Missing src</source>
+        <translation>src mancante</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="35"/>
+        <source>Successfully deleted {0}</source>
+        <translation>Eliminato con successo {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/utils_threads.py" line="37"/>
+        <source>Error src:{0}, dst:{1},{2}</source>
+        <translation>Errore src:{0}, dst:{1},{2}</translation>
     </message>
 </context>
 <context>

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import pydicom
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
 
 from logger import get_logger
 
@@ -36,7 +36,7 @@ class ImportThread(QThread):
             if len(self.folders_path) == 1:
                 folder_path = self.folders_path[0]  # CORREZIONE: prendi il primo elemento della lista
                 if not os.path.isdir(folder_path):  # CORREZIONE: usa folder_path invece di self.folders_path
-                    raise Exception("Invalid folders path")
+                    raise Exception(QCoreApplication.translate("Threads", "Invalid folders path"))
 
                 # Se è una cartella normale (singolo paziente o BIDS), continua come prima
                 if self._is_bids_folder(folder_path):
@@ -161,7 +161,7 @@ class ImportThread(QThread):
                 # Dopo conversione, cancella cartella temporanea
                 shutil.rmtree(temp_dir, ignore_errors=True)
             elif len(self.folders_path) == 0:
-                raise Exception("Invalid folders path")
+                raise Exception(QCoreApplication.translate("Threads", "Invalid folders path"))
             elif len(self.folders_path) > 1:
                 progress_for_folder = int(90 / len(self.folders_path))
                 for path in self.folders_path:
@@ -171,7 +171,7 @@ class ImportThread(QThread):
                     self.current_progress += progress_for_folder
                     self.progress.emit(self.current_progress)
             else:
-                raise Exception("Invalid folders path")
+                raise Exception(QCoreApplication.translate("Threads", "Invalid folders path"))
 
             self.current_progress = 100
             self.progress.emit(self.current_progress)
@@ -442,14 +442,14 @@ class ImportThread(QThread):
             log.debug(f"Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
         except subprocess.CalledProcessError as e:
             log.error(f"Conversion error: {e}")
-            raise RuntimeError(f"Conversion error: {e}") from e
+            raise RuntimeError(QCoreApplication.translate("Threads", "Conversion error: {0}").format(e)) from e
         except Exception as e:
             if self._is_canceled:
                 log.info("Import canceled")
-                raise Exception(f"Import canceled")
+                raise Exception(QCoreApplication.translate("Threads", "Import canceled"))
             else:
                 log.info(f"Import failed: {e}")
-                raise RuntimeError(f"Failed to convert DICOM: {e}") from e
+                raise RuntimeError(QCoreApplication.translate("Threads", "Failed to convert DICOM: {0}").format(e)) from e
 
 
     def _is_bids_folder(self, folder_path):
@@ -582,7 +582,7 @@ class ImportThread(QThread):
 
                 pet_run_counter += 1
 
-        log.debug(f"[BIDS] Importato {sub_id} in struttura BIDS.")
+        log.debug(f"[BIDS] Imported {sub_id} in BIDS structure.")
 
     def _get_next_sub_id(self):
         existing = [

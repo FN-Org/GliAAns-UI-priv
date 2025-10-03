@@ -1,6 +1,6 @@
 import os
 import json
-from PyQt6.QtCore import pyqtSignal, QThread, QProcess
+from PyQt6.QtCore import pyqtSignal, QThread, QProcess, QCoreApplication
 from logger import get_logger
 from utils import setup_fsl_env
 
@@ -48,7 +48,7 @@ class SkullStripThread(QThread):
             self.file_started.emit(filename)
             base_progress = int(base_progress + i * progress_per_file)
             self.progress_value_updated.emit(base_progress)
-            self.progress_updated.emit(f"Processing {filename} ({i+1}/{len(self.files)})")
+            self.progress_updated.emit(QCoreApplication.translate("Threads", "Processing {0} ({1}/{2})").format(filename, i+1, len(self.files)))
 
             try:
                 nifti_file = os.path.normpath(nifti_file)
@@ -58,7 +58,7 @@ class SkullStripThread(QThread):
                 path_parts = nifti_file.replace(self.workspace_path, '').strip(os.sep).split(os.sep)
                 subject_id = next((p for p in path_parts if p.startswith("sub-")), None)
                 if not subject_id:
-                    self.file_completed.emit(filename, False, "Cannot extract subject ID")
+                    self.file_completed.emit(filename, False, QCoreApplication.translate("Threads", "Cannot extract subject ID"))
                     self.failed_files.append(nifti_file)
                     continue
 
@@ -106,7 +106,7 @@ class SkullStripThread(QThread):
                 stdout = bytes(self.process.readAllStandardOutput()).decode()
 
                 if ret_code != 0:
-                    self.file_completed.emit(filename, False, stderr or "Error executing command")
+                    self.file_completed.emit(filename, False, stderr or QCoreApplication.translate("Threads", "Error executing command"))
                     self.failed_files.append(nifti_file)
                     continue
 
