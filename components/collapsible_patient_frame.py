@@ -1,7 +1,7 @@
 import glob
 import os
 
-from PyQt6.QtCore import pyqtSignal, Qt, QSize, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import pyqtSignal, Qt, QSize, QPropertyAnimation, QEasingCurve, QCoreApplication
 from PyQt6.QtGui import QColor, QCursor
 from PyQt6.QtWidgets import QFrame, QGraphicsDropShadowEffect, QVBoxLayout, QHBoxLayout, QLabel, QToolButton, QComboBox, \
     QPushButton
@@ -15,10 +15,10 @@ class ClickableFrame(QFrame):
         self.clicked.emit()
 
 class CollapsiblePatientFrame(QFrame):
-    def __init__(self, patient_id, files, workspace_path, patterns, multiple_choice=False, save_callback=None):
+    def __init__(self, context, patient_id, files, patterns, multiple_choice=False, save_callback=None):
         super().__init__()
         self.patient_id = patient_id
-        self.workspace_path = workspace_path
+        self.workspace_path = context["workspace_path"]
         self.patterns = patterns
         self.files = files
         self.multiple_choice = multiple_choice
@@ -39,6 +39,10 @@ class CollapsiblePatientFrame(QFrame):
 
         self._build_ui()
         self._apply_style()
+
+        self._retranslate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._retranslate_ui)
 
     def _apply_style(self):
         if self.locked:
@@ -103,13 +107,21 @@ class CollapsiblePatientFrame(QFrame):
 
         frame_header = ClickableFrame(self)
         frame_header_layout = QHBoxLayout(frame_header)
-        subject_name = QLabel(self)
-        subject_name.setText(f"Patient: {self.patient_id}")
-        subject_name.setStyleSheet("font-size: 13px; font-weight: bold;")
-        frame_header_layout.addWidget(subject_name)
+        self.subject_name = QLabel(self)
+        self.subject_name.setText(QCoreApplication.translate("Components", "Patient: {0}").format(self.patient_id))
+        self.subject_name.setStyleSheet("font-size: 13px; font-weight: bold;")
+        frame_header_layout.addWidget(self.subject_name)
 
         # Header con QToolButton
-        self.toggle_button = QToolButton(text=f"Patient: {self.patient_id}", checkable=True, checked=False)
+        self.toggle_button = QToolButton(self)
+        self.toggle_button.setText(
+            QCoreApplication.translate(
+                "Components",
+                "Patient: {patient}"
+            ).format(patient=self.patient_id)
+        )
+        self.toggle_button.setCheckable(True)
+        self.toggle_button.setChecked(False)
         self.toggle_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.toggle_button.setArrowType(Qt.ArrowType.RightArrow)
         self.toggle_button.setIconSize(QSize(14, 14))
@@ -161,14 +173,14 @@ class CollapsiblePatientFrame(QFrame):
             all_files_rel = [os.path.relpath(f, self.workspace_path) for f in all_files]
 
             if self.locked:
-                chosen_file = self.files.get(category, "")
-                file_label = QLabel(chosen_file if chosen_file else "Nessun file trovato")
+                self.chosen_file = self.files.get(category, "")
+                self.file_label = QLabel(self.chosen_file if self.chosen_file else QCoreApplication.translate("Components", "No file found"))
                 category_layout.addWidget(category_label)
-                category_layout.addWidget(file_label)
+                category_layout.addWidget(self.file_label)
 
                 # Caso speciale: se è pet4d, mostriamo anche il relativo JSON
                 if category == "pet4d":
-                    self._add_pet4d_json_display(category_layout, chosen_file)
+                    self._add_pet4d_json_display(category_layout, self.chosen_file)
 
             else:
                 combo = QComboBox()
@@ -201,9 +213,9 @@ class CollapsiblePatientFrame(QFrame):
             save_layout = QHBoxLayout(save_container)
             save_layout.setContentsMargins(6, 10, 6, 4)
 
-            save_btn = QPushButton("Save Patient Configuration")
-            save_btn.setMinimumHeight(32)
-            save_btn.setStyleSheet("""
+            self.save_btn = QPushButton(QCoreApplication.translate("Components", "Save Patient Configuration"))
+            self.save_btn.setMinimumHeight(32)
+            self.save_btn.setStyleSheet("""
                 QPushButton {
                     font-size: 12px;
                     font-weight: bold;
@@ -214,10 +226,10 @@ class CollapsiblePatientFrame(QFrame):
                 }
                 QPushButton:hover { background-color: #45a049; }
             """)
-            save_btn.clicked.connect(self._save_patient)
+            self.save_btn.clicked.connect(self._save_patient)
 
             save_layout.addStretch()
-            save_layout.addWidget(save_btn)
+            save_layout.addWidget(self.save_btn)
             save_layout.addStretch()
 
             self.content_layout.addWidget(save_container)
@@ -225,7 +237,7 @@ class CollapsiblePatientFrame(QFrame):
     def _add_pet4d_json_display(self, parent_layout, pet4d_file_rel):
         """Mostra il JSON associato al file pet4d scelto (solo in modalità locked)."""
         if not pet4d_file_rel:
-            label = QLabel("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            label = QLabel(QCoreApplication.translate("Components", "<span style='color:red;'>No PET4D file selected</span>"))
             parent_layout.addWidget(label)
             return
 
@@ -234,11 +246,11 @@ class CollapsiblePatientFrame(QFrame):
 
         if os.path.exists(json_candidate):
             rel_json = os.path.relpath(json_candidate, self.workspace_path)
-            label = QLabel(f"JSON associato: <strong>{rel_json}</strong>")
+            label = QLabel(QCoreApplication.translate("Components", "JSON related: <strong>{rel_json}</strong>").format(rel_json=rel_json))
             label.setStyleSheet("color: black; font-size: 12px;")
             self.files["pet4d_json"] = rel_json
         else:
-            label = QLabel("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            label = QLabel(QCoreApplication.translate("Components", "<span style='color:red;'>Error: associated JSON file not found</span>"))
             self.files["pet4d_json"] = ""
 
         label.setWordWrap(True)
@@ -252,7 +264,7 @@ class CollapsiblePatientFrame(QFrame):
         combo = self.category_widgets["pet4d"]
         selected_file = combo.currentText()
         if not selected_file:
-            self.pet4d_json_label.setText("<span style='color:red;'>Nessun file PET4D selezionato</span>")
+            self.pet4d_json_label.setText(QCoreApplication.translate("Components", "<span style='color:red;'>No PET4D file selected</span>"))
             return
 
         # Ricava percorso assoluto e costruisce quello del json
@@ -261,11 +273,11 @@ class CollapsiblePatientFrame(QFrame):
 
         if os.path.exists(json_candidate):
             rel_json = os.path.relpath(json_candidate, self.workspace_path)
-            self.pet4d_json_label.setText(f"JSON associato: <strong>{rel_json}</strong>")
+            self.pet4d_json_label.setText(QCoreApplication.translate("Components", "JSON related: <strong>{rel_json}</strong>").format(rel_json=rel_json))
             self.pet4d_json_label.setStyleSheet("color: black; font-size: 12px;")
             self.files["pet4d_json"] = rel_json  # salvo nel dict dei files
         else:
-            self.pet4d_json_label.setText("<span style='color:red;'>Errore: file JSON associato non trovato</span>")
+            self.pet4d_json_label.setText(QCoreApplication.translate("Components", "<span style='color:red;'>Error: associated JSON file not found</span>"))
             self.files["pet4d_json"] = ""  # segno che manca
 
     def _on_header_clicked(self):
@@ -304,4 +316,20 @@ class CollapsiblePatientFrame(QFrame):
         self._apply_style()
         self._populate_content()
 
+    def _retranslate_ui(self):
+        # Aggiorna solo i testi, senza ricreare widget
+        self.toggle_button.setText(
+            QCoreApplication.translate(
+                "Components",
+                "Patient: {patient}"
+            ).format(patient=self.patient_id)
+        )
 
+        self.subject_name.setText(QCoreApplication.translate("Components", "Patient: {0}").format(self.patient_id))
+
+        if self.locked:
+            self.file_label.setText(self.chosen_file if self.chosen_file else QCoreApplication.translate("Components", "No file found"))
+        if not self.locked:
+            self.save_btn.setText(QCoreApplication.translate("Components", "Save Patient Configuration"))
+
+        self._populate_content()

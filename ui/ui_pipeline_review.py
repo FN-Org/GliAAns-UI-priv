@@ -158,7 +158,8 @@ class PipelineReviewPage(WizardPage):
             }
             multiple_choice = bool(files.get("need_revision", False))
             frame = CollapsiblePatientFrame(
-                patient_id, files, self.workspace_path,
+                self.context,
+                patient_id, files,
                 patient_patterns, multiple_choice,
                 save_callback=self._save_single_patient
             )
