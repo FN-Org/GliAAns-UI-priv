@@ -945,6 +945,7 @@ class NiftiViewer(QMainWindow):
 
     def on_load_error(self, error_message):
         """Handle file loading errors"""
+        self.progress_dialog.canceled.disconnect()
         self.progress_dialog.close()
         QMessageBox.critical(self, QtCore.QCoreApplication.translate("NIfTIViewer","Error Loading File"), QtCore.QCoreApplication.translate("NIfTIViewer","Failed to load NIfTI file") + f":\n{error_message}")
         log.critical(f"Error loading NIftI file: {error_message}")
@@ -952,7 +953,7 @@ class NiftiViewer(QMainWindow):
         if thread_to_cancel in self.threads:
             self.threads.remove(thread_to_cancel)
 
-    def on_load_canceled(self, canceled=True):
+    def on_load_canceled(self):
         self.threads[-1].terminate()
         self.threads.pop()
 
