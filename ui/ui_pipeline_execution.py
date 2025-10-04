@@ -295,15 +295,15 @@ class PipelineExecutionPage(WizardPage):
             message = line[5:]  # Rimuove "LOG: "
             self._log_message(message)
             self._update_current_operation(message)
-        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "ERROR: ")):
+        elif line.startswith("ERROR: "):
             error_msg = line[7:]  # Rimuove "ERROR: "
             self._log_message(QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error}").format(error=error_msg))
-        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "PROGRESS: ")):
+        elif line.startswith("PROGRESS: "):
             progress_info = line[10:]  # Rimuove "PROGRESS: "
             self._update_progress(progress_info)
-        elif line.startswith(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: ")):
+        elif line.startswith("FINISHED: "):
             message = line[10:]  # Rimuove "FINISHED: "
-            self._log_message(message)
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: "))
         else:
             # Output generico
             self._log_message(line)
@@ -510,4 +510,5 @@ class PipelineExecutionPage(WizardPage):
     def _retranslate_ui(self):
         self.header.setText(QCoreApplication.translate("PipelineExecutionPage", "Pipeline Execution"))
         self.stop_button.setText(QCoreApplication.translate("PipelineExecutionPage", "Stop Pipeline"))
-        self.log_text.clear().setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))
+        self.log_text.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))
+        self.log_label.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))
