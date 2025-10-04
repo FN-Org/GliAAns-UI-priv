@@ -143,6 +143,7 @@ endif
 clean-pipeline:
 ifeq ($(OS),Windows_NT)
 	if exist "$(PIPELINE_DIST)" rmdir /S /Q "$(PIPELINE_DIST)"
+	if exist "$(PIPELINE_NO_DIST)" rmdir /S /Q "$(PIPELINE_NO_DIST)"
 else
-	rm -rf $(PIPELINE_DIST)
+	rm -rf $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
 endif
