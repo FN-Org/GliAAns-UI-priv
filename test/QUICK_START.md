@@ -34,8 +34,8 @@ Successfully installed pytest-7.4.0 pytest-qt-4.2.0 pytest-cov-4.1.0 ...
 
 **Linux/Mac:**
 ```bash
-chmod +x run_tests.sh
-./run_tests.sh
+chmod +x run_all_tests.sh
+./run_all_tests.sh
 ```
 
 **Windows:**
@@ -67,7 +67,7 @@ test_main_window.py::TestLanguageManagement::test_set_language_emits_signal PASS
 ## Step 3: Test con Coverage (2 minuti)
 
 ```bash
-./run_tests.sh -c
+./run_all_tests.sh -c
 ```
 
 Questo genera un report HTML. Aprilo con:
@@ -108,7 +108,7 @@ pytest test_main_window.py::TestMainWindowSetup::test_window_initialization -v
 
 ```bash
 # Test completi con coverage
-./run_tests.sh -c
+./run_all_tests.sh -c
 
 # Verifica che coverage sia > 80%
 pytest --cov=. --cov-fail-under=80 test_main_window.py
@@ -154,7 +154,7 @@ pytest test_main_window.py::TestMainWindowSetup::test_window_initialization -v -
 
 **Soluzione:**
 ```bash
-chmod +x run_tests.sh
+chmod +x run_all_tests.sh
 ```
 
 ### Problema: Test lenti
@@ -253,7 +253,7 @@ Leggi `REFACTORING_SUGGESTIONS.md` per rendere il codice più testabile.
 ### Comandi Utili
 ```bash
 # Help degli script
-./run_tests.sh -h
+./run_all_tests.sh -h
 
 # Help pytest
 pytest --help

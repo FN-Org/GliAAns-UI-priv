@@ -28,8 +28,8 @@ pytest --version
 
 **Linux/Mac:**
 ```bash
-chmod +x run_tests.sh
-./run_tests.sh
+chmod +x run_all_tests.sh
+./run_all_tests.sh
 ```
 
 **Windows:**
@@ -71,13 +71,13 @@ pytest -m "not slow" test_main_window.py
 **Esempi:**
 ```bash
 # Con coverage
-./run_tests.sh -c
+./run_all_tests.sh -c
 
 # Test specifico verbose
-./run_tests.sh -v -t test_language
+./run_all_tests.sh -v -t test_language
 
 # Solo test di setup
-./run_tests.sh -t TestMainWindowSetup
+./run_all_tests.sh -t TestMainWindowSetup
 ```
 
 ## 📁 Struttura dei Test
