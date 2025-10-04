@@ -20,3 +20,4 @@ nuitka-crash-report.xml
 /pipeline_runner.dist
 /pediatric_fdopa_pipeline/.idea
 /pediatric_fdopa_pipeline/.venv
+/ui/__pycache__

@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication, QPushButton
 
 import logger
 from ui.ui_workspace_tree_view import WorkspaceTreeView
-from ui.ui_import_frame import ImportFrame
+from ui.ui_import_page import ImportPage
 from ui.ui_main_window import MainWindow
 from ui.ui_nifti_viewer import NiftiViewer
 from utils import resource_path, get_app_dir
@@ -50,14 +50,14 @@ class Controller(QObject):
             "open_nifti_viewer"         :   self.open_nifti_viewer,
             "settings"                  :   self.settings
         }
-        self.context["import_frame"] = ImportFrame(self.context)
+        self.context["import_page"] = ImportPage(self.context)
         self.context["main_window"] = MainWindow(self.context)
         self.context["tree_view"] = WorkspaceTreeView(self.context)
         self.context["nifti_viewer"] = NiftiViewer(self.context)
 
         self.main_window = self.context["main_window"]
         self.tree_view = self.context["tree_view"]
-        self.start_page = self.context["import_frame"]
+        self.start_page = self.context["import_page"]
 
         self.context["history"].append(self.start_page)
         self.current_page = self.start_page

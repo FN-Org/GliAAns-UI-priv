@@ -77,8 +77,8 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(self.import_action)
         self.file_menu.addAction(self.export_action)
 
-        if "import_frame" in self.context and self.context["import_frame"]:
-            self.import_action.triggered.connect(self.context["import_frame"].open_folder_dialog)
+        if "import_page" in self.context and self.context["import_page"]:
+            self.import_action.triggered.connect(self.context["import_page"].open_folder_dialog)
         else:
             raise RuntimeError("Error setupping menus")
         self.export_action.triggered.connect(self.export_file_info)

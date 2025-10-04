@@ -9,10 +9,10 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QSize, QCoreApplication
 
 from components.info_label import InfoLabel
-from ui.ui_mask_selection import NiftiMaskSelectionPage
-from ui.ui_dl_selection import DlPatientSelectionPage
-from ui.ui_pipeline_patient_selection import PipelinePatientSelectionPage
-from ui.ui_skull_stripping_frame import SkullStrippingPage
+from ui.ui_mask_selection_page import NiftiMaskSelectionPage
+from ui.ui_dl_selection_page import DlPatientSelectionPage
+from ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
+from ui.ui_skull_stripping_page import SkullStrippingPage
 from page import Page
 
 
@@ -97,7 +97,7 @@ class ToolChoicePage(Page):
                 dl_layout.setContentsMargins(0, 0, 0, 0)
                 dl_layout.setSpacing(5)
 
-                self.dl_info_label = InfoLabel(text="i",tooltip_text=QCoreApplication.translate("ToolSelectionFrame", "To use this function you need Linux and a CUDA capable GPU"))
+                self.dl_info_label = InfoLabel(text="i",tooltip_text=QCoreApplication.translate("ToolSelectionPage", "To use this function you need Linux and a CUDA capable GPU"))
 
                 dl_layout.addWidget(self.radio_dl)
                 dl_layout.addWidget(self.dl_info_label)
@@ -171,8 +171,8 @@ class ToolChoicePage(Page):
         if self.selected_option == 2 and (not has_gpu or not is_linux):
             QMessageBox.warning(
                 self,
-                QCoreApplication.translate("ToolSelectionFrame", "Not available for this platform"),
-                QCoreApplication.translate("ToolSelectionFrame", "The deep learning segmentation is not available for this platform: {0}").format(platform.system())
+                QCoreApplication.translate("ToolSelectionPage", "Not available for this platform"),
+                QCoreApplication.translate("ToolSelectionPage", "The deep learning segmentation is not available for this platform: {0}").format(platform.system())
             )
             return self
 
@@ -202,10 +202,10 @@ class ToolChoicePage(Page):
         self.selected_option = None
 
     def _translate_ui(self):
-        self.title.setText(QApplication.translate("ToolSelectionFrame", "Select the Next Processing Step"))
-        self.radio_group_box.setTitle(QApplication.translate("ToolSelectionFrame", "Available Processes"))
-        self.radio_skull.setText(QApplication.translate("ToolSelectionFrame", "Skull Stripping"))
-        self.radio_draw.setText(QApplication.translate("ToolSelectionFrame", "Automatic Drawing"))
-        self.radio_dl.setText(QApplication.translate("ToolSelectionFrame", "Deep Learning Segmentation"))
-        self.radio_analysis.setText(QApplication.translate("ToolSelectionFrame", "Full Pipeline"))
-        self.dl_info_label.setToolTip(QApplication.translate("ToolSelectionFrame", "To use this function you need Linux and a CUDA capable GPU"))
+        self.title.setText(QApplication.translate("ToolSelectionPage", "Select the Next Processing Step"))
+        self.radio_group_box.setTitle(QApplication.translate("ToolSelectionPage", "Available Processes"))
+        self.radio_skull.setText(QApplication.translate("ToolSelectionPage", "Skull Stripping"))
+        self.radio_draw.setText(QApplication.translate("ToolSelectionPage", "Automatic Drawing"))
+        self.radio_dl.setText(QApplication.translate("ToolSelectionPage", "Deep Learning Segmentation"))
+        self.radio_analysis.setText(QApplication.translate("ToolSelectionPage", "Full Pipeline"))
+        self.dl_info_label.setToolTip(QApplication.translate("ToolSelectionPage", "To use this function you need Linux and a CUDA capable GPU"))

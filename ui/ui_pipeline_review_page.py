@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget, QScrollArea
 
 from components.collapsible_info_frame import CollapsibleInfoFrame
 from components.collapsible_patient_frame import CollapsiblePatientFrame
-from ui.ui_pipeline_execution import PipelineExecutionPage
+from ui.ui_pipeline_execution_page import PipelineExecutionPage
 from page import Page
 from logger import get_logger
 

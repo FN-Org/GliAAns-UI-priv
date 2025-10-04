@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayo
 from PyQt6.QtCore import Qt
 import os
 
-from ui.ui_dl_execution import DlExecutionPage
+from ui.ui_dl_execution_page import DlExecutionPage
 from page import Page
 from logger import get_logger
 

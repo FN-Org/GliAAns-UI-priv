@@ -274,7 +274,7 @@ class SkullStrippingPage(Page):
         """Avvia il processing in background usando QThread"""
         selected_files = self.file_selector_widget.get_selected_files()
         if not selected_files:
-            QMessageBox.warning(self, QCoreApplication.translate("SkullStrippingFrame", "No files"), QCoreApplication.translate("SkullStrippingFrame", "Please select at least one NIfTI file first."))
+            QMessageBox.warning(self, QCoreApplication.translate("SkullStrippingPage", "No files"), QCoreApplication.translate("SkullStrippingPage", "Please select at least one NIfTI file first."))
             return
         parameters = None
         if self.has_bet:
@@ -320,7 +320,7 @@ class SkullStrippingPage(Page):
         self.canceled = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
-            self.status_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Cancelling..."))
+            self.status_label.setText(QCoreApplication.translate("SkullStrippingPage", "Cancelling..."))
             self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")
 
     def set_processing_mode(self, processing):
@@ -368,9 +368,9 @@ class SkullStrippingPage(Page):
 
         # Aggiorna il messaggio di stato finale
         if success_count > 0:
-            summary = QCoreApplication.translate("SkullStrippingFrame", "Skull Stripping completed successfully for {0} file(s)").format(success_count)
+            summary = QCoreApplication.translate("SkullStrippingPage", "Skull Stripping completed successfully for {0} file(s)").format(success_count)
             if failed_files:
-                failed_summary = QCoreApplication.translate("SkullStrippingFrame",
+                failed_summary = QCoreApplication.translate("SkullStrippingPage",
                                    "{count} file(s) failed: {files}").format(
                     count=len(failed_files),
                     files=', '.join([os.path.basename(f) for f in failed_files])
@@ -383,7 +383,7 @@ class SkullStrippingPage(Page):
             failed_files_num = len(failed_files)
             if failed_files_num == 0:
                 failed_files_num = ""
-            summary = QCoreApplication.translate("SkullStrippingFrame", "All {0} file(s) failed to process").format(failed_files_num)
+            summary = QCoreApplication.translate("SkullStrippingPage", "All {0} file(s) failed to process").format(failed_files_num)
             self.status_label.setStyleSheet("color: #FF0000; font-weight: bold; font-size: 12pt; padding: 5px;")
 
         self.status_label.setText(summary)
@@ -407,8 +407,8 @@ class SkullStrippingPage(Page):
         if self.worker and self.worker.isRunning():
             QMessageBox.warning(
                 self,
-                QCoreApplication.translate("SkullStrippingFrame", "Processing in progress"),
-                QCoreApplication.translate("SkullStrippingFrame", "Cannot go back while skull stripping is in progress. Please wait or cancel the operation."))
+                QCoreApplication.translate("SkullStrippingPage", "Processing in progress"),
+                QCoreApplication.translate("SkullStrippingPage", "Cannot go back while skull stripping is in progress. Please wait or cancel the operation."))
             log.warning("Processing in progress")
             return None
 
@@ -446,7 +446,7 @@ class SkullStrippingPage(Page):
         # Reset advanced options
         self.advanced_btn.setChecked(False)
         self.advanced_box.setVisible(False)
-        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
+        self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingPage", "Show Advanced Options"))
 
         # Reset advanced checkboxes
         self.opt_brain_extracted.setChecked(True)
@@ -472,16 +472,16 @@ class SkullStrippingPage(Page):
         self.status_label.setText("")
 
     def _translate_ui(self):
-        self.title.setText(QCoreApplication.translate("SkullStrippingFrame", "Select a NIfTI file for Skull Stripping"))
+        self.title.setText(QCoreApplication.translate("SkullStrippingPage", "Select a NIfTI file for Skull Stripping"))
 
 
         if self.has_bet:
-            self.f_label.setText(QCoreApplication.translate("SkullStrippingFrame",
+            self.f_label.setText(QCoreApplication.translate("SkullStrippingPage",
                                                             "Fractional intensity threshold, smaller values give larger brain outline estimates"))
-            self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingFrame", "Show Advanced Options"))
-            self.output_label.setText(QCoreApplication.translate("SkullStrippingFrame", "Advanced options:"))
+            self.advanced_btn.setText(QCoreApplication.translate("SkullStrippingPage", "Show Advanced Options"))
+            self.output_label.setText(QCoreApplication.translate("SkullStrippingPage", "Advanced options:"))
             self.opt_brain_extracted.setText(
-                QCoreApplication.translate("SkullStrippingFrame", "Output brain-extracted image"))
+                QCoreApplication.translate("SkullStrippingPage", "Output brain-extracted image"))
             self.opt_m.setText(QCoreApplication.translate("SkullStrippingFrame", "Output binary brain mask image"))
             self.opt_t.setText(
                 QCoreApplication.translate("SkullStrippingFrame", "Apply thresholding to brain and mask image"))

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
-from ui.ui_tool_selection_frame import ToolChoicePage
+from ui.ui_tool_selection_page import ToolChoicePage
 from utils import resource_path
 from page import Page
 from logger import get_logger
@@ -155,8 +155,8 @@ class PatientSelectionPage(Page):
         if to_delete:
             reply = QMessageBox.question(
                 self,
-                QCoreApplication.translate("PatientSelectionFrame", "Confirm Cleanup"),
-                QCoreApplication.translate("PatientSelectionFrame", "{0} unselected patient(s) will be removed from the workspace. Continue?").format(len(to_delete)),
+                QCoreApplication.translate("PatientSelectionPage", "Confirm Cleanup"),
+                QCoreApplication.translate("PatientSelectionPage", "{0} unselected patient(s) will be removed from the workspace. Continue?").format(len(to_delete)),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
             if reply == QMessageBox.StandardButton.No:
