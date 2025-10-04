@@ -126,17 +126,15 @@ app: $(PIPELINE_NO_DIST) compile-app
 # Pulizia cross-platform
 # -------------------------
 .PHONY: clean
-clean:
+clean: clean-pipeline
 ifeq ($(OS),Windows_NT)
 	if exist "$(VENV_DIR)" rmdir /S /Q "$(VENV_DIR)"
 	if exist "$(PIPELINE_VENV_DIR)" rmdir /S /Q "$(PIPELINE_VENV_DIR)"
-	if exist "$(PIPELINE_DIST)" rmdir /S /Q "$(PIPELINE_DIST)"
-	if exist "$(PIPELINE_NO_DIST)" rmdir /S /Q "$(PIPELINE_NO_DIST)"
 	if exist "build" rmdir /S /Q "build"
 	if exist "dist" rmdir /S /Q "dist"
 	if exist "*.spec" del /Q *.spec
 else
-	rm -rf $(VENV_DIR) $(PIPELINE_VENV_DIR) $(PIPELINE_DIST) build dist *.spec $(PIPELINE_NO_DIST)
+	rm -rf $(VENV_DIR) $(PIPELINE_VENV_DIR) build dist *.spec
 endif
 
 .PHONY: clean-pipeline
