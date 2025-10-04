@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QLineEdit, QComboBox,
     QCheckBox, QListWidget, QListWidgetItem, QPushButton, QDialogButtonBox,
@@ -54,25 +56,26 @@ class NiftiFileDialog(QDialog):
         filter_layout.addWidget(self.search_bar, 0, 1, 1, 3)
 
         self.subject_combo = QComboBox()
-        self.subject_combo.setEditable(True)
-        self.subject_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All subjects or type subject ID..."))
+        self.subject_combo.addItem(QCoreApplication.translate("Components", "All subjects"))
+        self.subject_combo.model().item(0)
         filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Subject:")), 1, 0)
         filter_layout.addWidget(self.subject_combo, 1, 1)
 
         self.session_combo = QComboBox()
-        self.session_combo.setEditable(True)
-        self.session_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All sessions..."))
+        self.session_combo.addItem(QCoreApplication.translate("Components", "All sessions"))
+        self.session_combo.model().item(0)
         filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Session:")), 1, 2)
         filter_layout.addWidget(self.session_combo, 1, 3)
 
         self.modality_combo = QComboBox()
-        self.modality_combo.setEditable(True)
-        self.modality_combo.lineEdit().setPlaceholderText(QCoreApplication.translate("Components", "All modalities..."))
+        self.modality_combo.addItem(QCoreApplication.translate("Components", "All modalities"))
+        self.modality_combo.model().item(0)
         filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Modality:")), 2, 0)
         filter_layout.addWidget(self.modality_combo, 2, 1)
 
         self.datatype_combo = QComboBox()
-        self.datatype_combo.addItems([QCoreApplication.translate("Components", "All types"), "anat", "func", "dwi", "fmap", "perf"])
+        self.datatype_combo.addItem(QCoreApplication.translate("Components", "All types"))
+        self.datatype_combo.model().item(0)
         filter_layout.addWidget(QLabel(QCoreApplication.translate("Components", "Data type:")), 2, 2)
         filter_layout.addWidget(self.datatype_combo, 2, 3)
 
@@ -120,7 +123,7 @@ class NiftiFileDialog(QDialog):
     # === Populate ===
     def _populate_files(self):
         self.all_nii_files = []
-        subjects_set, sessions_set, modalities_set = set(), set(), set()
+        subjects_set, sessions_set, modalities_set, datatypes_set = set(), set(), set(), set()
 
         for root, dirs, files in os.walk(self.workspace_path):
             # dirs[:] = [d for d in dirs if d != "derivatives"]
@@ -155,21 +158,31 @@ class NiftiFileDialog(QDialog):
                     if self.has_existing_func(full_path, self.workspace_path):
                         self.files_with_flag.add(relative_path)
 
-        self.subject_combo.addItem(QCoreApplication.translate("Components", "All subjects"))
+        # --- Cerca data type directories ---
+        for subject_dir in sorted(Path(self.workspace_path).glob("sub-*")):
+            if subject_dir.is_dir():
+                # Caso: sub-*/anat, sub-*/func, ecc.
+                for child in subject_dir.iterdir():
+                    if child.is_dir() and not child.name.startswith("ses-"):
+                        datatypes_set.add(child.name)
+
+                # Caso: sub-*/ses-*/anat, sub-*/ses-*/func, ecc.
+                for ses_dir in subject_dir.glob("ses-*"):
+                    if ses_dir.is_dir():
+                        for child in ses_dir.iterdir():
+                            if child.is_dir():
+                                datatypes_set.add(child.name)
+
         self.subject_combo.addItems(sorted(subjects_set))
-
-        self.session_combo.addItem(QCoreApplication.translate("Components", "All sessions"))
         self.session_combo.addItems(sorted(sessions_set))
-
-        self.modality_combo.addItem(QCoreApplication.translate("Components", "All modalities"))
         self.modality_combo.addItems(sorted(modalities_set))
+        self.datatype_combo.addItems(sorted(datatypes_set))
 
         self._update_info_label(len(self.all_nii_files))
         self._populate_file_list()
 
         if self.forced_filters:
             self._apply_forced_filters()
-
 
     def _populate_file_list(self):
         self.file_list.clear()
@@ -325,21 +338,21 @@ class NiftiFileDialog(QDialog):
             self.search_bar.setText(self.forced_filters["search"])
             self.search_bar.setEnabled(False)
 
-        if "subject" in self.forced_filters:
-            self.subject_combo.setCurrentText(self.forced_filters["subject"])
-            self.subject_combo.setEnabled(False)
+        def safe_set_combo_value(combo, key):
+            if key in self.forced_filters:
+                value = self.forced_filters[key]
+                index = combo.findText(value)
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+                else:
+                    combo.addItem(value)
+                    combo.setCurrentIndex(combo.count() - 1)
+                combo.setEnabled(False)
 
-        if "session" in self.forced_filters:
-            self.session_combo.setCurrentText(self.forced_filters["session"])
-            self.session_combo.setEnabled(False)
-
-        if "modality" in self.forced_filters:
-            self.modality_combo.setCurrentText(self.forced_filters["modality"])
-            self.modality_combo.setEnabled(False)
-
-        if "datatype" in self.forced_filters:
-            self.datatype_combo.setCurrentText(self.forced_filters["datatype"])
-            self.datatype_combo.setEnabled(False)
+        safe_set_combo_value(self.subject_combo, "subject")
+        safe_set_combo_value(self.session_combo, "session")
+        safe_set_combo_value(self.modality_combo, "modality")
+        safe_set_combo_value(self.datatype_combo, "datatype")
 
         if "no_flag" in self.forced_filters:
             self.no_flag_checkbox.setChecked(bool(self.forced_filters["no_flag"]))
@@ -349,7 +362,7 @@ class NiftiFileDialog(QDialog):
             self.with_flag_checkbox.setChecked(bool(self.forced_filters["with_flag"]))
             self.with_flag_checkbox.setEnabled(False)
 
-        # Riapplica i filtri alla lista
+        # Riapplica i filtri
         self._apply_filters()
 
 
