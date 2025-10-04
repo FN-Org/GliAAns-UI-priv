@@ -40,9 +40,9 @@ class CollapsiblePatientFrame(QFrame):
         self._build_ui()
         self._apply_style()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _apply_style(self):
         if self.locked:
@@ -316,7 +316,7 @@ class CollapsiblePatientFrame(QFrame):
         self._apply_style()
         self._populate_content()
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         # Aggiorna solo i testi, senza ricreare widget
         self.toggle_button.setText(
             QCoreApplication.translate(

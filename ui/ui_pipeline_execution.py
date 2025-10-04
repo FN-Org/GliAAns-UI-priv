@@ -13,13 +13,13 @@ from PyQt6.QtCore import Qt, QTimer, QProcess, QCoreApplication
 from components.circular_progress_bar import CircularProgress
 from components.folder_card import FolderCard
 from utils import get_bin_path
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class PipelineExecutionPage(WizardPage):
+class PipelineExecutionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
@@ -54,9 +54,9 @@ class PipelineExecutionPage(WizardPage):
         log.debug(f"Percorso binario pipeline: {self.pipeline_bin_path}")
         self._setup_ui()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _find_latest_config(self):
         """Trova il file config con l'ID più alto nella cartella pipeline."""
@@ -507,7 +507,7 @@ class PipelineExecutionPage(WizardPage):
             self.pipeline_process.kill()
             self.pipeline_process.waitForFinished(1000)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.header.setText(QCoreApplication.translate("PipelineExecutionPage", "Pipeline Execution"))
         self.stop_button.setText(QCoreApplication.translate("PipelineExecutionPage", "Stop Pipeline"))
         self.log_text.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))

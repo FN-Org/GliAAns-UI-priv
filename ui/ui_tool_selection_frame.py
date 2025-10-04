@@ -13,10 +13,10 @@ from ui.ui_mask_selection import NiftiMaskSelectionPage
 from ui.ui_dl_selection import DlPatientSelectionPage
 from ui.ui_pipeline_patient_selection import PipelinePatientSelectionPage
 from ui.ui_skull_stripping_frame import SkullStrippingPage
-from wizard_state import WizardPage
+from page import Page
 
 
-class ToolChoicePage(WizardPage):
+class ToolChoicePage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
@@ -112,9 +112,9 @@ class ToolChoicePage(WizardPage):
 
         self.selected_option = None
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def resizeEvent(self, event):
         """
@@ -201,7 +201,7 @@ class ToolChoicePage(WizardPage):
         self.radio_group.setExclusive(True)
         self.selected_option = None
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.title.setText(QApplication.translate("ToolSelectionFrame", "Select the Next Processing Step"))
         self.radio_group_box.setTitle(QApplication.translate("ToolSelectionFrame", "Available Processes"))
         self.radio_skull.setText(QApplication.translate("ToolSelectionFrame", "Skull Stripping"))

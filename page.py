@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget
 
 
-class WizardPage(QWidget):
+class Page(QWidget):
     def _setup_ui(self):
         pass
 
@@ -26,5 +26,5 @@ class WizardPage(QWidget):
     def back(self):
         pass
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         pass

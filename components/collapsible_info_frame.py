@@ -66,15 +66,15 @@ class CollapsibleInfoFrame(QFrame):
         self.layout.addWidget(self.content_frame)
         self.is_collapsed = False
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def toggle_content(self):
         self.is_collapsed = not self.is_collapsed
         self.content_frame.setVisible(not self.is_collapsed)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.toggle_button.setText(QCoreApplication.translate("Components", "Configuration Instructions"))
         self.info_text.setText(QCoreApplication.translate("Components", """
             <style>

@@ -6,13 +6,13 @@ from PyQt6.QtCore import Qt
 import os
 
 from ui.ui_dl_execution import DlExecutionPage
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class DlPatientSelectionPage(WizardPage):
+class DlPatientSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context

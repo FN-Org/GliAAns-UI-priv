@@ -14,7 +14,7 @@ from ui.ui_nifti_viewer import NiftiViewer
 from utils import resource_path, get_app_dir
 
 
-class WizardController(QObject):
+class Controller(QObject):
     language_changed = pyqtSignal(str)
     selected_files_signal = pyqtSignal(list)
 

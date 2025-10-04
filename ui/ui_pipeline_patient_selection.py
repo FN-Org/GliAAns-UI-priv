@@ -9,13 +9,13 @@ from PyQt6.QtCore import Qt, QCoreApplication
 
 from ui.ui_pipeline_review import PipelineReviewPage
 from utils import resource_path
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class PipelinePatientSelectionPage(WizardPage):
+class PipelinePatientSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
 
@@ -31,9 +31,9 @@ class PipelinePatientSelectionPage(WizardPage):
 
         self._setup_ui()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -847,7 +847,7 @@ class PipelinePatientSelectionPage(WizardPage):
             )
             pill.setMaximumHeight(max_pill_height)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.title.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select Patients for Pipeline Analysis"))
         self.select_eligible_btn.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select All Eligible"))
         self.deselect_all_btn.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Deselect All"))

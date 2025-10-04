@@ -172,9 +172,9 @@ class NiftiViewer(QMainWindow):
         self.init_ui()
         self.setup_connections()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -1669,7 +1669,7 @@ class NiftiViewer(QMainWindow):
 
         return np.pad(volume, pads, mode="constant", constant_values=constant_value)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("NIfTIViewer", "NIfTI Image Viewer"))
 
         self.status_bar.showMessage(QtCore.QCoreApplication.translate("NIfTIViewer", "Ready - Open a NIfTI file to begin"))

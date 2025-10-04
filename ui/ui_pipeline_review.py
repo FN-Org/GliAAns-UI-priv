@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QWidget, QScrollArea
 from components.collapsible_info_frame import CollapsibleInfoFrame
 from components.collapsible_patient_frame import CollapsiblePatientFrame
 from ui.ui_pipeline_execution import PipelineExecutionPage
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 from PyQt6.QtCore import Qt, QCoreApplication
@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QLabel
 log = get_logger()
 
 
-class PipelineReviewPage(WizardPage):
+class PipelineReviewPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
@@ -32,9 +32,9 @@ class PipelineReviewPage(WizardPage):
 
         self._setup_ui()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _find_latest_config(self):
         """Trova il file config con l'ID più alto nella cartella pipeline."""
@@ -275,7 +275,7 @@ class PipelineReviewPage(WizardPage):
             return self.previous_page
         return None
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.header.setText(QCoreApplication.translate("PipelineReviewPage", "Pipeline Configuration Review"))
         self.config_info.setText(QCoreApplication.translate("PipelineReviewPage", "Reviewing: {0}").format(os.path.basename(self.config_path)))
         self.info_label.setText(QCoreApplication.translate("PipelineReviewPage", "<strong>Click</strong> a frame to review file selections. <strong>Save</strong> yellow frames after selection."))

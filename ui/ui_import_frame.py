@@ -9,12 +9,12 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QFileDialog, QListView, QTreeVi
 
 from threads.import_thread import ImportThread
 from ui.ui_patient_selection_frame import PatientSelectionPage
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
-class ImportFrame(WizardPage):
+class ImportFrame(Page):
 
     def __init__(self, context=None):
         super().__init__()
@@ -38,9 +38,9 @@ class ImportFrame(WizardPage):
         self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         frame_layout.addWidget(self.drop_label)
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def is_ready_to_advance(self):
         """Restituisce True se si può avanzare alla prossima pagina."""
@@ -173,5 +173,5 @@ class ImportFrame(WizardPage):
 
         event.accept()
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.drop_label.setText(QCoreApplication.translate("ImportFrame", "Import or select patients' data"))

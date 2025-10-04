@@ -9,13 +9,13 @@ import os
 
 from ui.ui_tool_selection_frame import ToolChoicePage
 from utils import resource_path
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class PatientSelectionPage(WizardPage):
+class PatientSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
 
@@ -86,9 +86,9 @@ class PatientSelectionPage(WizardPage):
         self.scroll_area.setWidget(self.scroll_content)
         self.layout.addWidget(self.scroll_area)
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _update_column_count(self):
         # Margine di sicurezza per padding/bordi
@@ -344,7 +344,7 @@ class PatientSelectionPage(WizardPage):
         # Ricarica i pazienti da zero
         self._load_patients()
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.title.setText(QCoreApplication.translate("PatientSelectionFrame", "Select Patients to Analyze"))
         self.select_all_btn.setText(QCoreApplication.translate("PatientSelectionFrame", "Select All"))
         self.deselect_all_btn.setText(QCoreApplication.translate("PatientSelectionFrame", "Deselect All"))

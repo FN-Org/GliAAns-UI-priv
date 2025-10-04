@@ -10,12 +10,12 @@ import subprocess
 
 from components.file_selector_widget import FileSelectorWidget
 from threads.skull_stripping_thread import SkullStripThread
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
-class SkullStrippingPage(WizardPage):
+class SkullStrippingPage(Page):
 
     processing = pyqtSignal(bool)
     def __init__(self, context=None, previous_page=None):
@@ -31,9 +31,9 @@ class SkullStrippingPage(WizardPage):
 
         self._setup_ui()
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def _setup_ui(self):
         self.processing.connect(self.set_processing_mode)
@@ -471,7 +471,7 @@ class SkullStrippingPage(WizardPage):
         # Clear status message
         self.status_label.setText("")
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.title.setText(QCoreApplication.translate("SkullStrippingFrame", "Select a NIfTI file for Skull Stripping"))
 
 

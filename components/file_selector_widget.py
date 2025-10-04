@@ -56,9 +56,9 @@ class FileSelectorWidget(QWidget):
 
         file_selector_layout.addWidget(button_container)
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def open_tree_dialog(self):
         results = NiftiFileDialog.get_files(
@@ -107,6 +107,6 @@ class FileSelectorWidget(QWidget):
         self.file_button.setEnabled(not processing)
         self.clear_button.setEnabled(not processing and bool(self.selected_files))
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.file_button.setText(QCoreApplication.translate("Components", "Choose NIfTI File(s)"))
         self.clear_button.setText(QCoreApplication.translate("Components", "Clear Selection"))

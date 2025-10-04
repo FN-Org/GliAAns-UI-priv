@@ -9,13 +9,13 @@ from PyQt6.QtCore import Qt, QThread
 
 from components.circular_progress_bar import CircularProgress
 from threads.dl_thread import DlWorker
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class DlExecutionPage(WizardPage):
+class DlExecutionPage(Page):
     """Pagina per SynthStrip + Coregistrazione dei file NIfTI selezionati"""
 
     def __init__(self, context=None, previous_page=None):

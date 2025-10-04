@@ -5,13 +5,13 @@ from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
 from components.file_selector_widget import FileSelectorWidget
-from wizard_state import WizardPage
+from page import Page
 from logger import get_logger
 
 log = get_logger()
 
 
-class NiftiMaskSelectionPage(WizardPage):
+class NiftiMaskSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
@@ -45,9 +45,9 @@ class NiftiMaskSelectionPage(WizardPage):
         self.viewer_button.clicked.connect(self.open_nifti_viewer)
         self.layout.addWidget(self.viewer_button)
 
-        self._retranslate_ui()
+        self._translate_ui()
         if context and "language_changed" in context:
-            context["language_changed"].connect(self._retranslate_ui)
+            context["language_changed"].connect(self._translate_ui)
 
     def has_existing_mask(self, nifti_file_path, workspace_path):
         """
@@ -131,6 +131,6 @@ class NiftiMaskSelectionPage(WizardPage):
         self.file_selector_widget.clear_selected_files()
         self.viewer_button.setEnabled(False)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.title.setText(QCoreApplication.translate("NiftiMaskSelectionPage", "Select a NIfTI file for Automatic Drawing"))
         self.viewer_button.setText(QCoreApplication.translate("NiftiMaskSelectionPage", "Open NIfTI file"))

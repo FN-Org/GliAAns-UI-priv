@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.context = context
-        self.context["language_changed"].connect(self._retranslate_ui)
+        self.context["language_changed"].connect(self._translate_ui)
         self.settings = self.context["settings"]
         self.workspace_path = self.context["workspace_path"]
         self.language_actions = {}
@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_menus()
 
-        self._retranslate_ui()
+        self._translate_ui()
 
     # --------------------------
     # UI SETUP
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         else:
             set_log_level(logging.ERROR)
 
-    def _retranslate_ui(self):
+    def _translate_ui(self):
         self.setWindowTitle(QtCore.QCoreApplication.translate("MainWindow", "GliAAns UI"))
         self.file_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "File"))
         self.workspace_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Workspace"))
