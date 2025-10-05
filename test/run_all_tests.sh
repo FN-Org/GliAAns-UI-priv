@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Determina la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Script per eseguire TUTTI i test del progetto
 
 echo "=========================================="
@@ -54,15 +57,15 @@ while [[ $# -gt 0 ]]; do
             echo "Opzioni:"
             echo "  -c, --coverage       Coverage report"
             echo "  -v, --verbose        Output verboso"
-            echo "  -m, --module NAME    Solo un modulo (main_window, import_page)"
+            echo "  -m, --module NAME    Solo un modulo (main_window, import_page, workspace_tree_view)"
             echo "  -k, --pattern PAT    Pattern per test specifici"
             echo "  -h, --help           Mostra questo messaggio"
             echo ""
             echo "Esempi:"
-            echo "  $0                              # Tutti i test"
-            echo "  $0 -c                           # Con coverage"
-            echo "  $0 -m main_window               # Solo MainWindow"
-            echo "  $0 -k test_initialization       # Pattern specifico"
+            echo "  $0                                    # Tutti i test"
+            echo "  $0 -c                                 # Con coverage"
+            echo "  $0 -m main_window                     # Solo MainWindow"
+            echo "  $0 -k test_initialization             # Pattern specifico"
             exit 0
             ;;
         *)
@@ -80,9 +83,9 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 if [ -n "$MODULE" ]; then
-    PYTEST_CMD="$PYTEST_CMD test_${MODULE}.py"
+    PYTEST_CMD="$PYTEST_CMD test/test_${MODULE}.py"
 else
-    PYTEST_CMD="$PYTEST_CMD test_*.py"
+    PYTEST_CMD="$PYTEST_CMD test/test_*.py"
 fi
 
 if [ -n "$PATTERN" ]; then
@@ -93,7 +96,11 @@ fi
 print_header "Esecuzione test"
 
 if [ "$COVERAGE" = true ]; then
-    $PYTEST_CMD --cov=../ui --cov-report=html --cov-report=term-missing
+    COVERAGE_DIR="$SCRIPT_DIR/htmlcov"
+    COVERAGE_FILE="$SCRIPT_DIR/.coverage"
+    export COVERAGE_FILE
+
+    $PYTEST_CMD --cov=ui --cov-report=html:"$COVERAGE_DIR" --cov-report=term-missing
 
     if [ $? -eq 0 ]; then
         echo ""
@@ -104,7 +111,7 @@ if [ "$COVERAGE" = true ]; then
         # Mostra statistiche
         echo ""
         echo -e "${YELLOW}Statistiche Coverage:${NC}"
-        pytest --cov=../ui --cov-report=term --quiet 2>/dev/null | tail -5
+        pytest --cov=ui --cov-report=term --quiet 2>/dev/null | tail -5
     else
         echo ""
         echo -e "${RED}✗ Alcuni test falliti${NC}"
@@ -127,7 +134,6 @@ echo ""
 echo "=========================================="
 print_header "Comandi Utili"
 echo "  • Solo MainWindow:     $0 -m main_window"
-echo "  • Solo ImportPage:     $0 -m import_page"
 echo "  • Con coverage:        $0 -c"
 echo "  • Verbose:             $0 -v"
 echo "  • Pattern specifico:   $0 -k pattern"
