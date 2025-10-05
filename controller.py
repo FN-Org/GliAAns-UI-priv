@@ -34,7 +34,7 @@ class Controller(QObject):
         self.set_language(self.saved_lang)
         self.language_changed.connect(self.set_language)
 
-        self.workspace_path = get_app_dir() / "workspace"
+        self.workspace_path = str(get_app_dir() / "workspace")
         if not os.path.exists(self.workspace_path):
             os.makedirs(self.workspace_path)
 
@@ -68,7 +68,9 @@ class Controller(QObject):
 
     def _show_current_page(self):
         self.main_window.set_widgets(self.tree_view, self.current_page)
-        self.update_buttons_state()
+        # Aggiorna i pulsanti solo se già creati
+        if self.next_button and self.back_button:
+            self.update_buttons_state()
 
     def go_to_next_page(self):
         next_page = self.current_page.next(self.context)
@@ -93,12 +95,8 @@ class Controller(QObject):
         return self.current_page
 
     def update_buttons_state(self):
-        self.next_button.setEnabled(
-            self.current_page.is_ready_to_advance()
-        )
-        self.back_button.setEnabled(
-            self.current_page.is_ready_to_go_back()
-        )
+        self.next_button.setEnabled(bool(self.current_page.is_ready_to_advance()))
+        self.back_button.setEnabled(bool(self.current_page.is_ready_to_go_back()))
 
     def create_buttons(self):
         self.next_button = QPushButton("Next")

@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.workspace_menu.addAction(self.clear_pipeline_outputs_action)
         self.clear_all_action.triggered.connect(lambda: self.clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True))
         self.export_workspace_action.triggered.connect(lambda:
-                                             self.tree_view.export_files(self.workspace_path, is_dir=True))
+                                             self.context["tree_view"].export_files([self.workspace_path], is_dir=True))
         self.clear_pipeline_outputs_action.triggered.connect(lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path,"pipeline"),folder_name="outputs",return_to_import=False))
 
         # Settings

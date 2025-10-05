@@ -22,7 +22,7 @@ class CopyDeleteThread(QThread):
                 if self.src is None or self.dst is None:
                     raise ValueError(QCoreApplication.translate("Threads", "Missing src or dst"))
                 if self.is_folder:
-                    shutil.copytree(self.src, self.dst)
+                    shutil.copytree(self.src, self.dst, dirs_exist_ok=True)
                 else: shutil.copy(self.src, self.dst)
 
                 self.finished.emit(QCoreApplication.translate("Threads", "Successfully copied {0} to {1}").format(self.src, self.dst))

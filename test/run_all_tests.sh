@@ -100,7 +100,7 @@ if [ "$COVERAGE" = true ]; then
     COVERAGE_FILE="$SCRIPT_DIR/.coverage"
     export COVERAGE_FILE
 
-    $PYTEST_CMD --cov=ui --cov-report=html:"$COVERAGE_DIR" --cov-report=term-missing
+    $PYTEST_CMD --cov=./ --cov-report=html:"$COVERAGE_DIR" --cov-report=term-missing
 
     if [ $? -eq 0 ]; then
         echo ""

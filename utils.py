@@ -7,6 +7,9 @@ from PyQt6.QtCore import QStandardPaths
 from pathlib import Path
 
 def get_bin_path(name):
+    if not name or not str(name).strip():
+        raise ValueError("Nome del tool non valido o vuoto")
+
     exe_name = f"{name}.exe" if platform.system() == "Windows" else name
 
     # Caso 1: se estrae PyInstaller (usa sys._MEIPASS)
@@ -30,7 +33,17 @@ def get_bin_path(name):
 def get_app_dir():
     # cartella dove salvare i dati dell'app (scrivibile dall'utente)
     base = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation)) / "GliAAns-UI"
-    base.mkdir(parents=True, exist_ok=True)
+
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        raise
+    except OSError as e:
+        # Errno 30 = read-only filesystem, 13 = permesso negato
+        if getattr(e, "errno", None) in (13, 30):
+            raise PermissionError("Impossibile creare la directory dell'applicazione") from e
+        raise
+
     return base
 
 def resource_path(relative_path):
