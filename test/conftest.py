@@ -35,6 +35,7 @@ def temp_workspace():
     os.makedirs(os.path.join(temp_dir, "sub-01", "anat"))
     with open(os.path.join(temp_dir, "sub-01", "anat", "T1w.nii"), "w") as f:
         f.write("T1w")
+    os.makedirs(os.path.join(temp_dir, "sub-02"))
 
     with open(os.path.join(temp_dir, "test.txt"), "w") as f:
         f.write("test content")
