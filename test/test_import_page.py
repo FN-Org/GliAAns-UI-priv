@@ -12,43 +12,14 @@ from PyQt6.QtGui import QDropEvent, QDragEnterEvent
 from ui.ui_import_page import ImportPage
 
 
-class SignalEmitter(QObject):
-    """Classe helper per creare signal mockati"""
-    language_changed = pyqtSignal(str)
-
+@pytest.fixture
+def import_page(qtbot, mock_context):
+    page = ImportPage(mock_context)
+    qtbot.addWidget(page)
+    return page
 
 class TestImportPageSetup:
     """Test per l'inizializzazione di ImportPage"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        """Crea workspace temporaneo"""
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        """Crea context mock"""
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        """Crea ImportPage per i test"""
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
 
     def test_page_initialization(self, import_page):
         """Verifica inizializzazione corretta"""
@@ -78,26 +49,6 @@ class TestImportPageReadiness:
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
-
     def test_not_ready_when_workspace_empty(self, import_page):
         """Verifica che non sia pronto se workspace vuoto"""
         assert not import_page.is_ready_to_advance()
@@ -125,31 +76,7 @@ class TestImportPageReadiness:
 class TestImportPageNavigation:
     """Test per la navigazione tra pagine"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
 
     def test_next_creates_patient_selection_page(self, import_page, mock_context):
         """Verifica che next() crei PatientSelectionPage"""
@@ -173,31 +100,6 @@ class TestImportPageNavigation:
 
 class TestImportPageDragDrop:
     """Test per funzionalità drag & drop"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
 
     @pytest.fixture
     def temp_source_folder(self):
@@ -238,31 +140,6 @@ class TestImportPageDialogs:
     """Test per dialog e interazioni utente"""
 
     @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
-
-    @pytest.fixture
     def temp_source_folder(self):
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
@@ -293,32 +170,6 @@ class TestImportPageDialogs:
 
 class TestImportPageThreads:
     """Test per gestione thread di importazione"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
 
     @pytest.fixture
     def temp_source_folder(self):
@@ -440,31 +291,6 @@ class TestImportPageThreads:
 class TestImportPageCleanup:
     """Test per la pulizia delle risorse"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
-
     def test_close_event_cleans_dialogs(self, import_page):
         """Verifica che closeEvent pulisca i dialog"""
         mock_dialog = Mock()
@@ -496,31 +322,6 @@ class TestImportPageCleanup:
 class TestImportPageTranslation:
     """Test per le traduzioni"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
-
     def test_translate_ui_called_on_init(self, import_page):
         """Verifica che _translate_ui sia chiamato all'init"""
         assert import_page.drop_label.text() != ""
@@ -539,11 +340,9 @@ class TestImportPageTranslation:
             qtbot.wait(100)  # Attendi elaborazione signal
             # Se connesso, _translate_ui dovrebbe essere chiamato
 
-
 # Test di integrazione
 class TestImportPageIntegration:
     """Test di integrazione per flussi completi"""
-
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
@@ -561,27 +360,6 @@ class TestImportPageIntegration:
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "main_window": Mock(),
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def import_page(self, qtbot, mock_context):
-        page = ImportPage(mock_context)
-        qtbot.addWidget(page)
-        return page
-
     def test_full_import_workflow(self, import_page, temp_source_folder, mock_context):
         """Test del flusso completo di importazione"""
         # Inizialmente non pronto
@@ -597,7 +375,6 @@ class TestImportPageIntegration:
         # Naviga alla prossima pagina
         next_page = import_page.next(mock_context)
         assert next_page is not None
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

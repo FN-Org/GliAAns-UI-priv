@@ -11,53 +11,14 @@ from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 from ui.ui_main_window import MainWindow
 
 
-class SignalEmitter(QObject):
-    """Classe helper per creare un signal mockato"""
-    language_changed = pyqtSignal(str)
-
+@pytest.fixture
+def main_window(qtbot, mock_context):
+    window = MainWindow(mock_context)
+    qtbot.addWidget(window)
+    return window
 
 class TestMainWindowSetup:
     """Test per la configurazione iniziale della MainWindow"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        """Crea una directory temporanea per il workspace"""
-        temp_dir = tempfile.mkdtemp()
-        pipeline_dir = os.path.join(temp_dir, "pipeline")
-        os.makedirs(pipeline_dir, exist_ok=True)
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        """Crea un emettitore di signal reale"""
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        """Crea un context mock con tutti i componenti necessari"""
-
-        def create_buttons():
-            # Ritorna QPushButton reali invece di Mock
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,  # Signal reale
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-            "update_main_buttons": Mock(),
-            "return_to_import": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        """Crea una MainWindow per i test"""
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
 
     def test_window_initialization(self, main_window):
         """Verifica che la finestra si inizializzi correttamente"""
@@ -100,36 +61,6 @@ class TestMainWindowSetup:
 class TestLanguageManagement:
     """Test per la gestione delle lingue"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
-
     def test_set_language_emits_signal(self, main_window, qtbot):
         """Verifica che set_language emetta il segnale corretto"""
         with qtbot.waitSignal(main_window.context["language_changed"], timeout=1000) as blocker:
@@ -158,46 +89,6 @@ class TestLanguageManagement:
 
 class TestWorkspaceOperations:
     """Test per le operazioni sul workspace"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        pipeline_dir = os.path.join(temp_dir, "pipeline")
-        os.makedirs(pipeline_dir, exist_ok=True)
-
-        # Crea alcuni file di test
-        with open(os.path.join(temp_dir, "test_file.txt"), "w") as f:
-            f.write("test content")
-        with open(os.path.join(pipeline_dir, "output.txt"), "w") as f:
-            f.write("output content")
-
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-            "return_to_import": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
 
     def test_clear_folder_confirms_deletion(self, main_window, monkeypatch):
         """Verifica che venga richiesta conferma prima di eliminare"""
@@ -246,37 +137,6 @@ class TestWorkspaceOperations:
 
 class TestThreadManagement:
     """Test per la gestione dei thread"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-            "update_main_buttons": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
 
     def test_new_thread_adds_to_list(self, main_window):
         """Verifica che un nuovo thread venga aggiunto alla lista"""
@@ -356,36 +216,6 @@ class TestThreadManagement:
 class TestDebugLog:
     """Test per la funzionalità di debug log"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
-
     @patch('ui.ui_main_window.set_log_level')
     def test_toggle_debug_log_enables(self, mock_set_log_level, main_window):
         """Verifica che il debug log possa essere abilitato"""
@@ -407,36 +237,6 @@ class TestDebugLog:
 
 class TestWidgetManagement:
     """Test per la gestione dei widget"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
 
     def test_set_widgets_first_time(self, main_window, qtbot):
         """Verifica l'aggiunta iniziale dei widget"""
@@ -475,40 +275,6 @@ class TestWidgetManagement:
 # Test di integrazione
 class TestIntegration:
     """Test di integrazione per verificare il flusso completo"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        pipeline_dir = os.path.join(temp_dir, "pipeline")
-        os.makedirs(pipeline_dir, exist_ok=True)
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        def create_buttons():
-            return QPushButton("Next"), QPushButton("Back")
-
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "settings": QSettings("TestOrg", "TestApp"),
-            "workspace_path": temp_workspace,
-            "create_buttons": create_buttons,
-            "import_page": Mock(spec=['open_folder_dialog']),
-            "update_main_buttons": Mock(),
-            "return_to_import": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def main_window(self, qtbot, mock_context):
-        window = MainWindow(mock_context)
-        qtbot.addWidget(window)
-        return window
 
     def test_full_workflow(self, main_window, qtbot):
         """Test del flusso completo: creazione, cambio lingua, operazioni"""

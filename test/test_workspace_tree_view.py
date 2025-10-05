@@ -11,11 +11,11 @@ from PyQt6.QtGui import QFileSystemModel
 # Import dal tuo progetto
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 
-
-class SignalEmitter(QObject):
-    """Classe helper per signal mockati"""
-    selected_files = pyqtSignal(list)
-
+@pytest.fixture
+def tree_view(qtbot, mock_context):
+    view = WorkspaceTreeView(mock_context)
+    qtbot.addWidget(view)
+    return view
 
 class TestWorkspaceTreeViewSetup:
     """Test per l'inizializzazione di WorkspaceTreeView"""
@@ -27,7 +27,7 @@ class TestWorkspaceTreeViewSetup:
         assert isinstance(tree_view.selected_files, list)
 
         # Export dovrebbe richiedere dialog
-        nifti_file = os.path.join(temp_workspace, "sub-001", "anat", "T1w.nii")
+        nifti_file = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
 
         with patch('ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getSaveFileName.return_value = ("", "")
@@ -36,59 +36,13 @@ class TestWorkspaceTreeViewSetup:
 
     def test_full_workflow_double_click_nifti(self, tree_view, temp_workspace):
         """Test flusso completo: doppio click su NIfTI"""
-        nifti_file = os.path.join(temp_workspace, "sub-001", "anat", "T1w.nii")
+        nifti_file = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
         index = tree_view.tree_model.index(nifti_file)
 
         tree_view.handle_double_click(index)
 
         # Dovrebbe aprire il viewer
         tree_view.context["open_nifti_viewer"].assert_called_once_with(nifti_file)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
-
-@pytest.fixture
-def signal_emitter():
-    return SignalEmitter()
-
-@pytest.fixture
-def tree_view(qtbot, mock_context):
-    view = WorkspaceTreeView(mock_context)
-    qtbot.addWidget(view)
-    return view
-
-@pytest.fixture
-def temp_workspace():
-    """Crea workspace temporaneo con struttura"""
-    temp_dir = tempfile.mkdtemp()
-    # Crea struttura di test
-    os.makedirs(os.path.join(temp_dir, "sub-001", "pet"))
-    os.makedirs(os.path.join(temp_dir, "sub-001", "anat"))
-    with open(os.path.join(temp_dir, "sub-001", "anat", "T1w.nii"), "w") as f:
-        f.write("dummy")
-    with open(os.path.join(temp_dir, "test.txt"), "w") as f:
-        f.write("test")
-    yield temp_dir
-    shutil.rmtree(temp_dir, ignore_errors=True)
-
-@pytest.fixture
-def mock_context(temp_workspace, signal_emitter):
-    context = {
-        "workspace_path": temp_workspace,
-        "selected_files_signal": signal_emitter.selected_files,
-        "main_window": Mock(),
-        "open_nifti_viewer": Mock()
-    }
-    return context
-
-
-@pytest.fixture
-def tree_view(qtbot, mock_context):
-    """Crea WorkspaceTreeView per i test"""
-    view = WorkspaceTreeView(mock_context)
-    qtbot.addWidget(view)
-    return view
 
 
 def test_initialization(tree_view, temp_workspace):
@@ -123,35 +77,6 @@ def test_signals_connected(tree_view):
 class TestWorkspaceTreeViewSelection:
     """Test per la gestione delle selezioni"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        test_file = os.path.join(temp_dir, "test.txt")
-        with open(test_file, "w") as f:
-            f.write("test")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
-
     def test_handle_workspace_click_updates_selection(self, tree_view, qtbot):
         """Verifica che il click aggiorni la selezione"""
         with qtbot.waitSignal(tree_view.context["selected_files_signal"], timeout=1000):
@@ -171,40 +96,6 @@ class TestWorkspaceTreeViewSelection:
 class TestWorkspaceTreeViewDoubleClick:
     """Test per gestione doppio click"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        # File normale
-        with open(os.path.join(temp_dir, "test.txt"), "w") as f:
-            f.write("test")
-        # File NIfTI
-        with open(os.path.join(temp_dir, "brain.nii"), "w") as f:
-            f.write("nifti data")
-        with open(os.path.join(temp_dir, "brain2.nii.gz"), "w") as f:
-            f.write("nifti compressed")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
-
     def test_double_click_on_nifti_opens_viewer(self, tree_view, temp_workspace):
         """Verifica che doppio click su NIfTI apra il viewer"""
         nifti_file = os.path.join(temp_workspace, "brain.nii")
@@ -216,7 +107,7 @@ class TestWorkspaceTreeViewDoubleClick:
 
     def test_double_click_on_nifti_gz_opens_viewer(self, tree_view, temp_workspace):
         """Verifica che .nii.gz apra il viewer"""
-        nifti_file = os.path.join(temp_workspace, "brain2.nii.gz")
+        nifti_file = os.path.join(temp_workspace, "scan.nii.gz")
         index = tree_view.tree_model.index(nifti_file)
 
         tree_view.handle_double_click(index)
@@ -263,32 +154,6 @@ class TestWorkspaceTreeViewDoubleClick:
 class TestWorkspaceTreeViewColumns:
     """Test per gestione colonne"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
-
     def test_adjust_tree_columns_wide(self, tree_view):
         """Verifica regolazione colonne con finestra larga"""
         tree_view.resize(500, 300)
@@ -310,38 +175,6 @@ class TestWorkspaceTreeViewColumns:
 
 class TestWorkspaceTreeViewContextMenu:
     """Test per context menu"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        # Crea struttura
-        os.makedirs(os.path.join(temp_dir, "folder1"))
-        with open(os.path.join(temp_dir, "test.txt"), "w") as f:
-            f.write("test")
-        with open(os.path.join(temp_dir, "brain.nii"), "w") as f:
-            f.write("nifti")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
 
     def test_workspace_actions_created(self, tree_view):
         """Verifica creazione azioni workspace"""
@@ -385,35 +218,6 @@ class TestWorkspaceTreeViewContextMenu:
 
 class TestWorkspaceTreeViewFileOperations:
     """Test per operazioni su file"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        os.makedirs(os.path.join(temp_dir, "sub-001", "anat"))
-        with open(os.path.join(temp_dir, "test.txt"), "w") as f:
-            f.write("test")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
 
     @pytest.fixture
     def temp_source_file(self):
@@ -471,7 +275,7 @@ class TestWorkspaceTreeViewFileOperations:
 
     def test_export_folder_dialog(self, tree_view, temp_workspace):
         """Verifica export di cartella"""
-        folder = os.path.join(temp_workspace, "sub-001")
+        folder = os.path.join(temp_workspace, "sub-01")
 
         with patch('ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getExistingDirectory.return_value = ""
@@ -497,42 +301,6 @@ class TestWorkspaceTreeViewFileOperations:
 
 class TestWorkspaceTreeViewNIfTIOperations:
     """Test specifici per file NIfTI"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        # File NIfTI con JSON associato
-        with open(os.path.join(temp_dir, "brain.nii"), "w") as f:
-            f.write("nifti")
-        with open(os.path.join(temp_dir, "brain.json"), "w") as f:
-            f.write("{}")
-        # File NIfTI.gz con JSON
-        with open(os.path.join(temp_dir, "scan.nii.gz"), "w") as f:
-            f.write("compressed")
-        with open(os.path.join(temp_dir, "scan.json"), "w") as f:
-            f.write("{}")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
 
     def test_open_nifti_calls_viewer(self, tree_view, temp_workspace):
         """Verifica apertura NIfTI con viewer"""
@@ -596,34 +364,6 @@ class TestWorkspaceTreeViewNIfTIOperations:
 class TestWorkspaceTreeViewExplorer:
     """Test per apertura in explorer"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        with open(os.path.join(temp_dir, "test.txt"), "w") as f:
-            f.write("test")
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
-
     def test_open_in_explorer_success(self, tree_view, temp_workspace):
         """Verifica apertura in explorer con successo"""
         test_file = os.path.join(temp_workspace, "test.txt")
@@ -673,36 +413,8 @@ class TestWorkspaceTreeViewExplorer:
 
             assert error_shown
 
-
 class TestWorkspaceTreeViewRoleDialog:
     """Test per dialog di selezione ruolo"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        os.makedirs(os.path.join(temp_dir, "sub-001"))
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
-
-    @pytest.fixture
-    def tree_view(self, qtbot, mock_context):
-        view = WorkspaceTreeView(mock_context)
-        qtbot.addWidget(view)
-        return view
 
     def test_open_role_dialog_creates_dialog(self, tree_view, temp_workspace):
         """Verifica creazione dialog ruolo"""
@@ -714,7 +426,7 @@ class TestWorkspaceTreeViewRoleDialog:
             tree_view.open_role_dialog(
                 files=["test.nii"],
                 folder_path=temp_workspace,
-                subj="sub-001"
+                subj="sub-01"
             )
 
             MockDialog.assert_called_once()
@@ -731,40 +443,8 @@ class TestWorkspaceTreeViewRoleDialog:
                 tree_view.open_role_dialog(
                     files=["test.nii"],
                     folder_path=temp_workspace,
-                    subj="sub-001"
+                    subj="sub-01"
                 )
 
-
-# Test di integrazione
-class TestWorkspaceTreeViewIntegration:
-    """Test di integrazione per flussi completi"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        # Struttura BIDS-like
-        sub_dir = os.path.join(temp_dir, "sub-001")
-        os.makedirs(os.path.join(sub_dir, "anat"))
-        os.makedirs(os.path.join(sub_dir, "pet"))
-
-        with open(os.path.join(sub_dir, "anat", "T1w.nii"), "w") as f:
-            f.write("T1")
-        with open(os.path.join(sub_dir, "pet", "pet.nii"), "w") as f:
-            f.write("PET")
-
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "selected_files_signal": signal_emitter.selected_files,
-            "main_window": Mock(),
-            "open_nifti_viewer": Mock()
-        }
-        return context
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])
