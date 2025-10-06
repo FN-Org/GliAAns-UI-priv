@@ -4,88 +4,154 @@ from PyQt6.QtWidgets import QGraphicsView
 
 
 class CrosshairGraphicsView(QGraphicsView):
-    """Custom QGraphicsView with crosshair support and coordinate capture"""
+    """Custom QGraphicsView subclass that supports:
+       - Live crosshair display following mouse movements
+       - Coordinate tracking and emission via Qt signals
+       - Integration with a parent viewer for synchronized slice updates
+    """
 
-    coordinate_changed = pyqtSignal(int, int, int)  # view_idx, x, y
-    slice_changed = pyqtSignal(int, int)  # view_idx, new_slice
+    # Signal emitted whenever the mouse moves — sends (view_idx, x, y)
+    coordinate_changed = pyqtSignal(int, int, int)
+
+    # Signal emitted when the slice index changes — sends (view_idx, new_slice)
+    # (not directly used in this snippet but designed for multi-slice viewers)
+    slice_changed = pyqtSignal(int, int)
 
     def __init__(self, view_idx, parent=None):
+        """
+        Initialize the crosshair view.
+
+        Args:
+            view_idx (int): Index of the view (e.g. axial=0, coronal=1, sagittal=2)
+            parent (QWidget): Parent viewer widget (usually manages multiple CrosshairGraphicsViews)
+        """
         super().__init__(parent)
         self.view_idx = view_idx
         self.parent_viewer = parent
+
+        # Enable continuous mouse tracking (even when no button pressed)
         self.setMouseTracking(True)
+
+        # Disable dragging mode (only used for coordinate interaction)
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
-        # Crosshair lines
+        # Crosshair graphics items (horizontal and vertical lines)
         self.crosshair_h = None
         self.crosshair_v = None
         self.crosshair_visible = False
 
-        # Set rendering hints for smooth display
+        # Enable anti-aliasing and smooth scaling for better visual quality
         self.setRenderHints(
             QPainter.RenderHint.Antialiasing |
             QPainter.RenderHint.SmoothPixmapTransform
         )
 
+    # -------------------------------------------------------------------------
+    # Crosshair setup and management
+    # -------------------------------------------------------------------------
     def setup_crosshairs(self):
-        """Initialize crosshair lines"""
+        """
+        Initialize the crosshair lines once the QGraphicsScene is available.
+        Adds two semi-transparent yellow lines to the scene (horizontal + vertical).
+        """
         if self.scene():
+            # Yellow, semi-transparent pen for crosshair
             pen = QPen(QColor(255, 255, 0, 180), 1)
+
+            # Create horizontal and vertical crosshair lines in the scene
             self.crosshair_h = self.scene().addLine(0, 0, 0, 0, pen)
             self.crosshair_v = self.scene().addLine(0, 0, 0, 0, pen)
+
+            # Initially invisible
             self.crosshair_h.setVisible(False)
             self.crosshair_v.setVisible(False)
 
+    # -------------------------------------------------------------------------
+    # Mouse movement: update coordinates and crosshair position
+    # -------------------------------------------------------------------------
     def mouseMoveEvent(self, event: QMouseEvent):
-        """Handle mouse movement for coordinate display and crosshairs"""
+        """
+        Handle mouse movement:
+          - Maps cursor position to scene coordinates
+          - Checks bounds
+          - Updates crosshair lines
+          - Emits coordinate_changed signal
+        """
         if self.scene() and self.parent_viewer and self.parent_viewer.img_data is not None:
+            # Map mouse position from view to scene coordinates
             pos = self.mapToScene(event.pos())
             x, y = int(pos.x()), int(pos.y())
 
-            # Check bounds
+            # Get scene dimensions for bounds checking
             scene_rect = self.scene().sceneRect()
+
+            # Only process if cursor is inside the image area
             if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
-                # Update crosshairs
+                # Move crosshair to current position
                 self.update_crosshairs(x, y)
-                # Emit coordinate change
+
+                # Notify parent about the new coordinates
                 self.coordinate_changed.emit(self.view_idx, x, y)
 
+        # Pass event to base class for default behavior
         super().mouseMoveEvent(event)
 
+    # -------------------------------------------------------------------------
+    # Mouse click: trigger coordinate selection or slice updates
+    # -------------------------------------------------------------------------
     def mousePressEvent(self, event: QMouseEvent):
-        """Handle mouse clicks for coordinate selection and slice navigation"""
+        """
+        Handle mouse clicks:
+          - On left-click, compute image coordinates
+          - Notify parent viewer for cross-view synchronization or slice update
+        """
         if (event.button() == Qt.MouseButton.LeftButton and
                 self.scene() and self.parent_viewer and
                 self.parent_viewer.img_data is not None):
 
+            # Convert click position to scene coordinates
             pos = self.mapToScene(event.pos())
             x, y = int(pos.x()), int(pos.y())
 
-            # Check bounds
+            # Verify position is inside the scene
             scene_rect = self.scene().sceneRect()
             if 0 <= x < scene_rect.width() and 0 <= y < scene_rect.height():
-                # Update clicked coordinates and trigger cross-view updates
+                # Delegate handling to parent viewer (e.g., update other views)
                 self.parent_viewer.handle_click_coordinates(self.view_idx, x, y)
 
         super().mousePressEvent(event)
 
+    # -------------------------------------------------------------------------
+    # Update crosshair position visually
+    # -------------------------------------------------------------------------
     def update_crosshairs(self, x, y):
-        """Update crosshair position"""
+        """
+        Move crosshair lines to a new position (x, y).
+        Makes them visible if hidden.
+        """
         if self.crosshair_h and self.crosshair_v and self.scene():
             scene_rect = self.scene().sceneRect()
 
-            # Horizontal line
+            # Horizontal line across the scene
             self.crosshair_h.setLine(0, y, scene_rect.width(), y)
-            # Vertical line
+
+            # Vertical line across the scene
             self.crosshair_v.setLine(x, 0, x, scene_rect.height())
 
+            # If not visible yet, make them appear
             if not self.crosshair_visible:
                 self.crosshair_h.setVisible(True)
                 self.crosshair_v.setVisible(True)
                 self.crosshair_visible = True
 
+    # -------------------------------------------------------------------------
+    # External setter for crosshair position (used by parent viewer)
+    # -------------------------------------------------------------------------
     def set_crosshair_position(self, x, y):
-        """Set crosshair position from external call"""
+        """
+        Allows external components (e.g. linked views) to set the crosshair.
+        Ensures it's within bounds before updating.
+        """
         if self.crosshair_h and self.crosshair_v and self.scene():
             scene_rect = self.scene().sceneRect()
             if (0 <= x < scene_rect.width() and 0 <= y < scene_rect.height()):
@@ -95,12 +161,22 @@ class CrosshairGraphicsView(QGraphicsView):
                 self.crosshair_v.setVisible(True)
                 self.crosshair_visible = True
 
+    # -------------------------------------------------------------------------
+    # Handle when the mouse leaves the widget area
+    # -------------------------------------------------------------------------
     def leaveEvent(self, event):
-        """Hide crosshairs when mouse leaves the view"""
+        """
+        Hide or update crosshairs when the mouse leaves the view area.
+        Currently, it calls the parent viewer’s update function to
+        synchronize crosshairs across multiple views.
+        """
         if self.crosshair_h and self.crosshair_v:
-            #self.crosshair_h.setVisible(False)
-            #self.crosshair_v.setVisible(False)
-            #self.crosshair_visible = False
-            self.parent_viewer.update_cross_view_lines()
-        super().leaveEvent(event)
+            # Previous behavior (hidden when leaving):
+            # self.crosshair_h.setVisible(False)
+            # self.crosshair_v.setVisible(False)
+            # self.crosshair_visible = False
 
+            # New behavior: ask parent to refresh all cross-view lines
+            self.parent_viewer.update_cross_view_lines()
+
+        super().leaveEvent(event)

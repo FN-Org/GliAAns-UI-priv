@@ -14,72 +14,85 @@ log = get_logger()
 
 
 class WorkspaceTreeView(QTreeView):
+    """
+    Custom QTreeView to manage files and folders within a workspace.
 
+    This widget:
+      - Displays the workspace directory structure using QFileSystemModel.
+      - Handles context menus for file/folder operations (add, remove, export, open).
+      - Supports multiple file selection and drag/drop-like functionality via threads.
+      - Integrates with the main application context for shared signals and callbacks.
+    """
+
+    # Signal emitted when a background thread (Copy/Delete) is created
     new_thread = pyqtSignal(object)
 
     def __init__(self, context):
         super().__init__()
 
+        # Context dictionary (shared among pages/windows)
         self.context = context
         self.workspace_path = self.context["workspace_path"]
 
         self.selected_files = []
 
-        # File System Model
+        # --- File System Model setup ---
         self.tree_model = QFileSystemModel()
         self.tree_model.setRootPath(self.workspace_path)
 
-        # Apply model to tree
+        # Apply model to the tree view
         self.setModel(self.tree_model)
         self.setRootIndex(self.tree_model.index(self.workspace_path))
         self.setMinimumSize(QtCore.QSize(200, 0))
 
-        # Selection and interaction
+        # Enable extended selection (multi-selection)
         self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        # Enable custom context menu
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
 
-        # Connections
+        # --- Signal connections ---
         self.clicked.connect(self.handle_workspace_click)
         self.doubleClicked.connect(self.handle_double_click)
         self.customContextMenuRequested.connect(self.open_tree_context_menu)
 
-    def handle_workspace_click(self):
-        selected_indexes = self.selectionModel().selectedRows()
+    # ---------------------------------------------------------------
+    # Event Handlers
+    # ---------------------------------------------------------------
 
-        selected_files = []
-        for idx in selected_indexes:
-            path = self.tree_model.filePath(idx)
-            selected_files.append(path)
+    def handle_workspace_click(self):
+        """Handle single-click event: update selected files and emit them via context signal."""
+        selected_indexes = self.selectionModel().selectedRows()
+        selected_files = [self.tree_model.filePath(idx) for idx in selected_indexes]
+
         self.selected_files = selected_files
-        # Save into context
         self.context["selected_files_signal"].emit(selected_files)
 
     def handle_double_click(self, index):
+        """
+        Handle double-click event:
+        - If the selected item is a NIfTI file (.nii / .nii.gz), open it in the viewer.
+        - Otherwise, open it with the system's default application.
+        """
         file_path = self.tree_model.filePath(index)
-
         if not os.path.isfile(file_path):
             return
 
-        # Se è un file NIfTI → apri con viewer
-        if file_path.endswith(".nii") or file_path.endswith(".nii.gz"):
+        if file_path.endswith((".nii", ".nii.gz")):
             try:
                 self.context["open_nifti_viewer"](file_path)
             except Exception as e:
                 QMessageBox.critical(
                     self,
                     QtCore.QCoreApplication.translate("TreeView", "Error"),
-                    QtCore.QCoreApplication.translate(
-                        "TreeView",
-                        "Error when opening NIfTI file:\n{0}"
-                    ).format(str(e))
+                    QtCore.QCoreApplication.translate("TreeView", "Error when opening NIfTI file:\n{0}").format(str(e))
                 )
-
-                log.error(f"Error opening file NIfTI:\n{str(e)}")
+                log.error(f"Error opening NIfTI file:\n{str(e)}")
         else:
-            # Tutti gli altri file → apri con applicazione di sistema
             self._open_in_explorer(file_path)
 
     def adjust_tree_columns(self):
+        """Automatically hide or show extra columns based on the widget width."""
         width = self.width()
         for i in range(1, self.tree_model.columnCount()):
             if width > 400:
@@ -88,30 +101,39 @@ class WorkspaceTreeView(QTreeView):
             else:
                 self.hideColumn(i)
 
+    # ---------------------------------------------------------------
+    # Context Menu
+    # ---------------------------------------------------------------
+
     def open_tree_context_menu(self, position):
+        """
+        Open the right-click context menu dynamically, depending on the selected item:
+        - Workspace root
+        - Folder
+        - File
+        - Multiple files
+        """
         index = self.indexAt(position)
         file_path = None
         is_dir = False
         is_nifty = False
 
+        # Determine selected file/folder
         if self.selected_files and len(self.selected_files) == 1 and not index.isValid():
             file_path = self.selected_files[0]
             is_dir = self.tree_model.isDir(index) if index.isValid() else False
             is_nifty = file_path.endswith((".nii", ".nii.gz"))
-        else:
-            if index.isValid():
-                file_path = self.tree_model.filePath(index)
-                is_dir = self.tree_model.isDir(index)
-
+        elif index.isValid():
+            file_path = self.tree_model.filePath(index)
+            is_dir = self.tree_model.isDir(index)
 
         menu = QMenu(self)
-
-        # Action registry (maps QAction → handler)
         actions = {}
 
+        # Choose menu layout based on selection
         if not index.isValid() and not self.selected_files:
             actions.update(self._add_workspace_actions(menu))
-        elif index.isValid() and file_path and len(self.selected_files) <= 1 :
+        elif index.isValid() and file_path and len(self.selected_files) <= 1:
             if is_dir:
                 actions.update(self._add_folder_actions(menu, file_path))
             else:
@@ -119,13 +141,15 @@ class WorkspaceTreeView(QTreeView):
         elif index.isValid() and len(self.selected_files) > 1:
             actions.update(self._add_multi_file_actions(menu))
 
-        # Execute selected action
+        # Execute chosen action
         chosen_action = menu.exec(self.viewport().mapToGlobal(position))
         if chosen_action and chosen_action in actions:
             actions[chosen_action](file_path, is_dir, is_nifty)
 
-    # --- Context Menu Action Groups ---
+    # --- Context Menu Definitions ---
+
     def _add_workspace_actions(self, menu):
+        """Add actions available at the root workspace level."""
         open_in_explorer = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open workspace in explorer"))
         menu.addSeparator()
         export_workspace = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export workspace"))
@@ -136,11 +160,14 @@ class WorkspaceTreeView(QTreeView):
         return {
             open_in_explorer: lambda *_: self._open_in_explorer(self.workspace_path),
             export_workspace: lambda *_: self.export_files([self.workspace_path], True),
-            clear_workspace: lambda *_: self.context["main_window"].clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True),
+            clear_workspace: lambda *_: self.context["main_window"].clear_folder(
+                folder_path=self.workspace_path, folder_name="workspace", return_to_import=True
+            ),
             add_single_file: lambda *_: self.add_file_to_workspace(None, False),
         }
 
     def _add_folder_actions(self, menu, file_path):
+        """Add actions for a folder."""
         open_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open folder in explorer"))
         menu.addSeparator()
         add_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file to folder"))
@@ -155,6 +182,7 @@ class WorkspaceTreeView(QTreeView):
         }
 
     def _add_file_actions(self, menu, file_path, is_nifty):
+        """Add actions for a single file."""
         open_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open with system predefined"))
         actions = {open_action: lambda *_: self._open_in_explorer(file_path)}
 
@@ -175,6 +203,7 @@ class WorkspaceTreeView(QTreeView):
         return actions
 
     def _add_multi_file_actions(self, menu):
+        """Add actions for multiple selected files."""
         export_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export files"))
         remove_action = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Remove Files from workspace"))
         return {
@@ -182,49 +211,62 @@ class WorkspaceTreeView(QTreeView):
             remove_action: lambda *_: self.remove_from_workspace(self.selected_files),
         }
 
-    def add_file_to_workspace(self, folder_path,is_dir):
+    # ---------------------------------------------------------------
+    # Core Operations
+    # ---------------------------------------------------------------
 
-        if hasattr(self,"context"):
-            dialog = QFileDialog(self.context['main_window'], "Select File")
-            dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-            dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
-            dialog.setOption(QFileDialog.Option.ReadOnly, True)
-            dialog.setDirectory(os.path.expanduser("~"))
+    def add_file_to_workspace(self, folder_path, is_dir):
+        """
+        Add a single file into the workspace.
+        Opens a file dialog, optionally adds related JSON, and triggers background copy thread.
+        """
+        dialog = QFileDialog(self.context['main_window'], "Select File")
+        dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dialog.setOption(QFileDialog.Option.ReadOnly, True)
+        dialog.setDirectory(os.path.expanduser("~"))
 
-            if dialog.exec():
-                file = dialog.selectedFiles()[0]
-                json_file = None
-                file_name = os.path.basename(file)
-                dir_name = os.path.dirname(file)
-                name, ext = os.path.splitext(file_name)
-                if ext == ".gz":
-                    name2, ext2 = os.path.splitext(name)
-                    if ext2 == ".nii":
-                        json_file = self._including_json(name2,dir_name)
-                elif ext == ".nii":
-                    json_file = self._including_json(name,dir_name)
+        if not dialog.exec():
+            return
 
-                if folder_path:
-                    if is_dir:
-                        folder = os.path.basename(folder_path)
-                    else:
-                        folder = os.path.dirname(folder_path)
-                else: folder = "workspace"
+        file = dialog.selectedFiles()[0]
+        file_name = os.path.basename(file)
+        dir_name = os.path.dirname(file)
+        name, ext = os.path.splitext(file_name)
+        json_file = None
 
-                if folder == "anat" or folder == "pet":
-                    self.new_thread.emit(CopyDeleteThread(src=file,dst=folder_path, is_folder=is_dir, copy=True))
+        # Handle potential .nii.gz format
+        if ext == ".gz":
+            name2, ext2 = os.path.splitext(name)
+            if ext2 == ".nii":
+                json_file = self._including_json(name2, dir_name)
+        elif ext == ".nii":
+            json_file = self._including_json(name, dir_name)
 
-                elif re.match(r"^ses-\d+$", folder):
-                    self.new_thread.emit(CopyDeleteThread(src=file, dst=os.path.join(folder_path, "pet"), is_folder=is_dir, copy=True))
+        # Determine destination folder
+        if folder_path:
+            if is_dir:
+                folder = os.path.basename(folder_path)
+            else:
+                folder = os.path.dirname(folder_path)
+        else:
+            folder = "workspace"
 
-                elif re.match(r"^sub-\d+$", folder):
-                    return self.open_role_dialog(files=[file,json_file], folder_path=folder_path, subj=folder)
-                elif folder == "derivatives":
-                    return self.open_role_dialog(files=[file,json_file], folder_path=folder_path, main=folder)
-                else: return self.open_role_dialog(files=[file,json_file], folder_path=self.workspace_path)
+        # Specialized behavior based on folder type
+        if folder in ("anat", "pet"):
+            self.new_thread.emit(CopyDeleteThread(src=file, dst=folder_path, is_folder=is_dir, copy=True))
+        elif re.match(r"^ses-\d+$", folder):
+            self.new_thread.emit(CopyDeleteThread(src=file, dst=os.path.join(folder_path, "pet"), is_folder=is_dir, copy=True))
+        elif re.match(r"^sub-\d+$", folder):
+            return self.open_role_dialog(files=[file, json_file], folder_path=folder_path, subj=folder)
+        elif folder == "derivatives":
+            return self.open_role_dialog(files=[file, json_file], folder_path=folder_path, main=folder)
+        else:
+            return self.open_role_dialog(files=[file, json_file], folder_path=self.workspace_path)
 
-    def open_role_dialog(self,files,folder_path = None, subj = None,role = None, main = None):
-        dialog = FileRoleDialog(workspace_path=self.workspace_path,subj=subj,role=role,main=main,parent=self)
+    def open_role_dialog(self, files, folder_path=None, subj=None, role=None, main=None):
+        """Open a FileRoleDialog to determine where to place files in the workspace hierarchy."""
+        dialog = FileRoleDialog(workspace_path=self.workspace_path, subj=subj, role=role, main=main, parent=self)
         if dialog.exec():
             relative_path = dialog.get_relative_path()
             path = os.path.join(folder_path, relative_path)
@@ -233,26 +275,30 @@ class WorkspaceTreeView(QTreeView):
                 if file:
                     self.new_thread.emit(CopyDeleteThread(src=file, dst=path, is_folder=False, copy=True))
 
-        else:
-            return
-        
-    
-    def _including_json(self,file_name, file_dir):
+    def _including_json(self, file_name, file_dir):
+        """
+        Ask the user whether to include an associated JSON file when adding a NIfTI file.
+        Returns JSON path if available and confirmed, otherwise empty string.
+        """
         answer = QMessageBox.information(
             self,
             QtCore.QCoreApplication.translate("TreeView", "Adding Json?"),
-            QtCore.QCoreApplication.translate("TreeView", "You want to include the JSON file if present?"),
-            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel  # <-- aggiungo due pulsanti
+            QtCore.QCoreApplication.translate("TreeView", "Do you want to include the JSON file if present?"),
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
         )
         if answer == QMessageBox.StandardButton.Ok:
-            json_file_name = file_name + ".json"
-            json_file_path = os.path.join(file_dir, json_file_name)
+            json_file_path = os.path.join(file_dir, file_name + ".json")
             if os.path.isfile(json_file_path):
                 return json_file_path
         return ""
 
+    # ---------------------------------------------------------------
+    # Export / Remove / Open
+    # ---------------------------------------------------------------
+
+
     def export_files(self, paths, is_dir):
-        """Export selected files or folders to a destination folder or file."""
+        """Export selected files or folders to a chosen destination."""
         if not paths:
             return
 
@@ -317,6 +363,7 @@ class WorkspaceTreeView(QTreeView):
                 self.new_thread.emit(CopyDeleteThread(src=path, dst=dst_path, is_folder=is_folder, copy=True))
 
     def remove_from_workspace(self, paths):
+        """Ask confirmation before deleting selected files/folders from workspace."""
         for path in paths:
             if not os.path.exists(path):
                 return
@@ -341,6 +388,7 @@ class WorkspaceTreeView(QTreeView):
                 self.new_thread.emit(CopyDeleteThread(src=path, is_folder=is_dir,delete=True))
 
     def _open_in_explorer(self, path):
+        """Open a file or folder using the system's file explorer or default app."""
         try:
             url = QUrl.fromLocalFile(path)
             success = QDesktopServices.openUrl(url)
@@ -363,6 +411,7 @@ class WorkspaceTreeView(QTreeView):
             log.error(f"An unexpected error occurred while opening the file:\n{e}")
 
     def _open_nifti(self, file_path):
+        """Open a NIfTI file in the integrated viewer."""
         try:
             self.context["open_nifti_viewer"](file_path)
         except Exception as e:
