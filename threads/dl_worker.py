@@ -126,7 +126,7 @@ class DlWorker(QObject):
             "-i", self.current_input_file,
             "-o", self.current_synthstrip_file,
             "-g",
-            "--model", "synthstrip.infant.1.pt"
+            "--model", "synthstrip.1.pt"
         ]
 
         self.synthstrip_process.start(cmd[0], cmd[1:])
@@ -302,7 +302,7 @@ class DlWorker(QObject):
         phase = "Deep Learning execution"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 5/6: Deep Learning..."))
-        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 5: Deep learning execution", 'i'))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 5: Deep learning execution"), 'i')
 
         self.dl_process = QProcess()
         self.dl_process.finished.connect(self.on_dl_finished)
@@ -351,7 +351,7 @@ class DlWorker(QObject):
         phase = "Postprocessing"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 6/6: Postprocessing..."))
-        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 6: Postprocess", 'i'))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 6: Postprocess"), 'i')
 
         self.dl_postprocess = QProcess()
         self.dl_postprocess.finished.connect(self.on_postprocess_finished)
