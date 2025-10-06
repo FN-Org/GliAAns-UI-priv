@@ -364,7 +364,7 @@
     <message>
         <location filename="../ui/ui_dl_execution_page.py" line="284"/>
         <source>Final: {message}</source>
-        <translation>Finale: {messaggio}</translation>
+        <translation>Finale: {message}</translation>
     </message>
     <message>
         <location filename="../ui/ui_dl_execution_page.py" line="297"/>
@@ -443,7 +443,6 @@ L&apos;elaborazione verrà interrotta.</translation>
     <message>
         <location filename="../threads/dl_thread.py" line="112"/>
         <source>SynthStrip started: {0}</source>
-        <comment>i</comment>
         <translation>SynthStrip avviato: {0}</translation>
     </message>
     <message>
@@ -612,6 +611,11 @@ L&apos;elaborazione verrà interrotta.</translation>
         <location filename="../threads/dl_thread.py" line="461"/>
         <source>Unknown error code: {error}</source>
         <translation>Codice di errore sconosciuto: {error}</translation>
+    </message>
+    <message>
+        <source>SynthStrip started: {0}</source>
+        <comment>i</comment>
+        <translation type="vanished">SynthStrip avviato: {0}</translation>
     </message>
 </context>
 <context>

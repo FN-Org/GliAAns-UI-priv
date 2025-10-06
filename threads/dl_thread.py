@@ -109,7 +109,7 @@ class DlWorker(QObject):
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 1/6: Synthstrip skull strip..."))
         self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 1: Skull strip with Synthstrip"), 'i')
 
-        self.log_update.emit(QCoreApplication.translate("DlWorker", "SynthStrip started: {0}", 'i').format(os.path.basename(self.current_input_file)))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "SynthStrip started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
         # Nome file skull stripped
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
