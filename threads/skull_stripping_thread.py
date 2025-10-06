@@ -1,5 +1,8 @@
 import os
 import json
+import shutil
+import tempfile
+
 from PyQt6.QtCore import pyqtSignal, QThread, QProcess, QCoreApplication
 from logger import get_logger
 from utils import setup_fsl_env, get_bin_path
@@ -39,7 +42,7 @@ class SkullStripThread(QThread):
 
     def run(self):
         base_progress = 10
-        progress_per_file = int(90/len(self.files))
+        progress_per_file = int(90 / len(self.files))
         for i, nifti_file in enumerate(self.files):
             if self.is_cancelled:
                 break
@@ -48,7 +51,10 @@ class SkullStripThread(QThread):
             self.file_started.emit(filename)
             base_progress = int(base_progress + i * progress_per_file)
             self.progress_value_updated.emit(base_progress)
-            self.progress_updated.emit(QCoreApplication.translate("Threads", "Processing {0} ({1}/{2})").format(filename, i+1, len(self.files)))
+            self.progress_updated.emit(
+                QCoreApplication.translate("Threads", "Processing {0} ({1}/{2})")
+                .format(filename, i + 1, len(self.files))
+            )
 
             try:
                 nifti_file = os.path.normpath(nifti_file)
@@ -58,47 +64,64 @@ class SkullStripThread(QThread):
                 path_parts = nifti_file.replace(self.workspace_path, '').strip(os.sep).split(os.sep)
                 subject_id = next((p for p in path_parts if p.startswith("sub-")), None)
                 if not subject_id:
-                    self.file_completed.emit(filename, False, QCoreApplication.translate("Threads", "Cannot extract subject ID"))
+                    self.file_completed.emit(filename, False,
+                                             QCoreApplication.translate("Threads", "Cannot extract subject ID"))
                     self.failed_files.append(nifti_file)
                     continue
 
-                # Directory output
+                # Directory output definitiva
                 output_dir = os.path.join(self.workspace_path, 'derivatives', 'skullstrips', subject_id, 'anat')
                 os.makedirs(output_dir, exist_ok=True)
 
-                base_name = filename.replace('.nii.gz','').replace('.nii','')
+                base_name = filename.replace('.nii.gz', '').replace('.nii', '')
 
-                # Costruzione comando
+                # Directory temporanea isolata
+                temp_dir = tempfile.mkdtemp(prefix="skullstrip_")
+
                 if self.has_bet:
                     os.environ["FSLDIR"], os.environ["FSLOUTPUTTYPE"] = setup_fsl_env()
                     f_val = self.parameters.get('f_val', 0.5)
                     f_str = f"f{str(f_val).replace('.', '')}"
-                    output_file = os.path.join(output_dir, f"{base_name}_{f_str}_brain.nii.gz")
-                    cmd = ["bet", nifti_file, output_file, "-f", str(f_val)]
-                    for opt in ['opt_m','opt_t','opt_s','opt_o']:
+
+                    # File temporaneo e finale
+                    temp_output = os.path.join(temp_dir, f"{base_name}_{f_str}_brain.nii.gz")
+                    final_output = os.path.join(output_dir, f"{base_name}_{f_str}_brain.nii.gz")
+
+                    cmd = ["bet", nifti_file, temp_output, "-f", str(f_val)]
+                    for opt in ['opt_m', 'opt_t', 'opt_s', 'opt_o']:
                         if self.parameters.get(opt, False):
                             cmd.append(f"-{opt[-1]}")
-                    for coord in ['c_x','c_y','c_z']:
-                        val = self.parameters.get(coord,0)
+                    for coord in ['c_x', 'c_y', 'c_z']:
+                        val = self.parameters.get(coord, 0)
                         if val != 0:
                             cmd += ["-c", str(val)]
                     if not self.parameters.get('opt_brain_extracted', True):
                         cmd.append("-n")
                     method = "FSL BET"
                 else:
-                    output_file = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
-                    cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", output_file]
+                    temp_output = os.path.join(temp_dir, f"{base_name}_hd-bet_brain.nii.gz")
+                    final_output = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
+
+                    cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", temp_output]
                     if not self.has_cuda:
                         cmd += ["-device", "cpu", "--disable_tta"]
                     method = "HD-BET"
 
-                # Esecuzione con QProcess
+                # Esecuzione del processo
                 self.process = QProcess()
                 self.process.start(cmd[0], cmd[1:])
 
-                self.process.waitForFinished(-1)
+                while not self.process.waitForFinished(200):
+                    if self.is_cancelled:
+                        self.process.kill()
+                        self.process.waitForFinished()
+                        break
 
+                # Se cancellato, elimina eventuali file temporanei e passa al prossimo
                 if self.is_cancelled:
+                    if os.path.exists(temp_output):
+                        os.remove(temp_output)
+                    shutil.rmtree(temp_dir, ignore_errors=True)
                     break
 
                 ret_code = self.process.exitCode()
@@ -106,12 +129,18 @@ class SkullStripThread(QThread):
                 stdout = bytes(self.process.readAllStandardOutput()).decode()
 
                 if ret_code != 0:
-                    self.file_completed.emit(filename, False, stderr or QCoreApplication.translate("Threads", "Error executing command"))
+                    self.file_completed.emit(filename, False,
+                                             stderr or QCoreApplication.translate("Threads", "Error executing command"))
                     self.failed_files.append(nifti_file)
+                    shutil.rmtree(temp_dir, ignore_errors=True)
                     continue
 
-                # Salva metadati JSON
-                json_file = output_file.replace(".nii.gz", ".json")
+                # Sposta l'output finale solo se tutto OK
+                shutil.move(temp_output, final_output)
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
+                # Scrivi JSON dei metadati
+                json_file = final_output.replace(".nii.gz", ".json")
                 metadata = {
                     "SkullStripped": True,
                     "Description": "Skull-stripped brain image",
@@ -127,6 +156,9 @@ class SkullStripThread(QThread):
             except Exception as e:
                 self.file_completed.emit(filename, False, str(e))
                 self.failed_files.append(nifti_file)
-
+                try:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                except Exception:
+                    pass
 
         self.all_completed.emit(self.success_count, self.failed_files)
