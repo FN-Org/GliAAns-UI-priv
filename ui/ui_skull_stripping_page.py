@@ -211,23 +211,67 @@ class SkullStrippingPage(Page):
         self.progress_bar.setVisible(False)
         self.layout.addWidget(self.progress_bar)
 
-        # Container per i bottoni Run e Cancel
-        button_container = QHBoxLayout()
+        # ===============================
+        # Bottoni di esecuzione / annullamento
+        # ===============================
+        from PyQt6.QtWidgets import QFrame
 
-        # Bottone RUN
+        button_frame = QFrame()
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 15, 0, 0)
+
+        # --- RUN button (verde) ---
         self.run_button = QPushButton("Run Skull Stripping")
         self.file_selector_widget.has_file.connect(self.run_button.setEnabled)
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
-        button_container.addWidget(self.run_button)
+        self.run_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                background-color: #27ae60;
+                color: white;
+                border-radius: 8px;
+                padding: 10px 20px;
+                min-width: 140px;
+            }
+            QPushButton:hover { 
+                background-color: #229954; 
+            }
+            QPushButton:disabled {
+                background-color: #bdc3c7;
+                color: #7f8c8d;
+            }
+        """)
+        button_layout.addStretch()
+        button_layout.addWidget(self.run_button)
 
-        # Bottone CANCEL (inizialmente nascosto)
-        self.cancel_button = QPushButton("Cancel")
+        # --- CANCEL button (rosso) ---
+        self.cancel_button = QPushButton("Stop Processing")
         self.cancel_button.setVisible(False)
         self.cancel_button.clicked.connect(self.cancel_processing)
-        button_container.addWidget(self.cancel_button)
+        self.cancel_button.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                font-weight: bold;
+                background-color: #e74c3c;
+                color: white;
+                border-radius: 8px;
+                padding: 10px 20px;
+                min-width: 140px;
+            }
+            QPushButton:hover { 
+                background-color: #c0392b; 
+            }
+            QPushButton:disabled {
+                background-color: #bdc3c7;
+                color: #7f8c8d;
+            }
+        """)
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addStretch()
 
-        self.layout.addLayout(button_container)
+        self.layout.addWidget(button_frame)
 
         # Stato
         self.status_label = QLabel("")
@@ -324,22 +368,25 @@ class SkullStrippingPage(Page):
             self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")
 
     def set_processing_mode(self, processing):
-        """Abilita/disabilita controlli durante il processing"""
-        # Disabilita/abilita controlli
-        self.run_button.setEnabled(not processing and bool(self.file_selector_widget.get_selected_files()))
+        """Gestisce lo stato dell'interfaccia durante il processing"""
 
-        if hasattr(self,"f_spinbox"):
+        # Mostra/nascondi pulsanti coerentemente
+        self.run_button.setVisible(not processing)
+        self.cancel_button.setVisible(processing)
+
+        # Abilita/disabilita run_button solo quando non stiamo processando
+        if not processing:
+            has_files = bool(self.file_selector_widget.get_selected_files())
+            self.run_button.setEnabled(has_files)
+
+        # Disabilita/abilita controlli parametri
+        if hasattr(self, "f_spinbox"):
             self.f_spinbox.setEnabled(not processing)
-        if hasattr(self,"advanced_btn"):
+        if hasattr(self, "advanced_btn"):
             self.advanced_btn.setEnabled(not processing)
-
-        if hasattr(self,"advanced_box"):
-            # Disabilita tutti i controlli avanzati
+        if hasattr(self, "advanced_box"):
             for widget in self.advanced_box.findChildren(QWidget):
                 widget.setEnabled(not processing)
-
-        # Mostra/nascondi pulsante cancel
-        self.cancel_button.setVisible(processing)
 
     def on_progress_updated(self, message):
         """Aggiorna il messaggio di progresso"""

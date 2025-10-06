@@ -116,7 +116,6 @@ class DlExecutionPage(Page):
         content_layout.addWidget(self.log_text, 2, 0, 1, 2)
 
         # === PULSANTI CONTROLLO ===
-        # button_layout = QHBoxLayout()
 
         # --- Stop button (centered) ---
         button_frame = QFrame()
@@ -145,11 +144,6 @@ class DlExecutionPage(Page):
             }
         """)
         button_layout.addWidget(self.start_button)
-
-        # self.cancel_button = QPushButton("Annulla")
-        # self.cancel_button.clicked.connect(self.cancel_processing)
-        # self.cancel_button.setVisible(False)
-        # button_layout.addWidget(self.cancel_button)
 
         self.cancel_button = QPushButton("Stop processing")
         self.cancel_button.setStyleSheet("""
