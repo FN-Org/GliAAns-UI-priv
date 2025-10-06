@@ -126,7 +126,7 @@ class SkullStrippingPage(Page):
         self.layout.addWidget(self.progress_bar)
 
         # Action buttons (Run / Cancel)
-        button_container = QHBoxLayout()
+        button_frame = QFrame()
         self.run_button = QPushButton("Run Skull Stripping")
         self.file_selector_widget.has_file.connect(self.run_button.setEnabled)
         self.run_button.setEnabled(False)

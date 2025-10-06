@@ -170,6 +170,10 @@ class FileSelectorWidget(QWidget):
         """
         self.file_button.setEnabled(not processing)
         self.clear_button.setEnabled(not processing and bool(self.selected_files))
+        if processing:
+            self.context["selected_files_signal"].disconnect()
+        else:
+            self.context["selected_files_signal"].connect(self.set_selected_files)
 
     # -------------------------------------------------------------------------
     # Translation

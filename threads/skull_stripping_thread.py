@@ -62,6 +62,7 @@ class SkullStripThread(QThread):
         This allows for safe interruption of long-running skull-stripping commands.
         """
         self.is_cancelled = True
+
         if hasattr(self, "process") and self.process is not None:
             try:
                 self.process.terminate()
@@ -180,7 +181,7 @@ class SkullStripThread(QThread):
                 self.process.start(cmd[0], cmd[1:])
 
                 # Wait for process completion, checking for cancellation
-                while not self.process.waitForFinished(200):
+                while not self.process.waitForFinished(-1):
                     if self.is_cancelled:
                         self.process.kill()
                         self.process.waitForFinished()
@@ -188,8 +189,6 @@ class SkullStripThread(QThread):
 
                 # Handle cancellation mid-run
                 if self.is_cancelled:
-                    if os.path.exists(temp_output):
-                        os.remove(temp_output)
                     shutil.rmtree(temp_dir, ignore_errors=True)
                     break
 

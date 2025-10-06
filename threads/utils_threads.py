@@ -14,17 +14,21 @@ class CopyDeleteThread(QThread):
     progress and error signals that can be handled by the main thread safely.
 
     ---
-    **Signals**
+
+    **Signals:**
+
     - `finished (str)`: Emitted when the operation completes successfully with a message.
     - `error (str)`: Emitted when an error occurs, providing an error message.
+
     ---
 
-    **Parameters**
-    - `src (str)`: Source file or folder path.
-    - `dst (str | None)`: Destination path (required for copy operations).
-    - `is_folder (bool)`: If `True`, the operation targets a folder instead of a file.
-    - `copy (bool)`: If `True`, performs a copy operation.
-    - `delete (bool)`: If `True`, performs a delete operation.
+    **Parameters:**
+
+    - `src` (*str*): Source file or folder path.
+    - `dst` (*str | None*): Destination path (required for copy operations).
+    - `is_folder` (*bool*): If `True`, the operation targets a folder instead of a file.
+    - `copy` (*bool*): If `True`, performs a copy operation.
+    - `delete` (*bool*): If `True`, performs a delete operation.
     """
 
     finished = pyqtSignal(str)

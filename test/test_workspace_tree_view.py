@@ -181,7 +181,7 @@ class TestWorkspaceTreeViewContextMenu:
         menu = QMenu()
         actions = tree_view._add_workspace_actions(menu)
 
-        assert len(actions) == 2
+        assert len(actions) == 4
         assert all(isinstance(action, Mock) or hasattr(action, 'text') for action in actions.keys())
 
     def test_folder_actions_created(self, tree_view, temp_workspace):

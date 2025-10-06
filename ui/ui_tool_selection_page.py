@@ -84,6 +84,7 @@ class ToolSelectionPage(Page):
                 background-color: #e5e5e5;
             }
         """)
+        self.radio_group_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.radio_group_box.setMaximumHeight(400)
 
         radio_layout = QVBoxLayout()
@@ -125,6 +126,7 @@ class ToolSelectionPage(Page):
                     border: 2px solid #2980b9;
                 }
             """)
+            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Add buttons to layout and group
         for i, btn in enumerate(self.radio_buttons):
@@ -132,6 +134,7 @@ class ToolSelectionPage(Page):
             if btn == self.radio_dl:
                 # Add info tooltip for Deep Learning option
                 dl_widget = QWidget()
+                dl_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
                 dl_layout = QHBoxLayout(dl_widget)
                 dl_layout.setContentsMargins(0, 0, 0, 0)
                 dl_layout.setSpacing(5)

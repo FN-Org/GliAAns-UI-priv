@@ -27,10 +27,11 @@ class DlExecutionPage(Page):
         """
         Initialize the execution page.
 
-        Args:
-            context (dict, optional): Shared application context with state information.
-            previous_page (Page, optional): Reference to the previous page for navigation.
+        **Args:**
+        - `context` (*dict*, optional): Shared application context with state information.
+        - `previous_page` (*Page*, optional): Reference to the previous page for navigation.
         """
+
         super().__init__()
         self.worker = None
         self.current_file = None
