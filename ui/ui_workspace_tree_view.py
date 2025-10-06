@@ -126,9 +126,18 @@ class WorkspaceTreeView(QTreeView):
 
     # --- Context Menu Action Groups ---
     def _add_workspace_actions(self, menu):
+        open_in_explorer = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open workspace in explorer"))
+        menu.addSeparator()
+        export_workspace = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Export workspace"))
+        clear_workspace = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Clear workspace"))
+        menu.addSeparator()
+        add_single_file = menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file to workspace"))
+
         return {
-            menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Open workspace in explorer")): lambda *_: self._open_in_explorer(self.workspace_path),
-            menu.addAction(QtCore.QCoreApplication.translate("TreeView", "Add single file to workspace")): lambda *_: self.add_file_to_workspace(None, False),
+            open_in_explorer: lambda *_: self._open_in_explorer(self.workspace_path),
+            export_workspace: lambda *_: self.export_files([self.workspace_path], True),
+            clear_workspace: lambda *_: self.context["main_window"].clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True),
+            add_single_file: lambda *_: self.add_file_to_workspace(None, False),
         }
 
     def _add_folder_actions(self, menu, file_path):
