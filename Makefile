@@ -6,6 +6,7 @@ PIPELINE_DIR      = pediatric_fdopa_pipeline
 REQUIREMENTS      = requirements.txt
 PIPELINE_DIST     = pipeline_runner.dist
 PIPELINE_NO_DIST  = pipeline_runner
+DOC_DIR			  = docs
 
 # -------------------------
 # Rilevamento OS
@@ -145,4 +146,14 @@ ifeq ($(OS),Windows_NT)
 	if exist "$(PIPELINE_NO_DIST)" rmdir /S /Q "$(PIPELINE_NO_DIST)"
 else
 	rm -rf $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
+endif
+
+.PHONY: doc
+doc:
+ifeq ($(OS),Windows_NT)
+	if exist "$(DOC_DIR)" rmdir /S /Q "$(DOC_DIR)"
+	pdoc -o $(DOC_DIR) .\ui .\threads .\components .\main.py .\controller.py .\utils.py .\logger.py
+else
+	rm -rf $(DOC_DIR)
+	pdoc -o $(DOC_DIR) ./ui ./threads ./components ./main.py ./controller.py ./utils.py ./logger.py
 endif

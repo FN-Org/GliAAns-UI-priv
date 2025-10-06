@@ -49,8 +49,9 @@ class ToolSelectionPage(Page):
     """
 
     def __init__(self, context=None, previous_page=None):
-        """Initialize the ToolChoicePage UI."""
+        """Initialize the ToolSelectionPage UI."""
         super().__init__()
+
         self.context = context
         self.previous_page = previous_page
 
