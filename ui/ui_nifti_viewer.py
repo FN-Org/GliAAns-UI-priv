@@ -1590,7 +1590,7 @@ class NiftiViewer(QMainWindow):
         msg.setInformativeText(
             f"File will be saved as:\n\n{new_name}\n\n"
             f"Location:\n{save_dir}\n\n"
-            f"Radius: {radius}\nDifference: {difference}"
+            f"Radius: {radius} mm\nDifference: {difference}%"
         )
         msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg.setDefaultButton(QMessageBox.StandardButton.Yes)
