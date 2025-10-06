@@ -1,8 +1,8 @@
 import torch
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton,QMessageBox, QCheckBox,
+    QVBoxLayout, QLabel, QPushButton, QMessageBox, QCheckBox,
     QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
-    QProgressBar
+    QProgressBar, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 import os
@@ -214,7 +214,6 @@ class SkullStrippingPage(Page):
         # ===============================
         # Bottoni di esecuzione / annullamento
         # ===============================
-        from PyQt6.QtWidgets import QFrame
 
         button_frame = QFrame()
         button_layout = QHBoxLayout(button_frame)

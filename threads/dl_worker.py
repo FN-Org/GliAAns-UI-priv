@@ -4,7 +4,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PyQt6.QtCore import QThread, pyqtSignal, QProcess, QObject
+from PyQt6.QtCore import QThread, pyqtSignal, QProcess, QObject, QCoreApplication
 
 from logger import get_logger
 
@@ -67,8 +67,8 @@ class DlWorker(QObject):
 
         # Log di debug (opzionale)
         self.log_update.emit(
-            f"Progress: {progress}% (File {self.current_file_index + 1}/{self.total_files}, "
-            f"Phase {self.current_phase}/{self.total_phases})",
+            QCoreApplication.translate("DlWorker", "Progress: {0}% (File {1}/{2}, "
+            "Phase {3}/{4})").format(progress, self.current_file_index + 1, self.total_files, self.current_phase, self.total_phases),
             'd'
         )
 
@@ -97,7 +97,7 @@ class DlWorker(QObject):
         self.current_input_file = self.input_files[self.current_file_index]
         self.current_input_file_basename = os.path.basename(self.current_input_file)
 
-        self.log_update.emit(f"=== PROCESSING: {self.current_input_file_basename} ===", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "=== PROCESSING: {0} ===").format(self.current_input_file_basename), 'i')
 
         # FASE 1: SynthStrip
         self.current_phase = 1
@@ -106,10 +106,10 @@ class DlWorker(QObject):
     def run_synthstrip(self):
         """Synthstrip on a single file"""
         phase = "Synthstrip"
-        self.file_update.emit(self.current_input_file_basename, "Phase 1/6: Synthstrip skull strip...")
-        self.log_update.emit("FASE 1: Skull strip with Synthstrip", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 1/6: Synthstrip skull strip..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 1: Skull strip with Synthstrip"), 'i')
 
-        self.log_update.emit(f"SynthStrip started: {os.path.basename(self.current_input_file)}", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "SynthStrip started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
         # Nome file skull stripped
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
@@ -126,7 +126,7 @@ class DlWorker(QObject):
             "-i", self.current_input_file,
             "-o", self.current_synthstrip_file,
             "-g",
-            "--model", "synthstrip.infant.1.pt"
+            "--model", "synthstrip.1.pt"
         ]
 
         self.synthstrip_process.start(cmd[0], cmd[1:])
@@ -140,11 +140,11 @@ class DlWorker(QObject):
             self.log_update.emit("SynthStrip failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Skull stripping completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Skull stripping completed"), 'i')
         self.update_progress()
         # FASE 2: Coregistration
         self.current_phase = 2
@@ -154,10 +154,10 @@ class DlWorker(QObject):
         """Esegue coregistrazione con atlas"""
         phase = "Coregistration"
 
-        self.file_update.emit(self.current_input_file_basename, "Phase 2/6: Coregistration...")
-        self.log_update.emit("FASE 2: Coregistration", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 2/6: Coregistration..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 2: Coregistration"), 'i')
 
-        self.log_update.emit(f"Coregistration started: {os.path.basename(self.current_input_file)}", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "Coregistration started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
         # Crea directory per coregistrazione
         coreg_dir = os.path.join(self.output_dir, "coregistration")
@@ -189,11 +189,11 @@ class DlWorker(QObject):
             self.log_update.emit("Coregistration failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Coregistration completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Coregistration completed"), 'i')
         self.update_progress()
         # FASE 3: Reorientation
         self.current_phase = 3
@@ -203,16 +203,16 @@ class DlWorker(QObject):
         """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
         phase = "Reorientation"
 
-        self.file_update.emit(self.current_input_file_basename, "Phase 3/6: Reorientation...")
-        self.log_update.emit("FASE 3: Reorientation", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 3/6: Reorientation..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 3: Reorientation"), 'i')
 
-        self.log_update.emit(f"Reorientation started: {os.path.basename(self.current_input_file)}", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "Reorientation started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
         coreg_dir = Path(os.path.join(self.output_dir, "coregistration"))
         brain_in_atlas_files = list(coreg_dir.glob("*.nii.gz")) + list(coreg_dir.glob("*.nii"))
 
         if not brain_in_atlas_files:
-            self.log_update.emit("✗ No brain_in_atlas file found", 'e')
+            self.log_update.emit(QCoreApplication.translate("DlWorker", "✗ No brain_in_atlas file found"), 'e')
             return False
 
         brain_in_atlas_file = str(brain_in_atlas_files[0])
@@ -242,11 +242,11 @@ class DlWorker(QObject):
             self.log_update.emit("Reorientation failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Reorientation completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Reorientation completed"), 'i')
         self.update_progress()
         # FASE 4: Preprocess
         self.current_phase = 4
@@ -256,8 +256,8 @@ class DlWorker(QObject):
         """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
         phase = "Preprocessing"
 
-        self.file_update.emit(self.current_input_file_basename, "Phase 4/6: Preparing and preprocessing...")
-        self.log_update.emit("FASE 4: Prepare and preprocess", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 4/6: Preparing and preprocessing..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 4: Prepare and preprocess"), 'i')
 
         data_path = os.path.join(self.output_dir, "reoriented")
         results_path = os.path.join(self.output_dir, "preprocess")
@@ -287,11 +287,11 @@ class DlWorker(QObject):
             self.log_update.emit("Preprocess failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Preprocess completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Preprocess completed"), 'i')
         self.update_progress()
         # FASE 5: Deep learning execution
         self.current_phase = 5
@@ -301,8 +301,8 @@ class DlWorker(QObject):
         """Esegue FASE 5: DEEP LEARNING"""
         phase = "Deep Learning execution"
 
-        self.file_update.emit(self.current_input_file_basename, "Phase 5/6: Deep Learning...")
-        self.log_update.emit("FASE 5: Deep learning execution", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 5/6: Deep Learning..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 5: Deep learning execution"), 'i')
 
         self.dl_process = QProcess()
         self.dl_process.finished.connect(self.on_dl_finished)
@@ -337,11 +337,11 @@ class DlWorker(QObject):
             self.log_update.emit("Deep learning execution failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Deep learning execution completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Deep learning execution completed"), 'i')
         self.update_progress()
         # FASE 6: Postprocess
         self.current_phase = 6
@@ -350,8 +350,8 @@ class DlWorker(QObject):
     def run_postprocess(self):
         phase = "Postprocessing"
 
-        self.file_update.emit(self.current_input_file_basename, "Phase 6/6: Postprocessing...")
-        self.log_update.emit("FASE 6: Postprocess", 'i')
+        self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 6/6: Postprocessing..."))
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 6: Postprocess"), 'i')
 
         self.dl_postprocess = QProcess()
         self.dl_postprocess.finished.connect(self.on_postprocess_finished)
@@ -378,23 +378,23 @@ class DlWorker(QObject):
             self.log_update.emit("Postprocess failed", f"Exit code: {exit_code}")
             if self.current_file_index < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, "Segmentation failed for this file")
+                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
-        self.log_update.emit("✓ Postprocess completed", 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Postprocess completed"), 'i')
         self.update_progress()
 
         if self.current_file_index + 1 < self.total_files:
             self.current_file_index += 1
             self.process_single_file()
         else:
-            self.finished.emit(True, "Processing completed")
+            self.finished.emit(True, QCoreApplication.translate("DlWorker", "Processing completed"))
         return
 
     def cancel(self):
         self.is_cancelled = True
-        self.log_update.emit("Cancellation requested - stopping all processes...", 'w')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "Cancellation requested - stopping all processes..."), 'w')
 
         processes = {
             'SynthStrip': self.synthstrip_process,
@@ -407,18 +407,18 @@ class DlWorker(QObject):
 
         for name, process in processes.items():
             if process is not None and process.state() != QProcess.ProcessState.NotRunning:
-                self.log_update.emit(f"Stopping {name}...", 'w')
+                self.log_update.emit(QCoreApplication.translate("DlWorker", "Stopping {name}...").format(name=name), 'w')
 
                 # Non serve disconnettere i segnali manualmente!
                 process.terminate()
 
                 # fai un kill solo se dopo un timeout non risponde
                 if not process.waitForFinished(2000):
-                    self.log_update.emit(f"Forcing {name} to quit...", 'e')
+                    self.log_update.emit(QCoreApplication.translate("DlWorker", "Forcing {name} to quit...").format(name=name), 'e')
                     process.kill()
                     process.waitForFinished(1000)
 
-        self.finished.emit(False, "Processing cancelled by user")
+        self.finished.emit(False, QCoreApplication.translate("DlWorker", "Processing cancelled by user"))
 
     def on_stdout(self, phase, data):
         """Handler corretto per stdout di QProcess"""
@@ -450,15 +450,15 @@ class DlWorker(QObject):
         """Handler per errori di QProcess"""
         try:
             error_messages = {
-                QProcess.ProcessError.FailedToStart: "Failed to start process",
-                QProcess.ProcessError.Crashed: "Process crashed",
-                QProcess.ProcessError.Timedout: "Process timed out",
-                QProcess.ProcessError.WriteError: "Write error",
-                QProcess.ProcessError.ReadError: "Read error",
-                QProcess.ProcessError.UnknownError: "Unknown error"
+                QProcess.ProcessError.FailedToStart: QCoreApplication.translate("DlWorker", "Failed to start process"),
+                QProcess.ProcessError.Crashed: QCoreApplication.translate("DlWorker", "Process crashed"),
+                QProcess.ProcessError.Timedout: QCoreApplication.translate("DlWorker", "Process timed out"),
+                QProcess.ProcessError.WriteError: QCoreApplication.translate("DlWorker", "Write error"),
+                QProcess.ProcessError.ReadError: QCoreApplication.translate("DlWorker", "Read error"),
+                QProcess.ProcessError.UnknownError: QCoreApplication.translate("DlWorker", "Unknown error")
             }
 
-            error_msg = error_messages.get(error, f"Unknown error code: {error}")
+            error_msg = error_messages.get(error, QCoreApplication.translate("DlWorker", "Unknown error code: {error}").format(error=error))
             self.log_update.emit(f"[{phase}] Process error: {error_msg}", 'e')
 
         except Exception as e:
