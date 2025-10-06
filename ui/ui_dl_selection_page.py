@@ -2,7 +2,7 @@
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout, QHBoxLayout, \
     QMessageBox, QGroupBox, QListWidget, QDialog, QLineEdit, QDialogButtonBox, QListWidgetItem
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
 from ui.ui_dl_execution_page import DlExecutionPage
@@ -22,6 +22,10 @@ class DlPatientSelectionPage(Page):
         self.selected_files = []
 
         self._setup_ui()
+
+        self._translate_ui()
+        if context and "language_changed" in context:
+            context["language_changed"].connect(self._translate_ui)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -643,3 +647,9 @@ class DlPatientSelectionPage(Page):
         # Clear from context
         if self.context:
             self.context["selected_segmentation_files"] = []
+
+    def _translate_ui(self):
+        self.title.setText(QCoreApplication.translate("DlSelectionPage", "Select NIfTI files for Deep Learning Segmentation"))
+        self.file_button.setText(QCoreApplication.translate("DlSelectionPage", "Choose NIfTI File(s)"))
+        self.clear_button.setText(QCoreApplication.translate("DlSelectionPage", "Clear Selection"))
+
