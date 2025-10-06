@@ -38,8 +38,8 @@ class MainWindow(QMainWindow):
     # UI SETUP
     # --------------------------
     def _setup_ui(self):
-        self.resize(950, 650)
-        self.setMinimumSize(950, 650)
+        self.resize(950, 700)
+        self.setMinimumSize(950, 700)
 
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.workspace_menu.addAction(self.clear_pipeline_outputs_action)
         self.clear_all_action.triggered.connect(lambda: self.clear_folder(folder_path=self.workspace_path,folder_name="workspace",return_to_import=True))
         self.export_workspace_action.triggered.connect(lambda:
-                                             self.tree_view.export_files(self.workspace_path, is_dir=True))
+                                             self.context["tree_view"].export_files([self.workspace_path], is_dir=True))
         self.clear_pipeline_outputs_action.triggered.connect(lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path,"pipeline"),folder_name="outputs",return_to_import=False))
 
         # Settings

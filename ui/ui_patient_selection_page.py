@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
-from ui.ui_tool_selection_page import ToolChoicePage
+from ui.ui_tool_selection_page import ToolSelectionPage
 from utils import resource_path
 from page import Page
 from logger import get_logger
@@ -187,7 +187,7 @@ class PatientSelectionPage(Page):
                                 log.error(f"Failed to delete from derivatives: {full_path}: {e}")
 
         if not self.next_page:
-            self.next_page = ToolChoicePage(context, self)
+            self.next_page = ToolSelectionPage(context, self)
             self.context["history"].append(self.next_page)
 
         self.next_page.on_enter()

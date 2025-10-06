@@ -16,7 +16,7 @@ from ui.ui_skull_stripping_page import SkullStrippingPage
 from page import Page
 
 
-class ToolChoicePage(Page):
+class ToolSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
