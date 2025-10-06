@@ -20,8 +20,6 @@ class DlPatientSelectionPage(Page):
         self.previous_page = previous_page
         self.next_page = None
 
-        self.selected_files = []
-
         self._setup_ui()
 
         self._translate_ui()
@@ -118,12 +116,6 @@ class DlPatientSelectionPage(Page):
 
     def reset_page(self):
         """Resets the page to its initial state, clearing all selections"""
-        # Clear selected files
-        self.selected_files = []
-        # self.file_list_widget.clear()
-
-        # Reset buttons state
-        # self.clear_button.setEnabled(False)
 
         # Clear status message
         self.status_label.setText("")
@@ -134,6 +126,4 @@ class DlPatientSelectionPage(Page):
 
     def _translate_ui(self):
         self.title.setText(QCoreApplication.translate("DlSelectionPage", "Select NIfTI files for Deep Learning Segmentation"))
-        # self.file_button.setText(QCoreApplication.translate("DlSelectionPage", "Choose NIfTI File(s)"))
-        # self.clear_button.setText(QCoreApplication.translate("DlSelectionPage", "Clear Selection"))
 

@@ -321,6 +321,300 @@
     </message>
 </context>
 <context>
+    <name>DlExecutionPage</name>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="361"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="185"/>
+        <source>📄 {filename} - Waiting...</source>
+        <translation>📄 {filename} - In attesa...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="299"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="195"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="190"/>
+        <source>Error</source>
+        <translation>Errore</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="195"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="190"/>
+        <source>No files selected for processing.</source>
+        <translation>Nessun file selezionato per l&apos;elaborazione.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="219"/>
+        <source>Processing...</source>
+        <translation>Elaborazione in corso...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="226"/>
+        <source>Deep learning processing started for {0} file</source>
+        <translation>Elaborazione con deep learning avviata per il file {0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="264"/>
+        <source>Cancellation requested...</source>
+        <translation>Annullamento richiesto...</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="277"/>
+        <source>✓ Processing completed!</source>
+        <translation>✓ Processo completato!</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="284"/>
+        <source>Final: {message}</source>
+        <translation>Finale: {messaggio}</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="297"/>
+        <source>Completed</source>
+        <translation>Completato</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="354"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="305"/>
+        <source>Start deep learning</source>
+        <translation>Avvio deep learning</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="319"/>
+        <source>Processing in progress</source>
+        <translation>Elaborazione in corso</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="320"/>
+        <source>Processing is in progress. Do you really want to go back?
+Processing will be interrupted.</source>
+        <translation>L&apos;elaborazione è in corso. Vuoi davvero tornare indietro?
+L&apos;elaborazione verrà interrotta.</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="350"/>
+        <source>Deep Learning Segmentation</source>
+        <translation>Segmentazione tramite Deep Learning</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="351"/>
+        <source>Ready to start</source>
+        <translation>Pronto per iniziare</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="352"/>
+        <source>Files to process</source>
+        <translation>File da processare</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="353"/>
+        <source>Execution Log:</source>
+        <translation>Registro dell&apos;Esecuzione:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_dl_execution_page.py" line="355"/>
+        <source>Stop processing</source>
+        <translation>Stop elaborazione</translation>
+    </message>
+</context>
+<context>
+    <name>DlSelectionPage</name>
+    <message>
+        <location filename="../ui/ui_dl_selection_page.py" line="128"/>
+        <source>Select NIfTI files for Deep Learning Segmentation</source>
+        <translation>Seleziona i file NIfTI per la segmentazione del Deep Learning</translation>
+    </message>
+</context>
+<context>
+    <name>DlWorker</name>
+    <message>
+        <location filename="../threads/dl_thread.py" line="100"/>
+        <source>=== PROCESSING: {0} ===</source>
+        <translation>=== ELABORAZIONE: {0} ===</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="109"/>
+        <source>Phase 1/6: Synthstrip skull strip...</source>
+        <translation>Fase 1/6: Skull strip con Synthstrip...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="110"/>
+        <source>PHASE 1: Skull strip with Synthstrip</source>
+        <translation>FASE 1: Skull strip con Synthstrip</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="112"/>
+        <source>SynthStrip started: {0}</source>
+        <comment>i</comment>
+        <translation>SynthStrip avviato: {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="381"/>
+        <location filename="../threads/dl_thread.py" line="340"/>
+        <location filename="../threads/dl_thread.py" line="290"/>
+        <location filename="../threads/dl_thread.py" line="245"/>
+        <location filename="../threads/dl_thread.py" line="192"/>
+        <location filename="../threads/dl_thread.py" line="143"/>
+        <source>Segmentation failed for this file</source>
+        <translation>Segmentazione non riuscita per questo file</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="147"/>
+        <source>✓ Skull stripping completed</source>
+        <translation>✓ Skull stripping completato</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="157"/>
+        <source>Phase 2/6: Coregistration...</source>
+        <translation>Fase 2/6: Coregistrazione...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="158"/>
+        <source>PHASE 2: Coregistration</source>
+        <translation>FASE 2: Coregistrazione</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="160"/>
+        <source>Coregistration started: {0}</source>
+        <translation>Coregistratione iniziate {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="196"/>
+        <source>✓ Coregistration completed</source>
+        <translation>✓ Coregistrazione completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="206"/>
+        <source>Phase 3/6: Reorientation...</source>
+        <translation>Fase 3/6: Riorientamento...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="207"/>
+        <source>PHASE 3: Reorientation</source>
+        <translation>FASE 3: Riorientamento</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="209"/>
+        <source>Reorientation started: {0}</source>
+        <translation>Riorientamento iniziato {0}</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="215"/>
+        <source>✗ No brain_in_atlas file found</source>
+        <translation>✗ Nessun file brain_in_atlas trovato</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="249"/>
+        <source>✓ Reorientation completed</source>
+        <translation>✓ Riorientamento completato</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="259"/>
+        <source>Phase 4/6: Preparing and preprocessing...</source>
+        <translation>Fase 4/6: Preparazione e pre-elaborazione...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="260"/>
+        <source>PHASE 4: Prepare and preprocess</source>
+        <translation>FASE 4: Preparazione e pre-elaborazione</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="294"/>
+        <source>✓ Preprocess completed</source>
+        <translation>✓ Pre-elaborazione completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="304"/>
+        <source>Phase 5/6: Deep Learning...</source>
+        <translation>Fase 5/6: Deep Learning...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="305"/>
+        <source>PHASE 5: Deep learning execution</source>
+        <comment>i</comment>
+        <translation>FASE 5: Elaborazione deep learning</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="344"/>
+        <source>✓ Deep learning execution completed</source>
+        <translation>✓ Elaborazione deep learning completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="353"/>
+        <source>Phase 6/6: Postprocessing...</source>
+        <translation>Fase 6/6: Post-elaborazione...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="354"/>
+        <source>PHASE 6: Postprocess</source>
+        <comment>i</comment>
+        <translation>FASE 6: Post-elaborazione</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="385"/>
+        <source>✓ Postprocess completed</source>
+        <translation>✓ Post-elaborazione completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="392"/>
+        <source>Processing completed</source>
+        <translation>Elaborazione completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="397"/>
+        <source>Cancellation requested - stopping all processes...</source>
+        <translation>Annullamento richiesto: arresto di tutti i processi...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="410"/>
+        <source>Stopping {name}...</source>
+        <translation>Arresto di {name}...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="417"/>
+        <source>Forcing {name} to quit...</source>
+        <translation>Forzare {name} a uscire...</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="421"/>
+        <source>Processing cancelled by user</source>
+        <translation>Elaborazione annullata dall&apos;utente</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="453"/>
+        <source>Failed to start process</source>
+        <translation>Inizio esecuzione fallita</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="454"/>
+        <source>Process crashed</source>
+        <translation>Processo bloccato</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="455"/>
+        <source>Process timed out</source>
+        <translation>Processo scaduto</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="456"/>
+        <source>Write error</source>
+        <translation>Errore di scrittura</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="457"/>
+        <source>Read error</source>
+        <translation>Errore di lettura</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="458"/>
+        <source>Unknown error</source>
+        <translation>Errore sconosciuto</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_thread.py" line="461"/>
+        <source>Unknown error code: {error}</source>
+        <translation>Codice di errore sconosciuto: {error}</translation>
+    </message>
+</context>
+<context>
     <name>ImportFrame</name>
     <message>
         <source>Select Folder</source>
