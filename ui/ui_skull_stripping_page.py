@@ -2,7 +2,7 @@ import torch
 from PyQt6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton, QMessageBox, QCheckBox,
     QHBoxLayout, QWidget, QDoubleSpinBox, QSpinBox, QGroupBox,
-    QProgressBar
+    QProgressBar, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 import os
@@ -127,20 +127,63 @@ class SkullStrippingPage(Page):
 
         # Action buttons (Run / Cancel)
         button_frame = QFrame()
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 15, 0, 0)
+
+        # --- RUN button (green) ---
         self.run_button = QPushButton("Run Skull Stripping")
         self.file_selector_widget.has_file.connect(self.run_button.setEnabled)
         self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.run_bet)
-        button_container.addWidget(self.run_button)
+        self.run_button.setStyleSheet("""
+                    QPushButton {
+                        font-size: 14px;
+                        font-weight: bold;
+                        background-color: #27ae60;
+                        color: white;
+                        border-radius: 8px;
+                        padding: 10px 20px;
+                        min-width: 140px;
+                    }
+                    QPushButton:hover { 
+                        background-color: #229954; 
+                    }
+                    QPushButton:disabled {
+                        background-color: #bdc3c7;
+                        color: #7f8c8d;
+                    }
+                """)
+        button_layout.addStretch()
+        button_layout.addWidget(self.run_button)
 
-        self.cancel_button = QPushButton("Cancel")
+        # --- CANCEL button (red) ---
+        self.cancel_button = QPushButton("Stop Processing")
         self.cancel_button.setVisible(False)
         self.cancel_button.clicked.connect(self.cancel_processing)
-        button_container.addWidget(self.cancel_button)
+        self.cancel_button.setStyleSheet("""
+                    QPushButton {
+                        font-size: 14px;
+                        font-weight: bold;
+                        background-color: #e74c3c;
+                        color: white;
+                        border-radius: 8px;
+                        padding: 10px 20px;
+                        min-width: 140px;
+                    }
+                    QPushButton:hover { 
+                        background-color: #c0392b; 
+                    }
+                    QPushButton:disabled {
+                        background-color: #bdc3c7;
+                        color: #7f8c8d;
+                    }
+                """)
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addStretch()
 
-        self.layout.addLayout(button_container)
+        self.layout.addWidget(button_frame)
 
-        # Status label
+        # Stato
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.status_label)
@@ -310,13 +353,15 @@ class SkullStrippingPage(Page):
         """Cancel the currently running process."""
         self.canceled = True
         if self.worker and self.worker.isRunning():
+
             self.worker.cancel()
             self.status_label.setText("Cancelling...")
             self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")
 
     def set_processing_mode(self, processing):
         """Enable or disable UI controls depending on processing state."""
-        self.run_button.setEnabled(not processing and bool(self.file_selector_widget.get_selected_files()))
+        self.run_button.setVisible(not processing and bool(self.file_selector_widget.get_selected_files()))
+        self.cancel_button.setVisible(processing)
         if hasattr(self, "f_spinbox"):
             self.f_spinbox.setEnabled(not processing)
         if hasattr(self, "advanced_btn"):
@@ -325,6 +370,7 @@ class SkullStrippingPage(Page):
             for widget in self.advanced_box.findChildren(QWidget):
                 widget.setEnabled(not processing)
         self.cancel_button.setVisible(processing)
+
 
     def on_progress_updated(self, message):
         """Update progress text message."""
@@ -346,28 +392,43 @@ class SkullStrippingPage(Page):
 
     def on_all_completed(self, success_count, failed_files):
         """Triggered after all files are processed."""
+        # Nascondi progress bar
         self.progress_bar.setVisible(False)
+
+        # Aggiorna il messaggio di stato finale
         if success_count > 0:
-            summary = f"Skull Stripping completed successfully for {success_count} file(s)"
+            summary = QCoreApplication.translate("SkullStrippingPage",
+                                                 "Skull Stripping completed successfully for {0} file(s)").format(
+                success_count)
             if failed_files:
-                failed_summary = f"{len(failed_files)} file(s) failed: {', '.join([os.path.basename(f) for f in failed_files])}"
+                failed_summary = QCoreApplication.translate("SkullStrippingPage",
+                                                            "{count} file(s) failed: {files}").format(
+                    count=len(failed_files),
+                    files=', '.join([os.path.basename(f) for f in failed_files])
+                )
                 summary += f"\n{failed_summary}"
                 self.status_label.setStyleSheet("color: #FF9800; font-weight: bold; font-size: 12pt; padding: 5px;")
             else:
                 self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 12pt; padding: 5px;")
         else:
-            summary = f"All {len(failed_files)} file(s) failed to process"
+            failed_files_num = len(failed_files)
+            if failed_files_num == 0:
+                failed_files_num = ""
+            summary = QCoreApplication.translate("SkullStrippingPage", "All {0} file(s) failed to process").format(
+                failed_files_num)
             self.status_label.setStyleSheet("color: #FF0000; font-weight: bold; font-size: 12pt; padding: 5px;")
+
         self.status_label.setText(summary)
 
+
     def on_worker_finished(self):
-        """Triggered when worker thread finishes execution."""
-        self.processing.emit(False)
-        if self.worker:
-            self.worker.deleteLater()
-            self.worker = None
-        if self.context and "update_main_buttons" in self.context:
-            self.context["update_main_buttons"]()
+            """Triggered when worker thread finishes execution."""
+            self.processing.emit(False)
+            if self.worker:
+                self.worker.deleteLater()
+                self.worker = None
+            if self.context and "update_main_buttons" in self.context:
+                self.context["update_main_buttons"]()
 
     def back(self):
         """Navigate back to the previous page if not processing."""
@@ -439,4 +500,7 @@ class SkullStrippingPage(Page):
         else:
             self.info_label.setText(QCoreApplication.translate("SkullStrippingPage", "Using tool: <a href='https://github.com/MIC-DKFZ/HD-BET'>hd-bet</a> <br>"
                 "To use BET from FSL toolkit, install it following the instructions at: <a href='https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index'>FSL installation</a>"))
-        self.info
+        self.info_label.setToolTip(QCoreApplication.translate("SkullStrippingPage", "Open link"))
+
+        self.run_button.setText(QCoreApplication.translate("SkullStrippingPage", "Run Skull Stripping"))
+        self.cancel_button.setText(QCoreApplication.translate("SkullStrippingPage", "Cancel"))
