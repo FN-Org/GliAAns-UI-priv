@@ -100,7 +100,8 @@ endif
 # -------------------------
 .PHONY: compile-app
 compile-app: $(VENV_DIR)
-	$(MAIN_PYTHON) -m PyInstaller \
+	$(MAIN_PYTHON) -OO -m PyInstaller \
+		--clean \
 	    --onedir \
 	    --noconsole \
 	    --icon=$(ICON) \
