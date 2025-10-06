@@ -68,7 +68,7 @@ class DlWorker(QObject):
         # Log di debug (opzionale)
         self.log_update.emit(
             QCoreApplication.translate("DlWorker", "Progress: {0}% (File {1}/{2}, "
-            f"Phase {3}/{4})").format(progress, self.current_file_index + 1, self.total_files, self.current_phase, self.total_phases),
+            "Phase {3}/{4})").format(progress, self.current_file_index + 1, self.total_files, self.current_phase, self.total_phases),
             'd'
         )
 
