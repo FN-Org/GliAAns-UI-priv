@@ -167,7 +167,7 @@ class DlExecutionPage(Page):
             }
         """)
         self.cancel_button.clicked.connect(self.cancel_processing)
-        button_layout.addStretch()
+
         button_layout.addWidget(self.cancel_button)
         button_layout.addStretch()
 
