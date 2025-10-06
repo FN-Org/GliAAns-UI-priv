@@ -194,7 +194,7 @@ class TestPatientSelectionPageNavigation:
         patient_page.selected_patients = {"sub-01", "sub-02"}
 
         # Non dovrebbe chiedere conferma
-        with patch('ui.ui_patient_selection_page.ToolChoicePage') as MockPage:
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage') as MockPage:
             mock_page_instance = Mock()
             MockPage.return_value = mock_page_instance
 
@@ -212,7 +212,7 @@ class TestPatientSelectionPageNavigation:
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage') as MockPage:
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage') as MockPage:
             MockPage.return_value = Mock()
 
             result = patient_page.next(patient_page.context)
@@ -234,11 +234,11 @@ class TestPatientSelectionPageNavigation:
 
         assert result is None
 
-    def test_next_creates_tool_choice_page(self, patient_page):
-        """Verifica creazione ToolChoicePage"""
+    def test_next_creates_tool_selection_page(self, patient_page):
+        """Verifica creazione ToolSelectionPage"""
         patient_page.selected_patients = {"sub-01", "sub-02"}
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage') as MockPage:
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage') as MockPage:
             mock_page_instance = Mock()
             MockPage.return_value = mock_page_instance
 
@@ -276,7 +276,7 @@ class TestPatientSelectionPageCleanup:
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage'):
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage'):
             patient_page.next(patient_page.context)
 
             assert os.path.exists(os.path.join(temp_workspace, "sub-01"))
@@ -289,7 +289,7 @@ class TestPatientSelectionPageCleanup:
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage'):
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage'):
             patient_page.next(patient_page.context)
 
             # sub-002 dovrebbe essere rimossa anche da derivatives
@@ -308,7 +308,7 @@ class TestPatientSelectionPageCleanup:
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage'), \
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage'), \
                 patch('ui.ui_patient_selection_page.shutil.rmtree', side_effect=Exception("Delete error")):
             # Non dovrebbe sollevare eccezione
             result = patient_page.next(patient_page.context)
@@ -444,7 +444,7 @@ class TestPatientSelectionPageIntegration:
         assert patient_page.is_ready_to_advance()
 
         # Avanza (nessun cleanup necessario)
-        with patch('ui.ui_patient_selection_page.ToolChoicePage') as MockPage:
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage') as MockPage:
             MockPage.return_value = Mock()
             result = patient_page.next(patient_page.context)
             assert result is not None
@@ -461,7 +461,7 @@ class TestPatientSelectionPageIntegration:
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        with patch('ui.ui_patient_selection_page.ToolChoicePage'):
+        with patch('ui.ui_patient_selection_page.ToolSelectionPage'):
             result = patient_page.next(patient_page.context)
 
             # Solo sub-000 dovrebbe esistere
