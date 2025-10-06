@@ -1575,7 +1575,7 @@ class NiftiViewer(QMainWindow):
 
         filename = os.path.basename(original_path)
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
-        new_base = f"{base_name}_r{radius:02d}_d{difference}%_mask"
+        new_base = f"{base_name}_r{radius:02d}_d{int(difference)}_mask"
         new_name = f"{new_base}.nii.gz"
 
         save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
@@ -1590,7 +1590,7 @@ class NiftiViewer(QMainWindow):
         msg.setInformativeText(
             f"File will be saved as:\n\n{new_name}\n\n"
             f"Location:\n{save_dir}\n\n"
-            f"Radius: {radius}\nDifference: {difference}"
+            f"Radius: {radius} mm\nDifference: {difference}%"
         )
         msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg.setDefaultButton(QMessageBox.StandardButton.Yes)
