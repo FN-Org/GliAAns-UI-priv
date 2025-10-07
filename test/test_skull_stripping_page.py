@@ -22,25 +22,6 @@ def skull_page(qtbot, mock_context, mock_file_selector):
 class TestSkullStrippingPageSetup:
     """Test per l'inizializzazione di SkullStrippingPage"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
     def test_page_initialization(self, skull_page):
         """Verifica inizializzazione corretta"""
         assert skull_page.context is not None
@@ -92,86 +73,39 @@ class TestSkullStrippingPageSetup:
 class TestSkullStrippingPageBETParameters:
     """Test per parametri BET"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    @pytest.fixture
-    def skull_page_with_bet(self, qtbot, mock_context, mock_file_selector):
-        with patch('subprocess.run', return_value=Mock(returncode=0)):
-            page = SkullStrippingPage(mock_context, Mock())
-            qtbot.addWidget(page)
-            return page
-
-    def test_f_parameter_default(self, skull_page_with_bet):
+    def test_f_parameter_default(self, skull_page):
         """Verifica valore default parametro f"""
-        assert skull_page_with_bet.f_spinbox.value() == 0.50
+        assert skull_page.f_spinbox.value() == 0.50
 
-    def test_f_parameter_range(self, skull_page_with_bet):
+    def test_f_parameter_range(self, skull_page):
         """Verifica range parametro f"""
-        assert skull_page_with_bet.f_spinbox.minimum() == 0.0
-        assert skull_page_with_bet.f_spinbox.maximum() == 1.0
+        assert skull_page.f_spinbox.minimum() == 0.0
+        assert skull_page.f_spinbox.maximum() == 1.0
 
-    def test_g_parameter_default(self, skull_page_with_bet):
+    def test_g_parameter_default(self, skull_page):
         """Verifica valore default parametro g"""
-        assert skull_page_with_bet.g_spinbox.value() == 0.0
+        assert skull_page.g_spinbox.value() == 0.0
 
-    def test_coordinate_parameters_default(self, skull_page_with_bet):
+    def test_coordinate_parameters_default(self, skull_page):
         """Verifica valori default coordinate"""
-        assert skull_page_with_bet.c_x_spinbox.value() == 0
-        assert skull_page_with_bet.c_y_spinbox.value() == 0
-        assert skull_page_with_bet.c_z_spinbox.value() == 0
+        assert skull_page.c_x_spinbox.value() == 0
+        assert skull_page.c_y_spinbox.value() == 0
+        assert skull_page.c_z_spinbox.value() == 0
 
-    def test_brain_extracted_checkbox_default(self, skull_page_with_bet):
+    def test_brain_extracted_checkbox_default(self, skull_page):
         """Verifica che brain extracted sia checked di default"""
-        assert skull_page_with_bet.opt_brain_extracted.isChecked()
+        assert skull_page.opt_brain_extracted.isChecked()
 
-    def test_other_checkboxes_default(self, skull_page_with_bet):
+    def test_other_checkboxes_default(self, skull_page):
         """Verifica che altri checkbox siano unchecked di default"""
-        assert not skull_page_with_bet.opt_m.isChecked()
-        assert not skull_page_with_bet.opt_t.isChecked()
-        assert not skull_page_with_bet.opt_s.isChecked()
-        assert not skull_page_with_bet.opt_o.isChecked()
+        assert not skull_page.opt_m.isChecked()
+        assert not skull_page.opt_t.isChecked()
+        assert not skull_page.opt_s.isChecked()
+        assert not skull_page.opt_o.isChecked()
 
 
 class TestSkullStrippingPageAdvancedOptions:
     """Test per opzioni avanzate"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
 
     def test_advanced_options_hidden_initially(self, skull_page):
         """Verifica che opzioni avanzate siano nascoste inizialmente"""
@@ -207,27 +141,6 @@ class TestSkullStrippingPageAdvancedOptions:
 
 class TestSkullStrippingPageProcessing:
     """Test per processing"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
 
     def test_run_without_files_shows_warning(self, skull_page, monkeypatch):
         """Verifica warning quando non ci sono file"""
@@ -303,27 +216,6 @@ class TestSkullStrippingPageProcessing:
 class TestSkullStrippingPageProgressCallbacks:
     """Test per callback di progresso"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
-
     def test_on_progress_updated(self, skull_page):
         """Verifica aggiornamento messaggio progresso"""
         test_message = "Processing file 1 of 3"
@@ -374,36 +266,20 @@ class TestSkullStrippingPageProgressCallbacks:
 
 class TestSkullStrippingPageExistingCheck:
     """Test per controllo skull strip esistente"""
-
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
         # Crea struttura con skull strip esistente
-        subject_dir = os.path.join(temp_dir, "derivatives", "skullstrips", "sub-001", "anat")
+        subject_dir = os.path.join(temp_dir, "derivatives", "skullstrips", "sub-01", "anat")
         os.makedirs(subject_dir)
         with open(os.path.join(subject_dir, "brain.nii.gz"), "w") as f:
             f.write("test")
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
-
     def test_has_existing_skull_strip_true(self, skull_page, temp_workspace):
         """Verifica rilevamento skull strip esistente"""
-        nifti_path = os.path.join(temp_workspace, "sub-001", "anat", "T1w.nii")
+        nifti_path = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
 
         result = skull_page.has_existing_skull_strip(nifti_path, temp_workspace)
 
@@ -411,7 +287,7 @@ class TestSkullStrippingPageExistingCheck:
 
     def test_has_existing_skull_strip_false(self, skull_page, temp_workspace):
         """Verifica quando skull strip non esiste"""
-        nifti_path = os.path.join(temp_workspace, "sub-002", "anat", "T1w.nii")
+        nifti_path = os.path.join(temp_workspace, "sub-02", "anat", "T1w.nii")
 
         result = skull_page.has_existing_skull_strip(nifti_path, temp_workspace)
 
@@ -428,25 +304,6 @@ class TestSkullStrippingPageExistingCheck:
 
 class TestSkullStrippingPageNavigation:
     """Test per navigazione"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
 
     def test_back_returns_previous_page(self, skull_page):
         """Verifica ritorno a pagina precedente"""
@@ -492,27 +349,6 @@ class TestSkullStrippingPageNavigation:
 
 class TestSkullStrippingPageReset:
     """Test per reset pagina"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
 
     def test_reset_clears_files(self, skull_page):
         """Verifica che reset pulisca i file"""
@@ -569,27 +405,6 @@ class TestSkullStrippingPageReset:
 class TestSkullStrippingPageTranslation:
     """Test per traduzioni"""
 
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
-
     def test_translate_ui_updates_title(self, skull_page):
         """Verifica aggiornamento titolo"""
         skull_page._translate_ui()
@@ -605,27 +420,6 @@ class TestSkullStrippingPageTranslation:
 # Test di integrazione
 class TestSkullStrippingPageIntegration:
     """Test di integrazione"""
-
-    @pytest.fixture
-    def temp_workspace(self):
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, temp_workspace, signal_emitter):
-        context = {
-            "workspace_path": temp_workspace,
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-        }
-        return context
-
-    
 
     @patch('ui.ui_skull_stripping_page.SkullStripThread')
     def test_full_processing_workflow(self, MockThread, skull_page, qtbot):
