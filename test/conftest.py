@@ -8,7 +8,7 @@ import os
 from PyQt6.QtCore import QSettings, QObject, pyqtSignal
 from PyQt6.QtWidgets import QPushButton, QWidget
 
-from ui.ui_mask_selection_page import NiftiMaskSelectionPage
+from ui.ui_mask_selection_page import MaskNiftiSelectionPage
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 
 # Aggiungi il percorso del progetto al PYTHONPATH

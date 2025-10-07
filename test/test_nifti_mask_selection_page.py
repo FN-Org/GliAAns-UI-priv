@@ -6,12 +6,12 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 
 # Import dal tuo progetto
-from ui.ui_mask_selection_page import NiftiMaskSelectionPage
+from ui.ui_mask_selection_page import MaskNiftiSelectionPage
 
 @pytest.fixture
 def mask_page(qtbot, mock_context, mock_file_selector_mask):
     previous_page = Mock()
-    page = NiftiMaskSelectionPage(mock_context, previous_page)
+    page = MaskNiftiSelectionPage(mock_context, previous_page)
     qtbot.addWidget(page)
     return page
 

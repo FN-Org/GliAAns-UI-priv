@@ -11,7 +11,7 @@ from logger import get_logger
 log = get_logger()
 
 
-class NiftiMaskSelectionPage(Page):
+class MaskNiftiSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
