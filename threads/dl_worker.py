@@ -76,6 +76,7 @@ class DlWorker(QObject):
         """Processa tutti i file NIfTI con la Deep Learning pipeline"""
 
         self.total_files = len(self.input_files)
+        log.debug(self.input_files)
         self.processed_files = 0
         self.failed_files = []
 
@@ -138,9 +139,9 @@ class DlWorker(QObject):
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("SynthStrip failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
@@ -187,9 +188,9 @@ class DlWorker(QObject):
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Coregistration failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
@@ -240,9 +241,9 @@ class DlWorker(QObject):
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Reorientation failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
@@ -285,9 +286,9 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Preprocess failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
@@ -335,9 +336,9 @@ class DlWorker(QObject):
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Deep learning execution failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
@@ -364,6 +365,7 @@ class DlWorker(QObject):
             "deep_learning/postprocess.py",
             '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
             '-o', f'{self.output_dir}/dl_postprocess',
+            '--w', f'{self.workspace_path}',
             '--mri', f'{self.current_input_file}'
         ]
 
@@ -376,9 +378,9 @@ class DlWorker(QObject):
         # This slot is called by the QProcess when it finishes
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Postprocess failed", f"Exit code: {exit_code}")
-            if self.current_file_index < self.total_files:
+            if self.current_file_index + 1 < self.total_files:
                 self.current_file_index += 1
-                self.file_update(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
                 self.process_single_file()
             return
 
