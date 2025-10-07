@@ -38,6 +38,11 @@ def temp_workspace():
         f.write("T1w")
     os.makedirs(os.path.join(temp_dir, "sub-02"))
 
+    manual_dir = os.path.join(temp_dir, "derivatives", "manual_masks", "sub-01", "anat")
+    os.makedirs(manual_dir)
+    with open(os.path.join(manual_dir, "mask.nii.gz"), "w") as f:
+        f.write("test_mask")
+
     with open(os.path.join(temp_dir, "test.txt"), "w") as f:
         f.write("test content")
     with open(os.path.join(temp_dir, "brain.nii"), "w") as f:
