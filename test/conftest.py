@@ -1,13 +1,14 @@
 import shutil
 import tempfile
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 import sys
 import os
 from PyQt6.QtCore import QSettings, QObject, pyqtSignal
-from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtWidgets import QPushButton, QWidget
 
+from ui.ui_mask_selection_page import NiftiMaskSelectionPage
 from ui.ui_workspace_tree_view import WorkspaceTreeView
 
 # Aggiungi il percorso del progetto al PYTHONPATH
@@ -52,7 +53,6 @@ def temp_workspace():
     yield temp_dir
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-
 @pytest.fixture
 def mock_context(temp_workspace, signal_emitter):
     """Crea un context mock con tutti i componenti necessari"""
@@ -94,6 +94,45 @@ def mock_logger():
     logger.warning = Mock()
     return logger
 
+class DummySignal:
+    def connect(self, slot):
+        pass
+
+class DummyFileSelectorWidget(QWidget):
+    """Mock del FileSelectorWidget usato nei test."""
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.has_file = DummySignal()
+        self._selected_files = []
+        # Mock per verifiche nei test
+        self.clear_selected_files = Mock()
+
+    def get_selected_files(self):
+        return self._selected_files
+
+    def reset(self):
+        self._selected_files.clear()
+
+    def setEnabled(self, value: bool):
+        pass
+
+@pytest.fixture
+def mock_file_selector():
+    """Patcha FileSelectorWidget con un mock compatibile."""
+    with patch(
+        "ui.ui_skull_stripping_page.FileSelectorWidget",
+        return_value=DummyFileSelectorWidget()
+    ) as mock:
+        yield mock
+
+@pytest.fixture
+def mock_file_selector_mask():
+    """Patcha FileSelectorWidget nel modulo ui_mask_selection_page con un widget valido."""
+    with patch(
+        "ui.ui_mask_selection_page.FileSelectorWidget",
+        return_value=DummyFileSelectorWidget()
+    ) as mock:
+        yield mock
 
 # Configurazione pytest
 def pytest_configure(config):
