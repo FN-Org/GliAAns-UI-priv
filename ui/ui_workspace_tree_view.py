@@ -26,6 +26,10 @@ class WorkspaceTreeView(QTreeView):
 
     # Signal emitted when a background thread (Copy/Delete) is created
     new_thread = pyqtSignal(object)
+    """**Signal(object):** Emitted when a new background thread (e.g., for copy or delete operations) is created.  
+    Parameter:
+    - `object`: Reference to the created thread instance.
+    """
 
     def __init__(self, context):
         super().__init__()

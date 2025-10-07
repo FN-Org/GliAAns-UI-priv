@@ -27,11 +27,35 @@ class DlWorker(QObject):
     """
 
     # Qt signals for UI interaction
-    progressbar_update = pyqtSignal(int)       # General progress (0–100%)
-    file_update = pyqtSignal(str, str)         # (filename, status message)
-    log_update = pyqtSignal(str, str)          # (message, log level)
-    finished = pyqtSignal(bool, str)           # (success flag, message)
-    cancel_requested = pyqtSignal()            # Signal emitted when user cancels processing
+    progressbar_update = pyqtSignal(int)
+    """**Signal(int):** Emitted to update the progress bar value.  
+    Parameter:  
+    - `int`: Progress percentage (0–100).  
+    """
+
+    file_update = pyqtSignal(str, str)
+    """**Signal(str, str):** Emitted to update the UI with file-related information.  
+    Parameters:  
+    - `str`: Filename being processed.  
+    - `str`: Associated status message (e.g., "copying", "completed").  
+    """
+
+    log_update = pyqtSignal(str, str)
+    """**Signal(str, str):** Emitted to log a message in the application console or log window.  
+    Parameters:  
+    - `str`: Log message content.  
+    - `str`: Log level (e.g., "INFO", "ERROR").  
+    """
+
+    finished = pyqtSignal(bool, str)
+    """**Signal(bool, str):** Emitted when processing completes.  
+    Parameters:  
+    - `bool`: Indicates success (`True`) or failure (`False`).  
+    - `str`: Completion message or error description.  
+    """
+
+    cancel_requested = pyqtSignal()
+    """**Signal():** Emitted when the user requests to cancel an ongoing operation."""
 
     def __init__(self, input_files, workspace_path):
         """

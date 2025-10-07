@@ -10,12 +10,14 @@ class CrosshairGraphicsView(QGraphicsView):
        - Integration with a parent viewer for synchronized slice updates
     """
 
-    # Signal emitted whenever the mouse moves — sends (view_idx, x, y)
+    # Signal emitted whenever the mouse moves — sends (view_idx, x, y).
     coordinate_changed = pyqtSignal(int, int, int)
+    """**Signal(int, int, int):** Emitted whenever the mouse moves within a view.  
+    Parameters represent:
+    - `view_idx`: The index of the active view (e.g., axial, coronal, sagittal).  
+    - `x`, `y`: The current mouse coordinates within that view.
+    """
 
-    # Signal emitted when the slice index changes — sends (view_idx, new_slice)
-    # (not directly used in this snippet but designed for multi-slice viewers)
-    slice_changed = pyqtSignal(int, int)
 
     def __init__(self, view_idx, parent=None):
         """

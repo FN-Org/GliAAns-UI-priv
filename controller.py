@@ -26,9 +26,11 @@ class Controller(QObject):
 
     # Signal emitted when language changes
     language_changed = pyqtSignal(str)
+    """pyqtSignal(str): Emitted when the application's language changes, with the code as parameter."""
 
     # Signal emitted when a set of files is selected
     selected_files_signal = pyqtSignal(list)
+    """pyqtSignal(list): Emitted when one or more files are selected, with the files as parameter (as a list)."""
 
     def __init__(self):
         """Initialize the controller and set up the application context."""

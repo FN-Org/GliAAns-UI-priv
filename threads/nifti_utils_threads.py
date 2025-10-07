@@ -29,7 +29,17 @@ class SaveNiftiThread(QThread):
     """
 
     success = pyqtSignal(str, str)
+    """**Signal(str, str):** Emitted when an operation completes successfully.  
+    Parameters:  
+    - `str`: Name or identifier of the completed task.  
+    - `str`: Success message or additional details.  
+    """
+
     error = pyqtSignal(str)
+    """**Signal(str):** Emitted when an error occurs during an operation.  
+    Parameters:  
+    - `str`: Description of the error or failure reason.  
+    """
 
     def __init__(self, data, affine, path, json_path, relative_path, radius, difference):
         super().__init__()
@@ -100,8 +110,32 @@ class ImageLoadThread(QThread):
     """
 
     finished = pyqtSignal(object, object, object, bool, bool)
+    """**Signal(object, object, object, bool, bool):**  
+    Emitted when the file is successifully loaded.  
+
+    Parameters:  
+    - `object`: img_data.  
+    - `object`: dims.
+    - `object`: affine. 
+    - `bool`: is_4d. 
+    - `bool`: is_overlay.  
+    """
+
     error = pyqtSignal(str)
+    """**Signal(str):**  
+    Emitted when an error occurs during the deep learning execution.  
+
+    Parameters:  
+    - `str`: Description or message detailing the error.  
+    """
+
     progress = pyqtSignal(int)
+    """**Signal(int):**  
+    Emitted to report progress updates during execution.  
+
+    Parameters:  
+    - `int`: Current progress percentage (0–100).  
+    """
 
     def __init__(self, file_path, is_overlay):
         super().__init__()

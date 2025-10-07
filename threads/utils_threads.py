@@ -31,8 +31,17 @@ class CopyDeleteThread(QThread):
     - `delete` (*bool*): If `True`, performs a delete operation.
     """
 
+    # Signal emitted when the operation finishes successfully.
     finished = pyqtSignal(str)
+    """**Signal(str):** Emitted when the operation completes successfully.  
+    The parameter is a status message describing the result or outcome.
+    """
+
+    # Signal emitted when an error occurs during execution.
     error = pyqtSignal(str)
+    """**Signal(str):** Emitted when an error occurs during the operation.  
+    The parameter contains a descriptive error message.
+    """
 
     def __init__(self, src, dst=None, is_folder=False, copy=False, delete=False):
         """

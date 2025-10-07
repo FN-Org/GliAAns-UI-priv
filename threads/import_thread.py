@@ -44,9 +44,23 @@ class ImportThread(QThread):
     flag and attempts to terminate any running external process (dcm2niix).
     """
 
+    # Signal emitted when an operation completes successfully
     finished = pyqtSignal()
+    """**Signal():** Emitted when the operation finishes successfully and no further progress updates will occur."""
+
+    # Signal emitted when an error occurs during processing
     error = pyqtSignal(str)
+    """**Signal(str):** Emitted when an error occurs.  
+    Parameter:
+    - `str`: Description or message of the encountered error.
+    """
+
+    # Signal emitted to report progress updates
     progress = pyqtSignal(int)
+    """**Signal(int):** Emitted periodically to indicate task progress.  
+    Parameter:
+    - `int`: Current progress percentage (0–100).
+    """
 
     def __init__(self, context, folders_path, workspace_path):
         """

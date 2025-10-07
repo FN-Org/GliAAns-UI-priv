@@ -27,6 +27,7 @@ class SkullStripThread(QThread):
     - `file_started (str)`: Emitted when processing of a specific file begins.
     - `file_completed (str, bool, str)`: Emitted when a file finishes (filename, success flag, message).
     - `all_completed (int, list)`: Emitted after all files are processed (success count, list of failed files).
+
     ---
 
     **Parameters**
@@ -37,11 +38,29 @@ class SkullStripThread(QThread):
     - `has_bet (bool)`: Whether to use FSL BET instead of HD-BET.
     """
 
+    # Signal emitted when a progress message is updated.
     progress_updated = pyqtSignal(str)
+    """**Signal(str):** Emitted when the progress message text changes."""
+
+    # Signal emitted when the progress bar value changes.
     progress_value_updated = pyqtSignal(int)
+    """**Signal(int):** Emitted when the progress value is updated."""
+
+    # Signal emitted when processing of an individual file starts.
     file_started = pyqtSignal(str)
+    """**Signal(str):** Emitted when processing of a file begins. The parameter is the file path or name."""
+
+    # Signal emitted when processing of an individual file completes.
     file_completed = pyqtSignal(str, bool, str)
+    """**Signal(str, bool, str):** Emitted when a file has finished processing.
+    The parameters are: file path/name, success status (True if completed successfully), and an optional message or error description.
+    """
+
+    # Signal emitted when all files have completed processing.
     all_completed = pyqtSignal(int, list)
+    """**Signal(int, list):** Emitted when all files are processed.
+    The parameters are: the total number of processed files and a list of results or statuses.
+    """
 
     def __init__(self, files, workspace_path, parameters, has_cuda, has_bet):
         super().__init__()
