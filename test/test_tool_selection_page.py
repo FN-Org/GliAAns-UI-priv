@@ -7,36 +7,15 @@ from PyQt6.QtWidgets import QMessageBox, QRadioButton
 # Import dal tuo progetto
 from ui.ui_tool_selection_page import ToolSelectionPage
 
-
-class SignalEmitter(QObject):
-    """Classe helper per signal mockati"""
-    language_changed = pyqtSignal(str)
-
+@pytest.fixture
+def tool_page(qtbot, mock_context):
+    previous_page = Mock()
+    page = ToolSelectionPage(mock_context, previous_page)
+    qtbot.addWidget(page)
+    return page
 
 class TestToolSelectionPageSetup:
     """Test per l'inizializzazione di ToolSelectionPage"""
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        """Crea context mock"""
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        """Crea ToolSelectionPage per i test"""
-        previous_page = Mock()
-        page = ToolSelectionPage(mock_context, previous_page)
-        qtbot.addWidget(page)
-        return page
 
     def test_page_initialization(self, tool_page):
         """Verifica inizializzazione corretta"""
@@ -68,26 +47,6 @@ class TestToolSelectionPageSetup:
 
 class TestToolSelectionPageSelection:
     """Test per selezione opzioni"""
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        previous_page = Mock()
-        page = ToolSelectionPage(mock_context, previous_page)
-        qtbot.addWidget(page)
-        return page
 
     def test_select_skull_stripping(self, tool_page, qtbot):
         """Verifica selezione skull stripping"""
@@ -138,25 +97,6 @@ class TestToolSelectionPageSelection:
 class TestToolSelectionPageReadiness:
     """Test per logica di avanzamento"""
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
-
     def test_not_ready_without_selection(self, tool_page):
         """Verifica che non sia pronto senza selezione"""
         assert not tool_page.is_ready_to_advance()
@@ -170,29 +110,8 @@ class TestToolSelectionPageReadiness:
         """Verifica che si possa sempre tornare indietro"""
         assert tool_page.is_ready_to_go_back()
 
-
 class TestToolSelectionPageNavigation:
     """Test per navigazione tra pagine"""
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        previous_page = Mock()
-        page = ToolSelectionPage(mock_context, previous_page)
-        qtbot.addWidget(page)
-        return page
 
     def test_back_returns_previous_page(self, tool_page):
         """Verifica ritorno a pagina precedente"""
@@ -212,7 +131,7 @@ class TestToolSelectionPageNavigation:
         assert result == mock_page
         mock_page.on_enter.assert_called_once()
 
-    @patch('ui.ui_tool_selection_page.NiftiMaskSelectionPage')
+    @patch('ui.ui_tool_selection_page.MaskNiftiSelectionPage')
     def test_next_automatic_drawing(self, MockPage, tool_page):
         """Verifica navigazione a automatic drawing"""
         mock_page = Mock()
@@ -258,28 +177,9 @@ class TestToolSelectionPageNavigation:
 class TestToolSelectionPageDeepLearning:
     """Test specifici per deep learning con controlli GPU"""
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
-
     @patch('platform.system', return_value='Linux')
     @patch('torch.cuda.is_available', return_value=True)
-    @patch('ui.ui_tool_selection_page.DlPatientSelectionPage')
+    @patch('ui.ui_tool_selection_page.DlNiftiSelectionPage')
     def test_dl_available_on_linux_with_gpu(self, MockPage, mock_cuda, mock_platform, tool_page):
         """Verifica che DL sia disponibile su Linux con GPU"""
         mock_page = Mock()
@@ -348,25 +248,6 @@ class TestToolSelectionPageDeepLearning:
 class TestToolSelectionPageReset:
     """Test per reset della pagina"""
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
-
     def test_reset_clears_selection(self, tool_page):
         """Verifica che reset pulisca la selezione"""
         tool_page.radio_skull.setChecked(True)
@@ -389,25 +270,6 @@ class TestToolSelectionPageReset:
 
 class TestToolSelectionPageResize:
     """Test per ridimensionamento dinamico"""
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
 
     def test_resize_event_updates_fonts(self, tool_page):
         """Verifica che resize aggiorni i font"""
@@ -444,25 +306,6 @@ class TestToolSelectionPageResize:
 class TestToolSelectionPageTranslation:
     """Test per traduzioni"""
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
-
     def test_translate_ui_updates_title(self, tool_page):
         """Verifica aggiornamento titolo"""
         tool_page._translate_ui()
@@ -485,25 +328,6 @@ class TestToolSelectionPageTranslation:
 class TestToolSelectionPageInfoLabel:
     """Test per info label su deep learning"""
 
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
-
     def test_dl_has_info_label(self, tool_page):
         """Verifica che DL abbia info label"""
         assert hasattr(tool_page, 'dl_info_label')
@@ -519,25 +343,6 @@ class TestToolSelectionPageInfoLabel:
 # Test di integrazione
 class TestToolSelectionPageIntegration:
     """Test di integrazione per flussi completi"""
-
-    @pytest.fixture
-    def signal_emitter(self):
-        return SignalEmitter()
-
-    @pytest.fixture
-    def mock_context(self, signal_emitter):
-        context = {
-            "language_changed": signal_emitter.language_changed,
-            "update_main_buttons": Mock(),
-            "history": []
-        }
-        return context
-
-    @pytest.fixture
-    def tool_page(self, qtbot, mock_context):
-        page = ToolSelectionPage(mock_context, Mock())
-        qtbot.addWidget(page)
-        return page
 
     def test_full_selection_workflow(self, tool_page, qtbot):
         """Test flusso completo di selezione"""

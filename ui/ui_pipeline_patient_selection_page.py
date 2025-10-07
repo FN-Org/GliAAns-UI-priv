@@ -740,6 +740,7 @@ class PipelinePatientSelectionPage(Page):
         else:
             self.next_page = PipelineReviewPage(context, self)
             self.context["history"].append(self.next_page)
+            self.next_page.on_enter()
             return self.next_page
 
     def back(self):

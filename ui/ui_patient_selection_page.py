@@ -186,12 +186,14 @@ class PatientSelectionPage(Page):
                             except Exception as e:
                                 log.error(f"Failed to delete from derivatives: {full_path}: {e}")
 
-        if not self.next_page:
+        if self.next_page:
+            self.next_page.on_enter()
+            return self.next_page
+        else:
             self.next_page = ToolSelectionPage(context, self)
             self.context["history"].append(self.next_page)
-
-        self.next_page.on_enter()
-        return self.next_page
+            self.next_page.on_enter()
+            return self.next_page
 
     def back(self):
         if self.previous_page:

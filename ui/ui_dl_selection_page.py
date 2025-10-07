@@ -13,7 +13,7 @@ from logger import get_logger
 log = get_logger()
 
 
-class DlPatientSelectionPage(Page):
+class DlNiftiSelectionPage(Page):
     def __init__(self, context=None, previous_page=None):
         super().__init__()
         self.context = context
