@@ -51,7 +51,7 @@ class FileRoleDialog(QDialog):
             derivative_extra_layout.addWidget(self.manual_mask_btn)
             self.derivative_extra_button_group.addButton(self.manual_mask_btn)
 
-            self.deep_learning_mask = QRadioButton("deep_learning_masks")
+            self.deep_learning_mask = QRadioButton("deep_learning_seg")
             derivative_extra_layout.addWidget(self.deep_learning_mask)
             self.derivative_extra_button_group.addButton(self.deep_learning_mask)
 
@@ -73,7 +73,7 @@ class FileRoleDialog(QDialog):
             derivative_extra_layout.addWidget(self.manual_mask_btn)
             self.derivative_extra_button_group.addButton(self.manual_mask_btn)
 
-            self.deep_learning_mask = QRadioButton("deep_learning_masks")
+            self.deep_learning_mask = QRadioButton("deep_learning_seg")
             derivative_extra_layout.addWidget(self.deep_learning_mask)
             self.derivative_extra_button_group.addButton(self.deep_learning_mask)
 
