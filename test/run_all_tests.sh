@@ -83,9 +83,9 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 if [ -n "$MODULE" ]; then
-    PYTEST_CMD="$PYTEST_CMD test/test_${MODULE}.py"
+    PYTEST_CMD="$PYTEST_CMD test/**/test_${MODULE}.py"
 else
-    PYTEST_CMD="$PYTEST_CMD test/test_*.py"
+    PYTEST_CMD="$PYTEST_CMD test"
 fi
 
 if [ -n "$PATTERN" ]; then

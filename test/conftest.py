@@ -76,7 +76,8 @@ def mock_context(temp_workspace, signal_emitter):
         "return_to_import": Mock(),
         "main_window": Mock(),
         "history": [],
-        "open_nifti_viewer": Mock()
+        "open_nifti_viewer": Mock(),
+        "tree_view": Mock()
     }
     return context
 
@@ -136,6 +137,15 @@ def mock_file_selector_mask():
     with patch(
         "ui.ui_mask_selection_page.FileSelectorWidget",
         return_value=DummyFileSelectorWidget()
+    ) as mock:
+        yield mock
+
+@pytest.fixture
+def mock_file_selector_dl():
+    """Patcha FileSelectorWidget nel modulo ui_dl_selection_page."""
+    with patch(
+            "ui.ui_dl_selection_page.FileSelectorWidget",
+            return_value=DummyFileSelectorWidget()
     ) as mock:
         yield mock
 

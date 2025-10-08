@@ -71,7 +71,6 @@ class PipelineReviewPage(Page):
                 continue
 
         if latest_config:
-            log.info(f"Using latest config file: {latest_config}")
             return latest_config
         else:
             # Se non è stato trovato nessun file valido, usa il path di default
@@ -269,6 +268,8 @@ class PipelineReviewPage(Page):
 
             except (OSError, IndexError, ValueError) as e:
                 log.error(f"Error processing config file {self.config_path}: {e}")
+        else:
+            log.error(f"Invalid config path: {self.config_path}")
 
         if self.previous_page:
             self.previous_page.on_enter()
