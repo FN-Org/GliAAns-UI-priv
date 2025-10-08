@@ -121,7 +121,6 @@ compile-app: $(VENV_DIR)
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
 	    --exclude-module test \
-	    --exclude-module unittest \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
