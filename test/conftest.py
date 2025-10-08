@@ -76,7 +76,8 @@ def mock_context(temp_workspace, signal_emitter):
         "return_to_import": Mock(),
         "main_window": Mock(),
         "history": [],
-        "open_nifti_viewer": Mock()
+        "open_nifti_viewer": Mock(),
+        "tree_view": Mock()
     }
     return context
 
