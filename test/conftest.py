@@ -140,6 +140,15 @@ def mock_file_selector_mask():
     ) as mock:
         yield mock
 
+@pytest.fixture
+def mock_file_selector_dl():
+    """Patcha FileSelectorWidget nel modulo ui_dl_selection_page."""
+    with patch(
+            "ui.ui_dl_selection_page.FileSelectorWidget",
+            return_value=DummyFileSelectorWidget()
+    ) as mock:
+        yield mock
+
 # Configurazione pytest
 def pytest_configure(config):
     """Configurazione globale di pytest"""

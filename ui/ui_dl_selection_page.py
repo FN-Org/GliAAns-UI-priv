@@ -109,13 +109,14 @@ class DlNiftiSelectionPage(Page):
         self.status_label.setText("")
 
     def is_ready_to_advance(self):
-        return self.file_selector_widget.get_selected_files()
+        return bool(self.file_selector_widget.get_selected_files())
 
     def is_ready_to_go_back(self):
         return True
 
     def reset_page(self):
         """Resets the page to its initial state, clearing all selections"""
+        self.file_selector_widget._selected_files = []
 
         # Clear status message
         self.status_label.setText("")
