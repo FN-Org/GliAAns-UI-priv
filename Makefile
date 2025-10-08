@@ -90,8 +90,6 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	    --nofollow-import-to=email \
 	    --nofollow-import-to=distutils \
 	    --lto=yes \
-	    --clang \
-	    --noinclude-unresolved=yes \
 	    --python-flag=-OO \
 	    --include-data-dir=$(ATLAS)=atlas \
 	    $(ICON_FLAG) \

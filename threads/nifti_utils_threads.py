@@ -212,7 +212,7 @@ class ImageLoadThread(QThread):
             if valid_data.size == 0:
                 return np.zeros_like(volume, dtype=np.float32)
 
-            vmin, vmax = np.percentile(valid_data, [0.5, 99.5])
+            vmin, vmax = np.percentile(valid_data, [0.1, 99.9])
             if vmax <= vmin:
                 vmax = vmin + 1.0
 
