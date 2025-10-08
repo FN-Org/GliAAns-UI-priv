@@ -99,17 +99,25 @@ class MainWindow(QMainWindow):
 
         # --- File menu ---
         self.file_menu = self.menu_bar.addMenu("File")
-        self.import_action = QAction("Import file", self)
+        self.import_file_action = QAction("Import file",self)
+        self.import_folder_action = QAction("Import Folder", self)
+
         self.export_action = QAction("Export file/folder", self)
-        self.file_menu.addAction(self.import_action)
+
+        self.file_menu.addAction(self.import_file_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.import_folder_action)
         self.file_menu.addAction(self.export_action)
 
+        self.import_file_action.triggered.connect(lambda: self.context["tree_view"].add_file_to_workspace(folder_path=None,is_dir=False))
+
         if "import_page" in self.context and self.context["import_page"]:
-            self.import_action.triggered.connect(self.context["import_page"].open_folder_dialog)
+            self.import_folder_action.triggered.connect(self.context["import_page"].open_folder_dialog)
         else:
-            raise RuntimeError("Error setting up menus")
+            log.critical("Import page not in context")
 
         self.export_action.triggered.connect(self.export_file_info)
+
 
         # --- Workspace menu ---
         self.workspace_menu = self.menu_bar.addMenu("Workspace")
@@ -128,7 +136,7 @@ class MainWindow(QMainWindow):
                                       return_to_import=True)
         )
         self.export_workspace_action.triggered.connect(
-            lambda: self.tree_view.export_files(self.workspace_path, is_dir=True)
+            lambda: self.context["tree_view"].export_files(self.workspace_path, is_dir=True)
         )
         self.clear_pipeline_outputs_action.triggered.connect(
             lambda: self.clear_folder(folder_path=os.path.join(self.workspace_path, "pipeline"),
@@ -349,7 +357,8 @@ class MainWindow(QMainWindow):
         self.help_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Help"))
         self.language_menu.setTitle(QtCore.QCoreApplication.translate("MainWindow", "Language"))
 
-        self.import_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Import file"))
+        self.import_folder_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Import folder"))
+        #self.import_folder_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Import file"))
         self.export_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Export file/folder"))
         self.clear_all_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Clear workspace"))
         self.export_workspace_action.setText(QtCore.QCoreApplication.translate("MainWindow", "Export Workspace"))

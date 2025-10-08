@@ -75,8 +75,8 @@ class Controller(QObject):
         # --- UI Components ---
         # Instantiate all main UI elements and inject shared context
         self.context["import_page"] = ImportPage(self.context)
-        self.context["main_window"] = MainWindow(self.context)
         self.context["tree_view"] = WorkspaceTreeView(self.context)
+        self.context["main_window"] = MainWindow(self.context)
         self.context["nifti_viewer"] = NiftiViewer(self.context)
 
         # --- Page & Navigation Setup ---
