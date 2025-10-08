@@ -19,7 +19,7 @@ class SkullStripThread(QThread):
     file_completed = pyqtSignal(str, bool, str)
     all_completed = pyqtSignal(int, list)
 
-    def __init__(self, files, workspace_path, parameters, has_cuda,has_bet):
+    def __init__(self, files, workspace_path, parameters, has_cuda, has_bet):
         super().__init__()
         self.files = files
         self.workspace_path = workspace_path

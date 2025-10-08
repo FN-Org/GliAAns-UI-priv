@@ -18,10 +18,11 @@ class DlWorker(QObject):
     finished = pyqtSignal(bool, str)  # (success, message)
     cancel_requested = pyqtSignal()
 
-    def __init__(self, input_files, workspace_path):
+    def __init__(self, input_files, workspace_path, has_freesurfer):
         super().__init__()
         self.input_files = input_files
         self.workspace_path = workspace_path
+        self.has_freesurfer = has_freesurfer
 
         self.output_dir = None
 
@@ -122,13 +123,20 @@ class DlWorker(QObject):
         self.synthstrip_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.synthstrip_process.readAllStandardOutput()))
         self.synthstrip_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.synthstrip_process.readAllStandardError()))
 
-        cmd = [
-            "nipreps-synthstrip",
-            "-i", self.current_input_file,
-            "-o", self.current_synthstrip_file,
-            "-g",
-            "--model", "synthstrip.1.pt"
-        ]
+        if self.has_freesurfer:
+            cmd = [
+                "mri_synthstrip",
+                "-i", self.current_input_file,
+                "-o", self.current_synthstrip_file
+            ]
+        else:
+            cmd = [
+                "nipreps-synthstrip",
+                "-i", self.current_input_file,
+                "-o", self.current_synthstrip_file,
+                "-g",
+                "--model", "synthstrip.1.pt"
+            ]
 
         self.synthstrip_process.start(cmd[0], cmd[1:])
 
@@ -385,6 +393,8 @@ class DlWorker(QObject):
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Postprocess completed"), 'i')
+        self.file_update.emit(self.current_input_file_basename,
+                              QCoreApplication.translate("DlWorker", "Segmentation completed"))
         self.update_progress()
 
         if self.current_file_index + 1 < self.total_files:

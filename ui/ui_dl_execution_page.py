@@ -1,4 +1,7 @@
 import os
+import subprocess
+
+import torch
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QScrollArea, QFrame, QGridLayout, QHBoxLayout,
@@ -49,6 +52,41 @@ class DlExecutionPage(Page):
         """)
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.header)
+
+        self.info_label = QLabel("")
+        self.info_label.setOpenExternalLinks(True)
+        self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+
+        self.info_label.setStyleSheet("""
+                            font-size: 11px;
+                            color: #666;
+                            font-style: italic;
+                            margin-bottom: 6px;
+                        """)
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_label.setWordWrap(True)
+        main_layout.addWidget(self.info_label)
+
+        try:
+            # esegue il comando con --help per verificare che esista e funzioni
+            subprocess.run(
+                ['mri_synthstrip', '--help'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            self.has_freesurfer = True
+            self.info_label.setText("Using tool: <a href='https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/'>SynthStrip from Free Surfer</a>")
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            self.has_freesurfer = False
+            self.info_label.setText(
+                'Using tool: <a href="https://github.com/nipreps/synthstrip">SynthStrip (nipreps)</a><br>'
+                'To use SynthStrip from FreeSurfer, follow the instructions at: '
+                '<a href="https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/">SynthStrip official documentation</a>'
+            )
+
+        self.info_label.setOpenExternalLinks(True)  # abilita apertura link nel browser
+        self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self.info_label.setToolTip("Open link")
 
         # Current operation
         self.current_operation = QLabel("Ready to start")
@@ -198,7 +236,8 @@ class DlExecutionPage(Page):
         # Avvia worker thread
         self.worker = DlWorker(
             input_files=selected_files,
-            workspace_path=self.context["workspace_path"]
+            workspace_path=self.context["workspace_path"],
+            has_freesurfer=self.has_freesurfer
         )
         # self.worker.moveToThread(self.thread)
 

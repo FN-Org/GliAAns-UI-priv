@@ -337,7 +337,7 @@ class SkullStrippingPage(Page):
 
 
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters,self.has_cuda,self.has_bet)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters, self.has_cuda,self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
