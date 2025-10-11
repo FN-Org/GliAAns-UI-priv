@@ -7,6 +7,7 @@ from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal, QProcess, QObject, QCoreApplication
 
 from logger import get_logger
+from utils import get_bin_path, resource_path
 
 log = get_logger()
 
@@ -40,7 +41,7 @@ class DlWorker(QObject):
         self.current_input_file = None
         self.current_input_file_basename = None
         self.current_synthstrip_file = None
-        self.atlas_file = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
+        self.atlas_file = resource_path("pediatric_fdopa_pipeline/atlas/T1.nii.gz")
 
         # All processes for all phases
         self.synthstrip_process = None
@@ -49,6 +50,48 @@ class DlWorker(QObject):
         self.dl_preprocess = None
         self.dl_process = None
         self.dl_postprocess = None
+
+        try:
+            self.nipreps_synthstrip_bin_path = get_bin_path("nipreps-synthstrip")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario nipreps synthstrip: {self.nipreps_synthstrip_bin_path}")
+
+        try:
+            self.coregistration_bin_path = get_bin_path("coregistration")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario coregistration: {self.coregistration_bin_path}")
+
+        try:
+            self.reorientation_bin_path = get_bin_path("reorientation")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario reorientation: {self.reorientation_bin_path}")
+
+        try:
+            self.preprocess_bin_path = get_bin_path("preprocess")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario preprocess: {self.preprocess_bin_path}")
+
+        try:
+            self.dl_bin_path = get_bin_path("deep_learning_runner")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario deep learning: {self.dl_bin_path}")
+
+        try:
+            self.postprocess_bin_path = get_bin_path("postprocess")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario postprocess: {self.postprocess_bin_path}")
 
         self.cancel_requested.connect(self.cancel)
 
@@ -131,7 +174,7 @@ class DlWorker(QObject):
             ]
         else:
             cmd = [
-                "nipreps-synthstrip",
+                self.nipreps_synthstrip_bin_path,
                 "-i", self.current_input_file,
                 "-o", self.current_synthstrip_file,
                 "-g",
@@ -178,16 +221,15 @@ class DlWorker(QObject):
         self.coregistration_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.coregistration_process.readAllStandardOutput()))
         self.coregistration_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.coregistration_process.readAllStandardError()))
 
-        python_executable = sys.executable
-        args = [
-            "deep_learning/coregistration.py",
+        cmd = [
+            self.coregistration_bin_path,
             "--mri", self.current_input_file,
             "--skull", self.current_synthstrip_file,
             "--atlas", self.atlas_file,
             "-o", coreg_dir
         ]
 
-        self.coregistration_process.start(python_executable, args)
+        self.coregistration_process.start(cmd[0], cmd[1:])
 
     def on_coregistration_finished(self, exit_code, exit_status):
         if self.is_cancelled:
@@ -232,15 +274,14 @@ class DlWorker(QObject):
         self.reorientation_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.reorientation_process.readAllStandardOutput()))
         self.reorientation_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.reorientation_process.readAllStandardError()))
 
-        python_executable = sys.executable
-        args = [
-            "deep_learning/reorientation.py",
+        cmd = [
+            self.reorientation_bin_path,
             "--input", brain_in_atlas_file,
             "--output", self.output_dir + "/reoriented",
             "--basename", self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         ]
 
-        self.reorientation_process.start(python_executable, args)
+        self.reorientation_process.start(cmd[0], cmd[1:])
 
     def on_reorientation_finished(self, exit_code, exit_status):
         if self.is_cancelled:
@@ -277,15 +318,14 @@ class DlWorker(QObject):
         self.dl_preprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_preprocess.readAllStandardOutput()))
         self.dl_preprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_preprocess.readAllStandardError()))
 
-        python_executable = sys.executable  # Usa lo stesso interprete Python
-        args = [
-            "deep_learning/preprocess.py",
+        cmd = [
+            self.preprocess_bin_path,
             '--data', data_path,
             '--results', results_path,
             '--ohe'
         ]
 
-        self.dl_preprocess.start(python_executable, args)
+        self.dl_preprocess.start(cmd[0], cmd[1:])
 
     def on_preprocess_finished(self, exit_code, exit_status):
         # This slot is called by the QProcess when it finishes
@@ -319,9 +359,8 @@ class DlWorker(QObject):
         self.dl_process.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_process.readAllStandardOutput()))
         self.dl_process.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_process.readAllStandardError()))
 
-        python_executable = sys.executable
-        args = [
-            "deep_learning/deep_learning_runner.py",
+        cmd = [
+            self.dl_bin_path,
             '--depth', '6',
             '--filters', '64', '96', '128', '192', '256', '384', '512',
             '--min_fmap', '2',
@@ -335,7 +374,7 @@ class DlWorker(QObject):
             '--results', f'{self.output_dir}/dl_results'
         ]
 
-        self.dl_process.start(python_executable, args)
+        self.dl_process.start(cmd[0], cmd[1:])
 
     def on_dl_finished(self, exit_code, exit_status):
         if self.is_cancelled:
@@ -368,16 +407,15 @@ class DlWorker(QObject):
         self.dl_postprocess.readyReadStandardOutput.connect(lambda string=phase: self.on_stdout(string, self.dl_postprocess.readAllStandardOutput()))
         self.dl_postprocess.readyReadStandardError.connect(lambda string=phase: self.on_stderr(string, self.dl_postprocess.readAllStandardError()))
 
-        python_executable = sys.executable
-        args = [
-            "deep_learning/postprocess.py",
+        cmd = [
+            self.postprocess_bin_path,
             '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
             '-o', f'{self.output_dir}/dl_postprocess',
             '--w', f'{self.workspace_path}',
             '--mri', f'{self.current_input_file}'
         ]
 
-        self.dl_postprocess.start(python_executable, args)
+        self.dl_postprocess.start(cmd[0], cmd[1:])
 
     def on_postprocess_finished(self, exit_code, exit_status):
         if self.is_cancelled:

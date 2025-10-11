@@ -29,6 +29,13 @@ class ImportThread(QThread):
         self._is_canceled = False
         self.process = None
 
+        try:
+            self.dcm2niix_bin_path = get_bin_path("dcm2niix")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario dcm2niix: {self.dcm2niix_bin_path}")
+
     def run(self):
         try:
             self.current_progress = 10
@@ -424,9 +431,9 @@ class ImportThread(QThread):
         self.current_progress += 10
         self.progress.emit(self.current_progress)
         try:
-            log.debug("DCM2NIIX path:"+get_bin_path("dcm2niix"))
+            log.debug("DCM2NIIX path:" + self.dcm2niix_bin_path)
             command = [
-                get_bin_path("dcm2niix"),
+                self.dcm2niix_bin_path,
                 "-f", "%p_%s",  # Naming format
                 "-p", "y",  # Preserve original acquisition order
                 "-z", "y",  # Compress output as .nii.gz

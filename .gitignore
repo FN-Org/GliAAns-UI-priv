@@ -22,3 +22,9 @@ nuitka-crash-report.xml
 /pediatric_fdopa_pipeline/.venv
 /ui/__pycache__
 /test/.venv
+/coregistration
+/deep_learning/.venv
+/deep_learning_runner
+/postprocess
+/preprocess
+/reorientation

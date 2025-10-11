@@ -30,6 +30,13 @@ class SkullStripThread(QThread):
         self.failed_files = []
         self.has_bet = has_bet
 
+        try:
+            self.hd_bet_bin_path = get_bin_path("hd-bet")
+        except FileNotFoundError:
+            log.error(str(FileNotFoundError))
+            raise RuntimeError
+        log.debug(f"Percorso binario hd-bet: {self.hd_bet_bin_path}")
+
     def cancel(self):
         """Cancella l'operazione"""
         self.is_cancelled = True
@@ -102,13 +109,14 @@ class SkullStripThread(QThread):
                     temp_output = os.path.join(temp_dir, f"{base_name}_hd-bet_brain.nii.gz")
                     final_output = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
 
-                    cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", temp_output]
-                    if not self.has_cuda:
-                        cmd += ["-device", "cpu", "--disable_tta"]
+                    cmd = [self.hd_bet_bin_path, "-i", nifti_file, "-o", temp_output]
+                    # if not self.has_cuda:
+                    cmd += ["-device", "cpu", "--disable_tta"]
                     method = "HD-BET"
 
                 # Esecuzione del processo
                 self.process = QProcess()
+                log.debug(f"Executing hd-bet command:  {' '.join(cmd)}")
                 self.process.start(cmd[0], cmd[1:])
 
                 while not self.process.waitForFinished(200):

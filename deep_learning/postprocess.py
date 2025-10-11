@@ -49,7 +49,7 @@ def prepare_predictions(preds, output_dir):
         p = back_to_original_labels(pred_mean)
 
         # save as NIfTI
-        img = nib.load("pediatric_fdopa_pipeline/atlas/BraTS-GLI-01-001.nii")
+        img = nib.load("deep_learning/atlas/BraTS-GLI-01-001.nii")
         out_path = os.path.join(output_dir, f"{fname}-seg.nii.gz")
         nib.save(
             nib.Nifti1Image(p, img.affine, header=img.header),
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # === FASE 2: FROM BRATS TO MRI ===
     mri = args.mri # Flair originale
     mrib = save_preds[0]
-    atlas_brats = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
+    atlas_brats = "deep_learning/atlas/T1.nii.gz"
 
     # Estrai subject ID dal path della MRI
     subject_id = extract_subject_id(mri)

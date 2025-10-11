@@ -337,7 +337,7 @@ class SkullStrippingPage(Page):
 
 
         # Crea e configura il worker thread
-        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters, self.has_cuda,self.has_bet)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters, self.has_cuda, self.has_bet)
 
         # Connetti i segnali
         self.worker.progress_updated.connect(self.on_progress_updated)
@@ -487,7 +487,8 @@ class SkullStrippingPage(Page):
         self.run_button.setEnabled(False)
 
         # Reset main parameter
-        self.f_spinbox.setValue(0.50)
+        if hasattr(self, "f_spinbox"):
+            self.f_spinbox.setValue(0.50)
 
         # Reset advanced options
         self.advanced_btn.setChecked(False)
