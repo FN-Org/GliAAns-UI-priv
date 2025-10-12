@@ -84,11 +84,7 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	$(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
 	    --standalone \
 	    --remove-output \
-	    --nofollow-import-to=unittest \
 	    --nofollow-import-to=test \
-	    --nofollow-import-to=tkinter \
-	    --nofollow-import-to=email \
-	    --nofollow-import-to=distutils \
 	    --lto=yes \
 	    --python-flag=-OO \
 	    --include-data-dir=$(ATLAS)=atlas \
