@@ -494,16 +494,11 @@ class NiftiViewer(QMainWindow):
         colormap_layout.addWidget(self.colormap_label)
 
         self.colormap_combo = QComboBox()
-        self.colormap_combo.addItems([
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'gray'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'viridis'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'plasma'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'inferno'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'magma'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'hot'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'cool'),
-            QtCore.QCoreApplication.translate("NIfTIViewer", 'bone')
-        ])
+        self.colormap_combo.addItems(
+            ['gray', 'viridis', 'plasma',
+             'inferno', 'magma', 'hot',
+             'cool', 'bone'])
+
         self.colormap_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.colormap_combo.setMaximumHeight(25)
         colormap_layout.addWidget(self.colormap_combo)

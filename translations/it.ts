@@ -323,94 +323,94 @@
 <context>
     <name>DlExecutionPage</name>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="400"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="223"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="364"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="188"/>
         <source>📄 {filename} - Waiting...</source>
         <translation>📄 {filename} - In attesa...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="338"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="233"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="228"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="302"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="198"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="193"/>
         <source>Error</source>
         <translation>Errore</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="233"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="228"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="198"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="193"/>
         <source>No files selected for processing.</source>
         <translation>Nessun file selezionato per l&apos;elaborazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="258"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="222"/>
         <source>Processing...</source>
         <translation>Elaborazione in corso...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="265"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="229"/>
         <source>Deep learning processing started for {0} file</source>
         <translation>Elaborazione con deep learning avviata per il file {0}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="303"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="267"/>
         <source>Cancellation requested...</source>
         <translation>Annullamento richiesto...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="316"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="280"/>
         <source>✓ Processing completed!</source>
         <translation>✓ Processo completato!</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="323"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="287"/>
         <source>Final: {message}</source>
         <translation>Finale: {message}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="336"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="300"/>
         <source>Completed</source>
         <translation>Completato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="393"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="344"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="357"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="308"/>
         <source>Start deep learning</source>
         <translation>Avvio deep learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="358"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="322"/>
         <source>Processing in progress</source>
         <translation>Elaborazione in corso</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="359"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="323"/>
         <source>Processing is in progress. Do you really want to go back?
 Processing will be interrupted.</source>
         <translation>L&apos;elaborazione è in corso. Vuoi davvero tornare indietro?
 L&apos;elaborazione verrà interrotta.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="389"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="353"/>
         <source>Deep Learning Segmentation</source>
         <translation>Segmentazione tramite Deep Learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="390"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="354"/>
         <source>Ready to start</source>
         <translation>Pronto per iniziare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="391"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="355"/>
         <source>Files to process</source>
         <translation>File da processare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="392"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="356"/>
         <source>Execution Log:</source>
         <translation>Registro dell&apos;Esecuzione:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="394"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="358"/>
         <source>Stop processing</source>
         <translation>Stop elaborazione</translation>
     </message>
@@ -426,197 +426,192 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>DlWorker</name>
     <message>
-        <location filename="../threads/dl_worker.py" line="71"/>
+        <location filename="../threads/dl_worker.py" line="70"/>
         <source>Progress: {0}% (File {1}/{2}, Phase {3}/{4})</source>
         <translation>Avanzamento: {0}% (File {1}/{2}, Fase {3}/{4})</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="102"/>
+        <location filename="../threads/dl_worker.py" line="100"/>
         <source>=== PROCESSING: {0} ===</source>
         <translation>=== ELABORAZIONE: {0} ===</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="111"/>
+        <location filename="../threads/dl_worker.py" line="109"/>
         <source>Phase 1/6: Synthstrip skull strip...</source>
         <translation>Fase 1/6: Skull strip con Synthstrip...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="112"/>
+        <location filename="../threads/dl_worker.py" line="110"/>
         <source>PHASE 1: Skull strip with Synthstrip</source>
         <translation>FASE 1: Skull strip con Synthstrip</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="114"/>
+        <location filename="../threads/dl_worker.py" line="112"/>
         <source>SynthStrip started: {0}</source>
         <translation>SynthStrip avviato: {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="391"/>
-        <location filename="../threads/dl_worker.py" line="349"/>
-        <location filename="../threads/dl_worker.py" line="299"/>
-        <location filename="../threads/dl_worker.py" line="254"/>
-        <location filename="../threads/dl_worker.py" line="201"/>
-        <location filename="../threads/dl_worker.py" line="152"/>
+        <location filename="../threads/dl_worker.py" line="381"/>
+        <location filename="../threads/dl_worker.py" line="340"/>
+        <location filename="../threads/dl_worker.py" line="290"/>
+        <location filename="../threads/dl_worker.py" line="245"/>
+        <location filename="../threads/dl_worker.py" line="192"/>
+        <location filename="../threads/dl_worker.py" line="143"/>
         <source>Segmentation failed for this file</source>
         <translation>Segmentazione non riuscita per questo file</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="156"/>
+        <location filename="../threads/dl_worker.py" line="147"/>
         <source>✓ Skull stripping completed</source>
         <translation>✓ Skull stripping completato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="166"/>
+        <location filename="../threads/dl_worker.py" line="157"/>
         <source>Phase 2/6: Coregistration...</source>
         <translation>Fase 2/6: Coregistrazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="167"/>
+        <location filename="../threads/dl_worker.py" line="158"/>
         <source>PHASE 2: Coregistration</source>
         <translation>FASE 2: Coregistrazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="169"/>
+        <location filename="../threads/dl_worker.py" line="160"/>
         <source>Coregistration started: {0}</source>
         <translation>Coregistratione iniziate {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="205"/>
+        <location filename="../threads/dl_worker.py" line="196"/>
         <source>✓ Coregistration completed</source>
         <translation>✓ Coregistrazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="215"/>
+        <location filename="../threads/dl_worker.py" line="206"/>
         <source>Phase 3/6: Reorientation...</source>
         <translation>Fase 3/6: Riorientamento...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="216"/>
+        <location filename="../threads/dl_worker.py" line="207"/>
         <source>PHASE 3: Reorientation</source>
         <translation>FASE 3: Riorientamento</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="218"/>
+        <location filename="../threads/dl_worker.py" line="209"/>
         <source>Reorientation started: {0}</source>
         <translation>Riorientamento iniziato {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="224"/>
+        <location filename="../threads/dl_worker.py" line="215"/>
         <source>✗ No brain_in_atlas file found</source>
         <translation>✗ Nessun file brain_in_atlas trovato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="258"/>
+        <location filename="../threads/dl_worker.py" line="249"/>
         <source>✓ Reorientation completed</source>
         <translation>✓ Riorientamento completato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="268"/>
+        <location filename="../threads/dl_worker.py" line="259"/>
         <source>Phase 4/6: Preparing and preprocessing...</source>
         <translation>Fase 4/6: Preparazione e pre-elaborazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="269"/>
+        <location filename="../threads/dl_worker.py" line="260"/>
         <source>PHASE 4: Prepare and preprocess</source>
         <translation>FASE 4: Preparazione e pre-elaborazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="303"/>
+        <location filename="../threads/dl_worker.py" line="294"/>
         <source>✓ Preprocess completed</source>
         <translation>✓ Pre-elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="313"/>
+        <location filename="../threads/dl_worker.py" line="304"/>
         <source>Phase 5/6: Deep Learning...</source>
         <translation>Fase 5/6: Deep Learning...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="314"/>
+        <location filename="../threads/dl_worker.py" line="305"/>
         <source>PHASE 5: Deep learning execution</source>
         <translation>FASE 5: Elaborazione deep learning</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="353"/>
+        <location filename="../threads/dl_worker.py" line="344"/>
         <source>✓ Deep learning execution completed</source>
         <translation>✓ Elaborazione deep learning completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="362"/>
+        <location filename="../threads/dl_worker.py" line="353"/>
         <source>Phase 6/6: Postprocessing...</source>
         <translation>Fase 6/6: Post-elaborazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="363"/>
+        <location filename="../threads/dl_worker.py" line="354"/>
         <source>PHASE 6: Postprocess</source>
         <translation>FASE 6: Post-elaborazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="395"/>
+        <location filename="../threads/dl_worker.py" line="385"/>
         <source>✓ Postprocess completed</source>
         <translation>✓ Post-elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="397"/>
-        <source>Segmentation completed</source>
-        <translation>Segmentazione completata</translation>
-    </message>
-    <message>
-        <location filename="../threads/dl_worker.py" line="404"/>
+        <location filename="../threads/dl_worker.py" line="392"/>
         <source>Processing completed</source>
         <translation>Elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="409"/>
+        <location filename="../threads/dl_worker.py" line="397"/>
         <source>Cancellation requested - stopping all processes...</source>
         <translation>Annullamento richiesto: arresto di tutti i processi...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="422"/>
+        <location filename="../threads/dl_worker.py" line="410"/>
         <source>Stopping {name}...</source>
         <translation>Arresto di {name}...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="429"/>
+        <location filename="../threads/dl_worker.py" line="417"/>
         <source>Forcing {name} to quit...</source>
         <translation>Forzare {name} a uscire...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="433"/>
+        <location filename="../threads/dl_worker.py" line="421"/>
         <source>Processing cancelled by user</source>
         <translation>Elaborazione annullata dall&apos;utente</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="465"/>
+        <location filename="../threads/dl_worker.py" line="453"/>
         <source>Failed to start process</source>
         <translation>Inizio esecuzione fallita</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="466"/>
+        <location filename="../threads/dl_worker.py" line="454"/>
         <source>Process crashed</source>
         <translation>Processo bloccato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="467"/>
+        <location filename="../threads/dl_worker.py" line="455"/>
         <source>Process timed out</source>
         <translation>Processo scaduto</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="468"/>
+        <location filename="../threads/dl_worker.py" line="456"/>
         <source>Write error</source>
         <translation>Errore di scrittura</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="469"/>
+        <location filename="../threads/dl_worker.py" line="457"/>
         <source>Read error</source>
         <translation>Errore di lettura</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="470"/>
+        <location filename="../threads/dl_worker.py" line="458"/>
         <source>Unknown error</source>
         <translation>Errore sconosciuto</translation>
     </message>
     <message>
-        <location filename="../threads/dl_worker.py" line="473"/>
+        <location filename="../threads/dl_worker.py" line="461"/>
         <source>Unknown error code: {error}</source>
         <translation>Codice di errore sconosciuto: {error}</translation>
     </message>
@@ -853,7 +848,7 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Apri file NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1739"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1734"/>
         <location filename="../ui/ui_nifti_viewer.py" line="1683"/>
         <location filename="../ui/ui_nifti_viewer.py" line="243"/>
         <source>No file loaded</source>
@@ -901,50 +896,10 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Opzioni di visualizzazione:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1701"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1696"/>
         <location filename="../ui/ui_nifti_viewer.py" line="382"/>
         <source>Colormap:</source>
         <translation>Mappa dei colori:</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
-        <source>gray</source>
-        <translation>grigio</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
-        <source>viridis</source>
-        <translation>viridis</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="389"/>
-        <source>plasma</source>
-        <translation>plasma</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
-        <source>inferno</source>
-        <translation>inferno</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
-        <source>magma</source>
-        <translation>magma</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
-        <source>hot</source>
-        <translation>hot</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="391"/>
-        <source>cool</source>
-        <translation>cool</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="391"/>
-        <source>bone</source>
-        <translation>osso</translation>
     </message>
     <message>
         <location filename="../ui/ui_nifti_viewer.py" line="411"/>
@@ -978,7 +933,7 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Differenza:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1702"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1697"/>
         <location filename="../ui/ui_nifti_viewer.py" line="505"/>
         <source>Overlay Controls:</source>
         <translation>Controlli overlay:</translation>
@@ -989,49 +944,49 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Carica overlay</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1704"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1699"/>
         <location filename="../ui/ui_nifti_viewer.py" line="517"/>
         <source>Load NIfTI Overlay</source>
         <translation>Carica overlay NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1706"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1701"/>
         <location filename="../ui/ui_nifti_viewer.py" line="521"/>
         <source>Show Overlay</source>
         <translation>Mostra overlay</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1708"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1703"/>
         <location filename="../ui/ui_nifti_viewer.py" line="527"/>
         <source>Overlay Transparency:</source>
         <translation>Trasparenza overlay:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1710"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1705"/>
         <location filename="../ui/ui_nifti_viewer.py" line="560"/>
         <source>Overlay Threshold:</source>
         <translation>Soglia overlay:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1712"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1707"/>
         <location filename="../ui/ui_nifti_viewer.py" line="593"/>
         <source>No overlay loaded</source>
         <translation>Nessun overlay caricato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1714"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1709"/>
         <location filename="../ui/ui_nifti_viewer.py" line="681"/>
         <source>Axial</source>
         <translation>Assiale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1714"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1709"/>
         <location filename="../ui/ui_nifti_viewer.py" line="681"/>
         <source>Coronal</source>
         <translation>Coronale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1714"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1709"/>
         <location filename="../ui/ui_nifti_viewer.py" line="681"/>
         <source>Sagittal</source>
         <translation>Sagittale</translation>
@@ -1043,8 +998,8 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Informazioni sull&apos;immagine</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1740"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1719"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1735"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1714"/>
         <location filename="../ui/ui_nifti_viewer.py" line="736"/>
         <source>No image loaded</source>
         <translation>Nessuna immagine caricata</translation>
@@ -1070,8 +1025,8 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Annulla</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1731"/>
         <location filename="../ui/ui_nifti_viewer.py" line="1726"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1721"/>
         <location filename="../ui/ui_nifti_viewer.py" line="1655"/>
         <location filename="../ui/ui_nifti_viewer.py" line="924"/>
         <location filename="../ui/ui_nifti_viewer.py" line="916"/>
@@ -1085,21 +1040,21 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Overlay caricato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1730"/>
         <location filename="../ui/ui_nifti_viewer.py" line="1725"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1720"/>
         <location filename="../ui/ui_nifti_viewer.py" line="924"/>
         <location filename="../ui/ui_nifti_viewer.py" line="916"/>
         <source>File</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1728"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1723"/>
         <location filename="../ui/ui_nifti_viewer.py" line="917"/>
         <source>4D Time Series</source>
         <translation>Serie temporale 4D</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1733"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1728"/>
         <location filename="../ui/ui_nifti_viewer.py" line="925"/>
         <source>3D Volume</source>
         <translation>Volume 3D</translation>
@@ -1166,6 +1121,38 @@ L&apos;elaborazione verrà interrotta.</translation>
         <location filename="../ui/ui_nifti_viewer.py" line="1681"/>
         <source>📁 Open NIfTI File</source>
         <translation>📁 Apri file NIfTI</translation>
+    </message>
+    <message>
+        <source>gray</source>
+        <translation type="vanished">grigio</translation>
+    </message>
+    <message>
+        <source>viridis</source>
+        <translation type="vanished">viridis</translation>
+    </message>
+    <message>
+        <source>plasma</source>
+        <translation type="vanished">plasma</translation>
+    </message>
+    <message>
+        <source>inferno</source>
+        <translation type="vanished">inferno</translation>
+    </message>
+    <message>
+        <source>magma</source>
+        <translation type="vanished">magma</translation>
+    </message>
+    <message>
+        <source>hot</source>
+        <translation type="vanished">hot</translation>
+    </message>
+    <message>
+        <source>cool</source>
+        <translation type="vanished">cool</translation>
+    </message>
+    <message>
+        <source>bone</source>
+        <translation type="vanished">osso</translation>
     </message>
 </context>
 <context>
@@ -1447,8 +1434,8 @@ L&apos;elaborazione verrà interrotta.</translation>
     </message>
     <message>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="249"/>
-        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_seg /*_seg.nii[.gz])</source>
-        <translation>Segmentazione (manual_masks/*_mask.nii[.gz] o deep_learning_seg /*_seg.nii[.gz])</translation>
+        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
+        <translation>Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
     </message>
     <message>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="350"/>
@@ -1501,10 +1488,6 @@ L&apos;elaborazione verrà interrotta.</translation>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="855"/>
         <source>Refresh Status</source>
         <translation>Aggiorna stato</translation>
-    </message>
-    <message>
-        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
-        <translation type="vanished">Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
     </message>
 </context>
 <context>

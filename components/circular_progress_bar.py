@@ -51,7 +51,7 @@ class CircularProgress(QWidget):
         Notes:
             This method triggers a repaint using `update()`.
         """
-        self.value = max(0, min(100, val))
+        self.value = max(0, min(100, int(val)))
         self.update()
 
     def setColor(self, color: str | QColor):

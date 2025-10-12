@@ -212,6 +212,8 @@ class FolderCard(QWidget):
         Reset the card’s appearance to its initial “waiting” state.
         Called after viewing or clearing files.
         """
+        self.files.clear()
+
         self.status_label.setText(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
             font-size: 12px;
