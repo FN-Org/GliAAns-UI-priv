@@ -11,27 +11,49 @@ from PyQt6.QtWidgets import (
 
 
 class FolderCard(QWidget):
+    """
+    A modern, self-contained widget representing a monitored output folder.
+    It shows the folder name, file count, and allows the user to open or inspect
+    newly generated files. Includes subtle visual animations for updates.
+    """
+
+    # Signal emitted when the user requests to open the folder externally
     open_folder_requested = pyqtSignal(str)
 
     def __init__(self, context, folder):
+        """
+        Initialize the FolderCard.
+
+        Args:
+            context (dict): Shared application context (unused here, reserved for integration).
+            folder (str): Path to the folder being represented by this card.
+        """
         super().__init__()
 
         self.folder = folder
-        self.files = []
+        self.files = []  # Tracks new files added since the last check
         self.existing_files = set(os.listdir(folder)) if os.path.isdir(folder) else set()
+
+        # Animation and visual properties
         self.pulse_animation = None
         self._scale = 1.0
         self._glow_opacity = 0.0
 
+        # Define a fixed height for uniform card size
         self.setFixedHeight(100)
+
+        # Build the UI
         self._setup_ui()
 
+    # -------------------------------------------------------------------------
+    # UI setup
+    # -------------------------------------------------------------------------
     def _setup_ui(self):
-        """Configura l'interfaccia moderna della card"""
+        """Configure the visual layout and styling for the folder card."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        # Container principale con effetto elevato
+        # Main container frame with light elevation
         self.card_frame = QFrame()
         self.card_frame.setObjectName("outputsCard")
         self.card_frame.setStyleSheet("""
@@ -42,11 +64,12 @@ class FolderCard(QWidget):
             }
         """)
 
+        # Horizontal layout for card contents
         card_layout = QHBoxLayout(self.card_frame)
         card_layout.setContentsMargins(16, 12, 16, 12)
         card_layout.setSpacing(12)
 
-        # Icona cartella (lato sinistro)
+        # Left section: folder icon
         self.folder_icon = QLabel("📁")
         self.folder_icon.setStyleSheet("""
             font-size: 32px;
@@ -58,11 +81,11 @@ class FolderCard(QWidget):
         self.folder_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(self.folder_icon)
 
-        # Area centrale con info
+        # Center section: folder name and status
         info_layout = QVBoxLayout()
         info_layout.setSpacing(4)
 
-        # Nome cartella
+        # Folder name label
         self.folder_name = QLabel(os.path.basename(self.folder))
         self.folder_name.setStyleSheet("""
             font-size: 14px;
@@ -71,7 +94,7 @@ class FolderCard(QWidget):
         """)
         info_layout.addWidget(self.folder_name)
 
-        # Stato/sottotitolo
+        # Status label (e.g., “Waiting for files…” or “3 new files”)
         self.status_label = QLabel(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
             font-size: 12px;
@@ -81,7 +104,7 @@ class FolderCard(QWidget):
 
         card_layout.addLayout(info_layout, stretch=1)
 
-        # Pulsante azione
+        # Right section: action button
         self.action_btn = QPushButton("Visualizza")
         self.action_btn.setStyleSheet("""
             QPushButton {
@@ -110,14 +133,23 @@ class FolderCard(QWidget):
 
         layout.addWidget(self.card_frame)
 
+    # -------------------------------------------------------------------------
+    # File handling and state updates
+    # -------------------------------------------------------------------------
     def add_files(self, new_files):
-        """Aggiunge nuovi file e attiva l'animazione"""
-        self.files.extend(new_files)
+        """
+        Add new files to the card, update the UI, and trigger a pulse animation.
 
-        # Aggiorna UI
+        Args:
+            new_files (list[str]): Names of newly detected files.
+        """
+        self.files.extend(new_files)
         file_count = len(self.files)
 
-        self.status_label.setText(QCoreApplication.translate("Components", "{file_count} new file").format(file_count=file_count))
+        # Update visual state to show activity
+        self.status_label.setText(
+            QCoreApplication.translate("Components", "{file_count} new file").format(file_count=file_count)
+        )
         self.status_label.setStyleSheet("""
             font-size: 12px;
             color: #27ae60;
@@ -126,7 +158,7 @@ class FolderCard(QWidget):
 
         self.action_btn.setEnabled(True)
 
-        # Cambia icona e colore
+        # Change the icon and color scheme to indicate success
         self.folder_icon.setText("✓")
         self.folder_icon.setStyleSheet("""
             font-size: 32px;
@@ -136,7 +168,7 @@ class FolderCard(QWidget):
             color: #27ae60;
         """)
 
-        # Cambia stile card
+        # Update card border to highlight new content
         self.card_frame.setStyleSheet("""
             QFrame#outputsCard {
                 background-color: white;
@@ -145,24 +177,26 @@ class FolderCard(QWidget):
             }
         """)
 
-        # Avvia animazione di pulse
+        # Trigger pulse animation for visual feedback
         self.start_pulse_animation()
 
     def start_pulse_animation(self):
-        """Animazione sottile di pulse quando arrivano nuovi file"""
+        """
+        Perform a subtle pulsing height animation when new files are added.
+        """
         if self.pulse_animation:
             self.pulse_animation.stop()
 
-        # Crea sequenza di animazioni
         self.pulse_animation = QSequentialAnimationGroup()
 
-        # Prima pulsazione
+        # Expand slightly
         pulse1 = QPropertyAnimation(self.card_frame, b"maximumHeight")
         pulse1.setDuration(300)
         pulse1.setStartValue(100)
         pulse1.setEndValue(104)
         pulse1.setEasingCurve(QEasingCurve.Type.OutCubic)
 
+        # Contract back
         pulse2 = QPropertyAnimation(self.card_frame, b"maximumHeight")
         pulse2.setDuration(300)
         pulse2.setStartValue(104)
@@ -174,8 +208,10 @@ class FolderCard(QWidget):
         self.pulse_animation.start()
 
     def reset_state(self):
-        """Resetta lo stato della card"""
-
+        """
+        Reset the card’s appearance to its initial “waiting” state.
+        Called after viewing or clearing files.
+        """
         self.files.clear()
 
         self.status_label.setText(QCoreApplication.translate("Components", "Waiting for files..."))
@@ -205,13 +241,22 @@ class FolderCard(QWidget):
         if self.pulse_animation:
             self.pulse_animation.stop()
 
+    # -------------------------------------------------------------------------
+    # Dialog for file inspection
+    # -------------------------------------------------------------------------
     def show_files_dialog(self):
-        """Mostra dialog moderno con lista file"""
+        """
+        Open a dialog window displaying all new files detected for this folder.
+        Provides options to open the folder or close the dialog.
+        """
         if not self.files:
             return
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(QCoreApplication.translate("Components", "Generated file - {0}").format(os.path.basename(self.folder)))
+        dialog.setWindowTitle(
+            QCoreApplication.translate("Components", "Generated file - {0}")
+            .format(os.path.basename(self.folder))
+        )
         dialog.setModal(True)
         dialog.setMinimumSize(600, 500)
 
@@ -219,8 +264,10 @@ class FolderCard(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
 
-        # Header
-        header = QLabel(QCoreApplication.translate("Components", "📊 {0} generated file").format(len(self.files)))
+        # Header with file count
+        header = QLabel(
+            QCoreApplication.translate("Components", "📊 {0} generated file").format(len(self.files))
+        )
         header.setStyleSheet("""
             font-size: 18px;
             font-weight: bold;
@@ -229,7 +276,7 @@ class FolderCard(QWidget):
         """)
         layout.addWidget(header)
 
-        # Sottotitolo con path
+        # Folder path subtitle
         path_label = QLabel(f"📁 {self.folder}")
         path_label.setStyleSheet("""
             font-size: 12px;
@@ -239,7 +286,7 @@ class FolderCard(QWidget):
         path_label.setWordWrap(True)
         layout.addWidget(path_label)
 
-        # Lista file moderna
+        # File list area
         list_widget = QListWidget()
         list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         list_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -258,7 +305,7 @@ class FolderCard(QWidget):
             }
         """)
 
-        # Aggiungi file alla lista
+        # Populate list with filenames
         for f in sorted(self.files):
             item = QListWidgetItem(f"📄  {f}")
             item.setToolTip(os.path.join(self.folder, f))
@@ -266,10 +313,11 @@ class FolderCard(QWidget):
 
         layout.addWidget(list_widget)
 
-        # Pulsanti azione
+        # Footer buttons
         button_layout = QHBoxLayout()
         button_layout.setSpacing(12)
 
+        # Button: open containing folder
         btn_open_folder = QPushButton(QCoreApplication.translate("Components", "📂 Open Folder"))
         btn_open_folder.setStyleSheet("""
             QPushButton {
@@ -287,6 +335,7 @@ class FolderCard(QWidget):
         """)
         btn_open_folder.clicked.connect(lambda: self.open_folder_requested.emit(self.folder))
 
+        # Button: close dialog
         btn_close = QPushButton(QCoreApplication.translate("Components", "Close"))
         btn_close.setStyleSheet("""
             QPushButton {
@@ -312,12 +361,18 @@ class FolderCard(QWidget):
 
         dialog.exec()
 
-        # Reset dopo visualizzazione
+        # After closing the dialog, clear and reset
         self.files.clear()
         self.reset_state()
 
+    # -------------------------------------------------------------------------
+    # Monitoring logic
+    # -------------------------------------------------------------------------
     def check_new_files(self):
-        """Controlla se ci sono nuovi file nella cartella"""
+        """
+        Check if new files have appeared in the monitored folder.
+        If new files are found, they are added and the UI is updated.
+        """
         if not os.path.isdir(self.folder):
             return
 
@@ -327,4 +382,5 @@ class FolderCard(QWidget):
         if new_files:
             self.add_files(list(new_files))
 
+        # Update the record of known files
         self.existing_files = current_files
