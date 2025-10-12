@@ -11,7 +11,7 @@ class CircularProgress(QWidget):
         self.existing_files = []
 
     def setValue(self, val: int):
-        self.value = max(0, min(100, val))
+        self.value = max(0, min(100, int(val)))
         self.update()
 
     def setColor(self, color: str | QColor):
