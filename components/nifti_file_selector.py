@@ -8,9 +8,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QBrush, QColor
 import os
-import logging
+from logger import get_logger
 
-log = logging.getLogger(__name__)
+log = get_logger()
 
 class NiftiFileDialog(QDialog):
     def __init__(self, context, allow_multiple=None, has_existing_func=None, label=None, forced_filters=None):

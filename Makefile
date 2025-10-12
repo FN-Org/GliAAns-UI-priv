@@ -6,6 +6,7 @@ PIPELINE_DIR      = pediatric_fdopa_pipeline
 REQUIREMENTS      = requirements.txt
 PIPELINE_DIST     = pipeline_runner.dist
 PIPELINE_NO_DIST  = pipeline_runner
+DOC_DIR			  = docs
 
 # -------------------------
 # Rilevamento OS
@@ -82,11 +83,20 @@ setup-all: main_python-setup pipeline_python-setup
 $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	$(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
 	    --standalone \
-	    --follow-imports \
 	    --remove-output \
+	    --nofollow-import-to=unittest \
+	    --nofollow-import-to=test \
+	    --nofollow-import-to=tkinter \
+	    --nofollow-import-to=email \
+	    --nofollow-import-to=distutils \
+	    --lto=yes \
+	    --python-flag=-OO \
 	    --include-data-dir=$(ATLAS)=atlas \
 	    $(ICON_FLAG) \
-	    --output-filename=$(PIPELINE_EXE)
+	    --output-filename=$(PIPELINE_EXE) \
+	    --show-progress \
+	    --show-modules
+
 
 $(PIPELINE_NO_DIST):$(PIPELINE_DIST)
 ifeq ($(OS),Windows_NT)
@@ -100,7 +110,8 @@ endif
 # -------------------------
 .PHONY: compile-app
 compile-app: $(VENV_DIR)
-	$(MAIN_PYTHON) -m PyInstaller \
+	$(MAIN_PYTHON) -OO -m PyInstaller \
+		--clean \
 	    --onedir \
 	    --noconsole \
 	    --icon=$(ICON) \
@@ -109,6 +120,7 @@ compile-app: $(VENV_DIR)
 	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
+	    --exclude-module test \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
@@ -144,4 +156,14 @@ ifeq ($(OS),Windows_NT)
 	if exist "$(PIPELINE_NO_DIST)" rmdir /S /Q "$(PIPELINE_NO_DIST)"
 else
 	rm -rf $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
+endif
+
+.PHONY: doc
+doc:
+ifeq ($(OS),Windows_NT)
+	if exist "$(DOC_DIR)" rmdir /S /Q "$(DOC_DIR)"
+	pdoc -o $(DOC_DIR) --logo $(abspath resources\GliAAns-logo.png) --template-dir pdoc_template .\main.py .\controller.py .\utils.py .\logger.py .\ui .\threads .\components
+else
+	rm -rf $(DOC_DIR)
+	pdoc -o $(DOC_DIR) --logo $(abspath resources/GliAAns-logo.png) --template-dir pdoc_template ./main.py ./controller.py ./utils.py ./logger.py ./ui ./threads ./components
 endif
