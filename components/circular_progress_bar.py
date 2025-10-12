@@ -40,7 +40,6 @@ class CircularProgress(QWidget):
         super().__init__()
         self.value = 0  # Current progress value (0–100)
         self.color = QColor(color)  # Active progress color
-        self.existing_files = []  # Reserved attribute (can store related items if needed)
 
     def setValue(self, val: int):
         """
