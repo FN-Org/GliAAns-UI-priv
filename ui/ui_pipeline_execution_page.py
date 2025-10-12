@@ -179,6 +179,8 @@ class PipelineExecutionPage(Page):
         content_layout.setColumnStretch(0, 1)
         content_layout.setColumnStretch(1, 2)
         content_layout.setRowStretch(0, 1)
+        content_layout.setRowStretch(1, 0)
+        content_layout.setRowStretch(2, 1)
 
         # Log section
         self.log_label = QLabel("Execution Log:")
@@ -253,7 +255,8 @@ class PipelineExecutionPage(Page):
 
         self.progress_bar.setValue(0)
         self.stop_button.setEnabled(True)
-        self._log_message("Starting pipeline execution...")
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Starting pipeline execution..."))
+
 
         cmd = [
             self.pipeline_bin_path,
@@ -261,11 +264,15 @@ class PipelineExecutionPage(Page):
             "--work-dir", self.workspace_path,
             "--out-dir", self.pipeline_output_dir
         ]
-        log.debug("Executing: " + " ".join(cmd))
+        log.debug(f"{self.pipeline_bin_path} --config {self.config_path} --work-dir {self.workspace_path} --out-dir {self.pipeline_output_dir}")
+
         self.pipeline_process.start(cmd[0], cmd[1:])
 
         if not self.pipeline_process.waitForStarted(3000):
-            self._on_pipeline_error("Failed to start pipeline process")
+            self._log_message(
+                QCoreApplication.translate("PipelineExecutionPage", "ERROR: Failed to start pipeline process"))
+            self._on_pipeline_error(
+                QCoreApplication.translate("PipelineExecutionPage", "Failed to start pipeline process"))
 
     # ─────────────────────────────────────────────
     # PROCESS SIGNAL HANDLERS
@@ -275,57 +282,67 @@ class PipelineExecutionPage(Page):
         if exit_code == 0 and exit_status == QProcess.ExitStatus.NormalExit:
             self._on_pipeline_finished()
         else:
-            self._on_pipeline_error(f"Process exited with code {exit_code}")
+            self._on_pipeline_error(QCoreApplication.translate("PipelineExecutionPage", "Process exited with code {exit_code}").format(exit_code=exit_code))
 
     def _on_process_error(self, error):
-        """Handle QProcess errors."""
+        """Chiamato quando si verifica un errore nel processo."""
         error_messages = {
-            QProcess.ProcessError.FailedToStart: "Failed to start process",
-            QProcess.ProcessError.Crashed: "Process crashed",
-            QProcess.ProcessError.Timedout: "Process timed out",
-            QProcess.ProcessError.WriteError: "Write error",
-            QProcess.ProcessError.ReadError: "Read error",
-            QProcess.ProcessError.UnknownError: "Unknown error"
+            QProcess.ProcessError.FailedToStart: QCoreApplication.translate("PipelineExecutionPage",
+                                                                            "Failed to start process"),
+            QProcess.ProcessError.Crashed: QCoreApplication.translate("PipelineExecutionPage", "Process crashed"),
+            QProcess.ProcessError.Timedout: QCoreApplication.translate("PipelineExecutionPage", "Process timed out"),
+            QProcess.ProcessError.WriteError: QCoreApplication.translate("PipelineExecutionPage", "Write error"),
+            QProcess.ProcessError.ReadError: QCoreApplication.translate("PipelineExecutionPage", "Read error"),
+            QProcess.ProcessError.UnknownError: QCoreApplication.translate("PipelineExecutionPage", "Unknown error")
         }
-        msg = error_messages.get(error, f"Process error: {error}")
-        self._on_pipeline_error(msg)
+        error_msg = error_messages.get(error, QCoreApplication.translate("PipelineExecutionPage",
+                                                                         "Process error: {error}").format(error=error))
+        self._on_pipeline_error(error_msg)
 
     # ─────────────────────────────────────────────
     # STDOUT / STDERR MONITORING
     # ─────────────────────────────────────────────
     def _on_stdout_ready(self):
-        """Triggered when stdout has new data."""
-        if not self.pipeline_process:
-            return
-        output = bytes(self.pipeline_process.readAllStandardOutput()).decode().strip()
-        for line in output.split('\n'):
-            if line.strip():
-                self._process_pipeline_output(line.strip())
+        """Chiamato quando ci sono dati pronti su stdout."""
+        if self.pipeline_process:
+            data = self.pipeline_process.readAllStandardOutput()
+            output = data.data().decode('utf-8').strip()
+
+            for line in output.split('\n'):
+                if line.strip():
+                    self._process_pipeline_output(line.strip())
 
     def _on_stderr_ready(self):
-        """Triggered when stderr has new data."""
-        if not self.pipeline_process:
-            return
-        output = bytes(self.pipeline_process.readAllStandardError()).decode().strip()
-        for line in output.split('\n'):
-            if line.strip():
-                self._log_message(f"STDERR: {line.strip()}")
+        """Chiamato quando ci sono dati pronti su stderr."""
+        if self.pipeline_process:
+            data = self.pipeline_process.readAllStandardError()
+            error_output = data.data().decode('utf-8').strip()
+
+            for line in error_output.split('\n'):
+                if line.strip():
+                    self._log_message(f"STDERR: {line.strip()}")
 
     # ─────────────────────────────────────────────
     # OUTPUT INTERPRETATION
     # ─────────────────────────────────────────────
     def _process_pipeline_output(self, line):
-        """Interpret and act upon a single line of pipeline output."""
+        """Processa una riga di output dalla pipeline."""
         if line.startswith("LOG: "):
-            self._log_message(line[5:])
-            self._update_current_operation(line[5:])
+            message = line[5:]  # Rimuove "LOG: "
+            self._log_message(message)
+            self._update_current_operation(message)
         elif line.startswith("ERROR: "):
-            self._log_message("ERROR: " + line[7:])
+            error_msg = line[7:]  # Rimuove "ERROR: "
+            self._log_message(
+                QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error}").format(error=error_msg))
         elif line.startswith("PROGRESS: "):
-            self._update_progress(line[10:])
+            progress_info = line[10:]  # Rimuove "PROGRESS: "
+            self._update_progress(progress_info)
         elif line.startswith("FINISHED: "):
-            self._log_message("Pipeline finished.")
+            message = line[10:]  # Rimuove "FINISHED: "
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: "))
         else:
+            # Output generico
             self._log_message(line)
 
     # ─────────────────────────────────────────────
@@ -334,22 +351,29 @@ class PipelineExecutionPage(Page):
     def _on_pipeline_finished(self):
         """Called when the pipeline finishes successfully."""
         self.pipeline_completed = True
-        self.current_operation.setText("All patients processed successfully.")
+        self.current_operation.setText(QCoreApplication.translate("PipelineExecutionPage", "All patients processed successfully."))
         self.progress_bar.setValue(100)
         self.stop_button.setEnabled(False)
-        self._log_message("Pipeline execution completed successfully.")
-        self._log_message(f"Results saved in: {self.pipeline_output_dir}")
+        self._log_message(
+            QCoreApplication.translate("PipelineExecutionPage", "Pipeline execution completed successfully!"))
+        self._log_message(
+            QCoreApplication.translate("PipelineExecutionPage", "Results saved in: {pipeline_output_dir}").format(
+                pipeline_output_dir=self.pipeline_output_dir))
         self.pipeline_process = None
         self.context["update_main_buttons"]()
 
     def _on_pipeline_error(self, error_message):
         """Called when pipeline terminates due to error."""
         self.pipeline_error = error_message
-        self.current_operation.setText("An error occurred during execution.")
-        self.current_operation.setStyleSheet("color: #c0392b; font-weight: bold;")
+        self.current_operation.setText(
+            QCoreApplication.translate("PipelineExecutionPage", "An error occurred during execution."))
+        self.current_operation.setStyleSheet("""
+                    color: #c0392b;
+                    font-weight: bold;
+                """)
         self.progress_bar.setColor("#c0392b")
         self.stop_button.setEnabled(False)
-        self._log_message(f"ERROR: {error_message}")
+        self._log_message(QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error_message}").format(error_message=error_message))
         self.pipeline_process = None
         self.context["update_main_buttons"]()
 
@@ -455,7 +479,7 @@ class PipelineExecutionPage(Page):
         Attempts a graceful termination, then a forced kill if needed.
         """
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
-            self._log_message("Stopping pipeline...")
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Stopping pipeline..."))
 
             # Try graceful termination first
             self.pipeline_process.terminate()
@@ -465,8 +489,11 @@ class PipelineExecutionPage(Page):
                 self.pipeline_process.kill()
                 self.pipeline_process.waitForFinished(3000)
 
-            self._log_message("Pipeline stopped by user.")
-            self.current_operation.setText("Execution was interrupted by user.")
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Pipeline stopped by user."))
+
+            self.current_operation.setText(
+                QCoreApplication.translate("PipelineExecutionPage", "Execution was interrupted by user."))
+
             self.progress_bar.setValue(0)
             self.stop_button.setEnabled(False)
 
@@ -594,4 +621,5 @@ class PipelineExecutionPage(Page):
         """Update all translatable UI text (used for multi-language support)."""
         self.header.setText(QCoreApplication.translate("PipelineExecutionPage", "Pipeline Execution"))
         self.stop_button.setText(QCoreApplication.translate("PipelineExecutionPage", "Stop Pipeline"))
+        self.log_text.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))
         self.log_label.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))

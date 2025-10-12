@@ -13,9 +13,9 @@ class FileRoleDialog(QDialog):
     A multistep dialog for assigning a file's logical role within a workspace.
 
     Structure:
-      1️⃣ Main or Derivatives
-      2️⃣ Subject selection (e.g., sub-001)
-      3️⃣ Role selection (e.g., anat, ses-01, ses-02)
+      1. Main or Derivatives
+      2. Subject selection (e.g., sub-001)
+      3. Role selection (e.g., anat, ses-01, ses-02)
 
     Dynamically adapts based on the provided arguments:
         - `main`, `subj`, and `role` can be pre-filled to skip steps.

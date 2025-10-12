@@ -720,14 +720,14 @@ class NiftiViewer(QMainWindow):
         # Add stretch to push everything to top
         layout.addStretch()
 
-        # Imposta il contenuto nel QScrollArea
+        # Set the content inside the QScrollArea
         scroll_area.setWidget(control_content)
 
-        # Imposta dimensioni per eliminare scroll orizzontale
+        # Set dimensions to eliminate horizontal scrolling
         scroll_area.setMinimumWidth(240)
         scroll_area.setMaximumWidth(340)
 
-        # Connessioni signal/slot per sincronizzare slider e spinbox
+        # Signal/slot connections to synchronize slider and spinbox
 
         # Automatic ROI - Radius
         self.automaticROI_radius_slider.valueChanged.connect(self.automaticROI_radius_spin.setValue)
@@ -745,7 +745,7 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_slider.valueChanged.connect(self.overlay_threshold_spin.setValue)
         self.overlay_threshold_spin.valueChanged.connect(self.overlay_threshold_slider.setValue)
 
-        # Aggiungi lo scroll area al parent
+        # Add scroll area to parent
         parent.addWidget(scroll_area)
 
     def format_info_text(self, text, max_line_length=35):
@@ -872,7 +872,7 @@ class NiftiViewer(QMainWindow):
             self.pixmap_items.append(pixmap_item)
 
         # ==============================
-        # 🧠 Fourth Panel (Info / Plot)
+        #  Fourth Panel (Info / Plot)
         # ==============================
         # Bottom-right panel for metadata or time-series visualization
         self.fourth_widget = QFrame()

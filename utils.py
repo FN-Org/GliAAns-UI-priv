@@ -57,7 +57,17 @@ def get_app_dir():
         pathlib.Path: The absolute path to the application data directory.
     """
     base = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation)) / "GliAAns-UI"
-    base.mkdir(parents=True, exist_ok=True)
+
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        raise
+    except OSError as e:
+        # Errno 30 = read-only filesystem, 13 = forbidden
+        if getattr(e, "errno", None) in (13, 30):
+            raise PermissionError("Error while creating the app working directory") from e
+        raise
+
     return base
 
 

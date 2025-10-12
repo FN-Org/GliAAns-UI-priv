@@ -285,48 +285,49 @@ class PipelinePatientSelectionPage(Page):
             'missing_files': missing_files,
             'segmentation_type': segmentation_type
         }
-    def _load_patients(self):
-        """Carica i pazienti e verifica i loro requisiti"""
-        # Trova tutte le cartelle dei pazienti (sub-*)
-        patient_dirs = self._find_patient_dirs()
-        patient_dirs.sort()  # Ordina alfabeticamente per coerenza visiva
 
-        # Pulisce i dizionari di pulsanti e stati pazienti
+    def _load_patients(self):
+        """Load patients and verify their requirements"""
+        # Find all patient folders (sub-*)
+        patient_dirs = self._find_patient_dirs()
+        patient_dirs.sort()  # Sort alphabetically for visual consistency
+
+        # Clear the dictionaries of buttons and patient states
         self.patient_buttons.clear()
         self.patient_status.clear()
 
         eligible_count = 0
         total_count = len(patient_dirs)
 
-        # Scorre tutti i pazienti trovati
+        # Iterate over all found patients
         for i, patient_path in enumerate(patient_dirs):
             patient_id = os.path.basename(patient_path)
 
-            # Verifica i requisiti richiesti per il paziente
+            # Check the required conditions for each patient
             status = self._check_patient_requirements(patient_path, patient_id)
             self.patient_status[patient_id] = status
 
-            # Conta i pazienti eleggibili
+            # Count eligible patients
             if status['eligible']:
                 eligible_count += 1
 
-            # Crea la card (frame) per il paziente
+            # Create a card (frame) for the patient
             patient_frame = self._create_patient_frame(patient_id, patient_path, status)
 
-            # Inserisce la card nella griglia (layout)
+            # Insert the card into the grid layout
             self.grid_layout.addWidget(patient_frame, i // self.column_count, i % self.column_count)
 
-        # Aggiorna il riepilogo statistico
+        # Update the statistical summary
         self._update_summary(eligible_count, total_count)
 
     def _create_patient_frame(self, patient_id, patient_path, status):
-        """Crea il frame per un singolo paziente"""
+        """Create the frame for a single patient"""
         patient_frame = QFrame()
         patient_frame.setObjectName("patientCard")
-        patient_frame.setMaximumHeight(140)  # Limite di altezza della card
+        patient_frame.setMaximumHeight(140)  # Card height limit
         patient_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        # Stile grafico differente in base all'idoneità del paziente
+        # Apply different visual style based on patient eligibility
         if status['eligible']:
             frame_style = """
                 QFrame#patientCard {
@@ -350,16 +351,16 @@ class PipelinePatientSelectionPage(Page):
 
         patient_frame.setStyleSheet(frame_style)
 
-        # Layout principale orizzontale (sinistra → destra)
+        # Main horizontal layout (left → right)
         patient_layout = QHBoxLayout(patient_frame)
 
-        # Sezione sinistra: informazioni di profilo
+        # Left section: profile information
         profile_frame = QFrame()
         profile_frame.setFixedSize(150, 100)
         profile_layout = QVBoxLayout(profile_frame)
         profile_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        # Immagine utente (icona)
+        # User image (icon)
         image = QLabel()
         pixmap = QtGui.QPixmap(resource_path("resources/user.png")).scaled(
             30, 30, Qt.AspectRatioMode.KeepAspectRatio,
@@ -368,12 +369,12 @@ class PipelinePatientSelectionPage(Page):
         image.setPixmap(pixmap)
         image.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Etichetta ID paziente
+        # Patient ID label
         patient_label = QLabel(f"{patient_id}")
         patient_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         patient_label.setStyleSheet("font-weight: bold; font-size: 12px;")
 
-        # Etichetta stato (Eligible / Not eligible)
+        # Status label (Eligible / Not eligible)
         if status['eligible']:
             status_label = QLabel(QCoreApplication.translate("PipelinePatientSelectionPage", "✓ Ready for Pipeline"))
             status_label.setStyleSheet("color: #4CAF50; font-weight: bold; font-size: 10px;")
@@ -382,17 +383,17 @@ class PipelinePatientSelectionPage(Page):
             status_label.setStyleSheet("color: #f44336; font-weight: bold; font-size: 10px;")
         status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Aggiunge i widget al layout del profilo
+        # Add widgets to the profile layout
         profile_layout.addWidget(image)
         profile_layout.addWidget(patient_label)
         profile_layout.addWidget(status_label)
 
-        # Sezione centrale: dettagli dei requisiti
+        # Center section: requirement details
         details_frame = QFrame()
         details_layout = QVBoxLayout(details_frame)
         details_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-        # Indicatori di stato per ciascun requisito richiesto
+        # Status indicators for each required step
         req_indicators = []
         req_labels = {
             'flair': 'FLAIR',
@@ -400,7 +401,7 @@ class PipelinePatientSelectionPage(Page):
             'segmentation': QCoreApplication.translate("PipelinePatientSelectionPage", 'Segmentation')
         }
 
-        # Mostra ✓ o ✗ accanto a ogni requisito
+        # Display ✓ or ✗ next to each requirement
         for req, label in req_labels.items():
             indicator = QLabel()
             if status['requirements'][req]:
@@ -412,18 +413,18 @@ class PipelinePatientSelectionPage(Page):
             req_indicators.append(indicator)
             details_layout.addWidget(indicator)
 
-        # Mostra il tipo di segmentazione se presente
+        # Show segmentation type if available
         if status['segmentation_type']:
             seg_type_label = QLabel(f"({status['segmentation_type']})")
             seg_type_label.setStyleSheet("color: #666666; font-size: 9px; font-style: italic;")
             details_layout.addWidget(seg_type_label)
 
-        # Sezione destra: pulsante di selezione
+        # Right section: selection button
         button = QPushButton(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
-        button.setCheckable(True)  # Permette di essere selezionato/deselezionato
+        button.setCheckable(True)  # Allows to toggle selection
 
         if status['eligible']:
-            # Stile per pulsante attivo (eligible)
+            # Style for active (eligible) button
             button.setStyleSheet("""
                 QPushButton {
                     border-radius: 12px;
@@ -444,7 +445,7 @@ class PipelinePatientSelectionPage(Page):
                 }
             """)
 
-            # Ripristina selezione precedente se presente
+            # Restore previous selection if it exists
             is_selected = patient_id in self.selected_patients
             button.setChecked(is_selected)
             button.setText(
@@ -452,10 +453,10 @@ class PipelinePatientSelectionPage(Page):
                 if is_selected else QCoreApplication.translate("PipelinePatientSelectionPage", "Select")
             )
 
-            # Collega il click al metodo che gestisce la selezione
+            # Connect button click to selection handler
             button.clicked.connect(lambda checked, pid=patient_id, btn=button: self._toggle_patient(pid, checked, btn))
         else:
-            # Se non eleggibile, pulsante disabilitato
+            # If not eligible, disable the button
             button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Not Eligible"))
             button.setEnabled(False)
             button.setStyleSheet("""
@@ -469,51 +470,51 @@ class PipelinePatientSelectionPage(Page):
                 }
             """)
 
-        # Salva riferimento del pulsante nel dizionario
+        # Save reference of the button in the dictionary
         self.patient_buttons[patient_id] = button
 
-        # Assembla tutte le sezioni nel layout principale
+        # Assemble all sections into the main layout
         patient_layout.addWidget(profile_frame)
         patient_layout.addWidget(details_frame)
-        patient_layout.addStretch()  # Spazio flessibile
+        patient_layout.addStretch()  # Flexible space
         patient_layout.addWidget(button)
 
         return patient_frame
 
     def _update_summary(self, eligible_count, total_count):
-        """Aggiorna i valori del resoconto dei pazienti"""
+        """Update the patient summary values"""
         self.total_label.value_label.setText(str(total_count))
         self.eligible_label.value_label.setText(str(eligible_count))
         self.not_eligible_label.value_label.setText(str(total_count - eligible_count))
 
     def _select_all_eligible_patients(self):
-        """Seleziona automaticamente tutti i pazienti eleggibili"""
+        """Automatically select all eligible patients"""
         for patient_id, button in self.patient_buttons.items():
             if self.patient_status[patient_id]['eligible'] and not button.isChecked():
                 button.setChecked(True)
                 button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
                 self.selected_patients.add(patient_id)
-        # Aggiorna pulsanti principali dell’app
+        # Update main app buttons
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
     def _deselect_all_patients(self):
-        """Deseleziona tutti i pazienti"""
+        """Deselect all patients"""
         for patient_id, button in self.patient_buttons.items():
             if button.isChecked() and button.isEnabled():
                 button.setChecked(False)
                 button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
                 self.selected_patients.discard(patient_id)
-        # Aggiorna pulsanti principali
+        # Update main buttons
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
     def _refresh_patient_status(self):
-        """Ricarica completamente lo stato dei pazienti"""
-        # Salva le selezioni correnti
+        """Completely reload patient status"""
+        # Save current selections
         current_selections = self.selected_patients.copy()
 
-        # Rimuove i widget esistenti dalla griglia
+        # Remove existing widgets from the grid
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
@@ -521,10 +522,10 @@ class PipelinePatientSelectionPage(Page):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # Ricarica pazienti e aggiorna stato
+        # Reload patients and update status
         self._load_patients()
 
-        # Ripristina selezioni ancora valide
+        # Restore still-valid selections
         valid_selections = set()
         for patient_id in current_selections:
             if (patient_id in self.patient_status and
@@ -538,56 +539,56 @@ class PipelinePatientSelectionPage(Page):
         self.selected_patients = valid_selections
 
     def _toggle_patient(self, patient_id, is_selected, button):
-        """Gestisce la selezione/deselezione di un singolo paziente"""
+        """Handle selection/deselection of a single patient"""
         if is_selected:
             self.selected_patients.add(patient_id)
             button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Selected"))
         else:
             self.selected_patients.discard(patient_id)
             button.setText(QCoreApplication.translate("PipelinePatientSelectionPage", "Select"))
-        # Aggiorna pulsanti principali
+        # Update main buttons
         if self.context and "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
     def _find_patient_dirs(self):
-        """Cerca tutte le directory pazienti nel workspace (esclude derivatives e pipeline)"""
+        """Search for all patient directories in the workspace (excluding derivatives and pipeline)"""
         patient_dirs = []
 
         for root, dirs, files in os.walk(self.workspace_path):
-            # Esclude cartelle non rilevanti
+            # Exclude irrelevant folders
             if "derivatives" in dirs:
                 dirs.remove("derivatives")
             if "pipeline" in dirs:
                 dirs.remove("pipeline")
 
-            # Aggiunge directory che iniziano con "sub-"
+            # Add directories starting with "sub-"
             for dir_name in dirs:
                 if dir_name.startswith("sub-"):
                     full_path = os.path.join(root, dir_name)
                     patient_dirs.append(full_path)
 
-            # Evita di scendere ulteriormente nelle sottocartelle sub-*
+            # Prevent going deeper into sub-* directories
             dirs[:] = [d for d in dirs if not d.startswith("sub-")]
 
         return patient_dirs
 
     def _update_column_count(self):
-        """Aggiorna il numero di colonne della griglia in base alla larghezza disponibile"""
+        """Update the number of grid columns based on available width"""
         available_width = self.scroll_area.viewport().width() - 40
-        min_card_width = 400  # Larghezza minima per una card
+        min_card_width = 400  # Minimum width for a card
 
         new_column_count = max(1, available_width // min_card_width)
 
-        # Se cambia il numero di colonne, ricarica la griglia
+        # If column count changes, reload the grid
         if new_column_count != self.column_count:
             self.column_count = new_column_count
             self._reload_patient_grid()
 
     def _reload_patient_grid(self):
-        """Ricarica la griglia mantenendo le selezioni correnti"""
+        """Reload the grid while keeping current selections"""
         selected = self.selected_patients.copy()
 
-        # Rimuove i widget esistenti
+        # Remove existing widgets
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
@@ -595,10 +596,10 @@ class PipelinePatientSelectionPage(Page):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # Ricarica i pazienti nella nuova disposizione
+        # Reload patients in the new layout
         self._load_patients()
 
-        # Ripristina le selezioni valide
+        # Restore valid selections
         valid_selections = set()
         for patient_id in selected:
             if (patient_id in self.patient_status and

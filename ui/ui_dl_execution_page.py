@@ -92,6 +92,12 @@ class DlExecutionPage(Page):
         files_layout.addWidget(self.files_list)
         content_layout.addWidget(self.files_list, 0, 1)
 
+        # Progress bar
+        left_layout = QVBoxLayout()
+        self.progress_bar = CircularProgress()
+        left_layout.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addLayout(left_layout, 0, 0)
+
         # Set column proportions
         content_layout.setColumnStretch(0, 1)
         content_layout.setColumnStretch(1, 2)
@@ -188,12 +194,14 @@ class DlExecutionPage(Page):
     def start_processing(self):
         """Starts the deep learning segmentation process."""
         if not self.context or "selected_segmentation_files" not in self.context:
-            QMessageBox.warning(self, "Error", "No files selected for processing.")
+            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"),
+                                QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
             return
 
         selected_files = self.context["selected_segmentation_files"]
         if not selected_files:
-            QMessageBox.warning(self, "Error", "No files selected for processing.")
+            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"),
+                                QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
             return
 
         # Initialize background worker
@@ -221,9 +229,9 @@ class DlExecutionPage(Page):
         self.worker.start()
 
         self.add_log_message(
-            f"Deep learning processing started for {len(selected_files)} file(s).", 'i'
-        )
-        log.info(f"Deep learning processing started for {len(selected_files)} file(s).")
+            QCoreApplication.translate("DlExecutionPage", "Deep learning processing started for {0} file").format(
+                len(selected_files)), 'i')
+        log.info(f"Deep learning processing started for {len(selected_files)} file")
 
     def update_progress(self, value):
         """Update the circular progress bar with the given value."""
@@ -235,13 +243,13 @@ class DlExecutionPage(Page):
         self.log_text.append(f"[{timestamp}] {message}")
 
         if type == 'e':
-            log.error(message)
+            log.error(f"[{timestamp}] {message}")
         elif type == 'i':
-            log.info(message)
+            log.info(f"[{timestamp}] {message}")
         elif type == 'w':
-            log.warning(message)
+            log.warning(f"[{timestamp}] {message}")
         else:
-            log.debug(message)
+            log.debug(f"[{timestamp}] {message}")
 
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
@@ -258,7 +266,8 @@ class DlExecutionPage(Page):
         """Request cancellation of the ongoing processing."""
         if self.worker:
             self.worker.cancel_requested.emit()
-            self.add_log_message("Cancellation requested...", 'i')
+            self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Cancellation requested..."), 'i')
+
 
     def processing_finished(self, success, message):
         """Handle the completion of the processing."""
@@ -270,14 +279,15 @@ class DlExecutionPage(Page):
         self.progress_bar.setVisible(False)
 
         if success:
-            self.current_operation.setText("Processing completed successfully.")
+            self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "✓ Processing completed!"))
             self.current_operation.setStyleSheet("color: green; font-weight: bold;")
             self.start_button.setText("Reprocess")
         else:
             self.current_operation.setText("Processing failed.")
             self.current_operation.setStyleSheet("color: #c0392b; font-weight: bold;")
 
-        self.add_log_message(f"Final: {message}", 'i')
+        self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Final: {message}").format(message=message),
+                             'i')
 
         if success and "workspace_path" in self.context:
             output_dir = os.path.join(self.context["workspace_path"], "outputs")
@@ -287,15 +297,15 @@ class DlExecutionPage(Page):
             self.context["update_main_buttons"]()
 
         if success:
-            QMessageBox.information(self, "Completed", message)
+            QMessageBox.information(self, QCoreApplication.translate("DlExecutionPage", "Completed"), message)
         else:
-            QMessageBox.critical(self, "Error", message)
+            QMessageBox.critical(self, QCoreApplication.translate("DlExecutionPage", "Error"), message)
 
     def reset_processing_state(self):
         """Reset the state of the UI and internal variables before or after processing."""
         self.processing = False
         self.processing_completed = False
-        self.start_button.setText("Start deep learning")
+        self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Start deep learning"))
         self.start_button.setVisible(True)
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
@@ -309,8 +319,9 @@ class DlExecutionPage(Page):
         if self.processing:
             reply = QMessageBox.question(
                 self,
-                "Processing in progress",
-                "Processing is currently running. Do you really want to go back?\nIt will be interrupted.",
+                QCoreApplication.translate("DlExecutionPage", "Processing in progress"),
+                QCoreApplication.translate("DlExecutionPage",
+                                           "Processing is in progress. Do you really want to go back?\nProcessing will be interrupted."),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )

@@ -179,6 +179,9 @@ class DlWorker(QObject):
         )
         self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 1: Skull strip with Synthstrip"), 'i')
 
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "SynthStrip started: {0}").format(
+            os.path.basename(self.current_input_file)), 'i')
+
         # Define output file path
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         self.current_synthstrip_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
@@ -212,7 +215,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("SynthStrip failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Skull stripping completed"), 'i')
@@ -236,6 +243,8 @@ class DlWorker(QObject):
             QCoreApplication.translate("DlWorker", "Phase 2/6: Coregistration...")
         )
         self.log_update.emit(QCoreApplication.translate("DlWorker", "PHASE 2: Coregistration"), 'i')
+        self.log_update.emit(QCoreApplication.translate("DlWorker", "Coregistration started: {0}").format(
+            os.path.basename(self.current_input_file)), 'i')
 
         coreg_dir = os.path.join(self.output_dir, "coregistration")
         os.makedirs(coreg_dir, exist_ok=True)
@@ -269,7 +278,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Coregistration failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Coregistration completed"), 'i')
@@ -331,7 +344,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Reorientation failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Reorientation completed"), 'i')
@@ -386,7 +403,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Preprocess failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Preprocess completed"), 'i')
@@ -446,7 +467,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Deep learning execution failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Deep learning execution completed"), 'i')
@@ -498,7 +523,11 @@ class DlWorker(QObject):
 
         if exit_code != 0 or exit_status != QProcess.ExitStatus.NormalExit:
             self.log_update.emit("Postprocess failed", f"Exit code: {exit_code}")
-            self._handle_failure()
+            if self.current_file_index < self.total_files:
+                self.current_file_index += 1
+                self.file_update(self.current_input_file_basename,
+                                 QCoreApplication.translate("DlWorker", "Segmentation failed for this file"))
+                self.process_single_file()
             return
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Postprocess completed"), 'i')
