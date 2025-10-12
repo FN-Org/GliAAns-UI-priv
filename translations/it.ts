@@ -323,94 +323,94 @@
 <context>
     <name>DlExecutionPage</name>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="361"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="185"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="400"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="223"/>
         <source>📄 {filename} - Waiting...</source>
         <translation>📄 {filename} - In attesa...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="299"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="195"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="190"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="338"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="233"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="228"/>
         <source>Error</source>
         <translation>Errore</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="195"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="190"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="233"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="228"/>
         <source>No files selected for processing.</source>
         <translation>Nessun file selezionato per l&apos;elaborazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="219"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="258"/>
         <source>Processing...</source>
         <translation>Elaborazione in corso...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="226"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="265"/>
         <source>Deep learning processing started for {0} file</source>
         <translation>Elaborazione con deep learning avviata per il file {0}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="264"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="303"/>
         <source>Cancellation requested...</source>
         <translation>Annullamento richiesto...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="277"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="316"/>
         <source>✓ Processing completed!</source>
         <translation>✓ Processo completato!</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="284"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="323"/>
         <source>Final: {message}</source>
         <translation>Finale: {message}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="297"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="336"/>
         <source>Completed</source>
         <translation>Completato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="354"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="305"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="393"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="344"/>
         <source>Start deep learning</source>
         <translation>Avvio deep learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="319"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="358"/>
         <source>Processing in progress</source>
         <translation>Elaborazione in corso</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="320"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="359"/>
         <source>Processing is in progress. Do you really want to go back?
 Processing will be interrupted.</source>
         <translation>L&apos;elaborazione è in corso. Vuoi davvero tornare indietro?
 L&apos;elaborazione verrà interrotta.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="350"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="389"/>
         <source>Deep Learning Segmentation</source>
         <translation>Segmentazione tramite Deep Learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="351"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="390"/>
         <source>Ready to start</source>
         <translation>Pronto per iniziare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="352"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="391"/>
         <source>Files to process</source>
         <translation>File da processare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="353"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="392"/>
         <source>Execution Log:</source>
         <translation>Registro dell&apos;Esecuzione:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="355"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="394"/>
         <source>Stop processing</source>
         <translation>Stop elaborazione</translation>
     </message>
@@ -418,7 +418,7 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>DlSelectionPage</name>
     <message>
-        <location filename="../ui/ui_dl_selection_page.py" line="128"/>
+        <location filename="../ui/ui_dl_selection_page.py" line="129"/>
         <source>Select NIfTI files for Deep Learning Segmentation</source>
         <translation>Seleziona i file NIfTI per la segmentazione del Deep Learning</translation>
     </message>
@@ -426,191 +426,209 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>DlWorker</name>
     <message>
-        <location filename="../threads/dl_thread.py" line="100"/>
+        <location filename="../threads/dl_worker.py" line="71"/>
+        <source>Progress: {0}% (File {1}/{2}, Phase {3}/{4})</source>
+        <translation>Avanzamento: {0}% (File {1}/{2}, Fase {3}/{4})</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_worker.py" line="102"/>
         <source>=== PROCESSING: {0} ===</source>
         <translation>=== ELABORAZIONE: {0} ===</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="109"/>
+        <location filename="../threads/dl_worker.py" line="111"/>
         <source>Phase 1/6: Synthstrip skull strip...</source>
         <translation>Fase 1/6: Skull strip con Synthstrip...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="110"/>
+        <location filename="../threads/dl_worker.py" line="112"/>
         <source>PHASE 1: Skull strip with Synthstrip</source>
         <translation>FASE 1: Skull strip con Synthstrip</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="112"/>
+        <location filename="../threads/dl_worker.py" line="114"/>
         <source>SynthStrip started: {0}</source>
         <translation>SynthStrip avviato: {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="381"/>
-        <location filename="../threads/dl_thread.py" line="340"/>
-        <location filename="../threads/dl_thread.py" line="290"/>
-        <location filename="../threads/dl_thread.py" line="245"/>
-        <location filename="../threads/dl_thread.py" line="192"/>
-        <location filename="../threads/dl_thread.py" line="143"/>
+        <location filename="../threads/dl_worker.py" line="391"/>
+        <location filename="../threads/dl_worker.py" line="349"/>
+        <location filename="../threads/dl_worker.py" line="299"/>
+        <location filename="../threads/dl_worker.py" line="254"/>
+        <location filename="../threads/dl_worker.py" line="201"/>
+        <location filename="../threads/dl_worker.py" line="152"/>
         <source>Segmentation failed for this file</source>
         <translation>Segmentazione non riuscita per questo file</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="147"/>
+        <location filename="../threads/dl_worker.py" line="156"/>
         <source>✓ Skull stripping completed</source>
         <translation>✓ Skull stripping completato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="157"/>
+        <location filename="../threads/dl_worker.py" line="166"/>
         <source>Phase 2/6: Coregistration...</source>
         <translation>Fase 2/6: Coregistrazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="158"/>
+        <location filename="../threads/dl_worker.py" line="167"/>
         <source>PHASE 2: Coregistration</source>
         <translation>FASE 2: Coregistrazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="160"/>
+        <location filename="../threads/dl_worker.py" line="169"/>
         <source>Coregistration started: {0}</source>
         <translation>Coregistratione iniziate {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="196"/>
+        <location filename="../threads/dl_worker.py" line="205"/>
         <source>✓ Coregistration completed</source>
         <translation>✓ Coregistrazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="206"/>
+        <location filename="../threads/dl_worker.py" line="215"/>
         <source>Phase 3/6: Reorientation...</source>
         <translation>Fase 3/6: Riorientamento...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="207"/>
+        <location filename="../threads/dl_worker.py" line="216"/>
         <source>PHASE 3: Reorientation</source>
         <translation>FASE 3: Riorientamento</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="209"/>
+        <location filename="../threads/dl_worker.py" line="218"/>
         <source>Reorientation started: {0}</source>
         <translation>Riorientamento iniziato {0}</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="215"/>
+        <location filename="../threads/dl_worker.py" line="224"/>
         <source>✗ No brain_in_atlas file found</source>
         <translation>✗ Nessun file brain_in_atlas trovato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="249"/>
+        <location filename="../threads/dl_worker.py" line="258"/>
         <source>✓ Reorientation completed</source>
         <translation>✓ Riorientamento completato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="259"/>
+        <location filename="../threads/dl_worker.py" line="268"/>
         <source>Phase 4/6: Preparing and preprocessing...</source>
         <translation>Fase 4/6: Preparazione e pre-elaborazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="260"/>
+        <location filename="../threads/dl_worker.py" line="269"/>
         <source>PHASE 4: Prepare and preprocess</source>
         <translation>FASE 4: Preparazione e pre-elaborazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="294"/>
+        <location filename="../threads/dl_worker.py" line="303"/>
         <source>✓ Preprocess completed</source>
         <translation>✓ Pre-elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="304"/>
+        <location filename="../threads/dl_worker.py" line="313"/>
         <source>Phase 5/6: Deep Learning...</source>
         <translation>Fase 5/6: Deep Learning...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="305"/>
+        <location filename="../threads/dl_worker.py" line="314"/>
         <source>PHASE 5: Deep learning execution</source>
-        <comment>i</comment>
         <translation>FASE 5: Elaborazione deep learning</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="344"/>
+        <location filename="../threads/dl_worker.py" line="353"/>
         <source>✓ Deep learning execution completed</source>
         <translation>✓ Elaborazione deep learning completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="353"/>
+        <location filename="../threads/dl_worker.py" line="362"/>
         <source>Phase 6/6: Postprocessing...</source>
         <translation>Fase 6/6: Post-elaborazione...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="354"/>
+        <location filename="../threads/dl_worker.py" line="363"/>
         <source>PHASE 6: Postprocess</source>
-        <comment>i</comment>
         <translation>FASE 6: Post-elaborazione</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="385"/>
+        <location filename="../threads/dl_worker.py" line="395"/>
         <source>✓ Postprocess completed</source>
         <translation>✓ Post-elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="392"/>
+        <location filename="../threads/dl_worker.py" line="397"/>
+        <source>Segmentation completed</source>
+        <translation>Segmentazione completata</translation>
+    </message>
+    <message>
+        <location filename="../threads/dl_worker.py" line="404"/>
         <source>Processing completed</source>
         <translation>Elaborazione completata</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="397"/>
+        <location filename="../threads/dl_worker.py" line="409"/>
         <source>Cancellation requested - stopping all processes...</source>
         <translation>Annullamento richiesto: arresto di tutti i processi...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="410"/>
+        <location filename="../threads/dl_worker.py" line="422"/>
         <source>Stopping {name}...</source>
         <translation>Arresto di {name}...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="417"/>
+        <location filename="../threads/dl_worker.py" line="429"/>
         <source>Forcing {name} to quit...</source>
         <translation>Forzare {name} a uscire...</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="421"/>
+        <location filename="../threads/dl_worker.py" line="433"/>
         <source>Processing cancelled by user</source>
         <translation>Elaborazione annullata dall&apos;utente</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="453"/>
+        <location filename="../threads/dl_worker.py" line="465"/>
         <source>Failed to start process</source>
         <translation>Inizio esecuzione fallita</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="454"/>
+        <location filename="../threads/dl_worker.py" line="466"/>
         <source>Process crashed</source>
         <translation>Processo bloccato</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="455"/>
+        <location filename="../threads/dl_worker.py" line="467"/>
         <source>Process timed out</source>
         <translation>Processo scaduto</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="456"/>
+        <location filename="../threads/dl_worker.py" line="468"/>
         <source>Write error</source>
         <translation>Errore di scrittura</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="457"/>
+        <location filename="../threads/dl_worker.py" line="469"/>
         <source>Read error</source>
         <translation>Errore di lettura</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="458"/>
+        <location filename="../threads/dl_worker.py" line="470"/>
         <source>Unknown error</source>
         <translation>Errore sconosciuto</translation>
     </message>
     <message>
-        <location filename="../threads/dl_thread.py" line="461"/>
+        <location filename="../threads/dl_worker.py" line="473"/>
         <source>Unknown error code: {error}</source>
         <translation>Codice di errore sconosciuto: {error}</translation>
+    </message>
+    <message>
+        <source>PHASE 5: Deep learning execution</source>
+        <comment>i</comment>
+        <translation type="vanished">FASE 5: Elaborazione deep learning</translation>
+    </message>
+    <message>
+        <source>PHASE 6: Postprocess</source>
+        <comment>i</comment>
+        <translation type="vanished">FASE 6: Post-elaborazione</translation>
     </message>
     <message>
         <source>SynthStrip started: {0}</source>
@@ -1166,32 +1184,32 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>PatientSelectionFrame</name>
     <message>
-        <location filename="../ui/ui_patient_selection_page.py" line="324"/>
-        <location filename="../ui/ui_patient_selection_page.py" line="292"/>
-        <location filename="../ui/ui_patient_selection_page.py" line="263"/>
-        <location filename="../ui/ui_patient_selection_page.py" line="247"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="326"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="294"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="265"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="249"/>
         <source>Select</source>
         <translation>Seleziona</translation>
     </message>
     <message>
-        <location filename="../ui/ui_patient_selection_page.py" line="321"/>
-        <location filename="../ui/ui_patient_selection_page.py" line="283"/>
-        <location filename="../ui/ui_patient_selection_page.py" line="263"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="323"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="285"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="265"/>
         <source>Selected</source>
         <translation>Selezionato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_patient_selection_page.py" line="348"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="350"/>
         <source>Select Patients to Analyze</source>
         <translation>Seleziona i pazienti da analizzare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_patient_selection_page.py" line="349"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="351"/>
         <source>Select All</source>
         <translation>Seleziona tutti</translation>
     </message>
     <message>
-        <location filename="../ui/ui_patient_selection_page.py" line="350"/>
+        <location filename="../ui/ui_patient_selection_page.py" line="352"/>
         <source>Deselect All</source>
         <translation>Deseleziona tutti</translation>
     </message>
@@ -1393,25 +1411,25 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>PipelinePatientSelectionPage</name>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="855"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="856"/>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="127"/>
         <source>Pipeline Requirements Summary</source>
         <translation>Riassunto requisiti per Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="857"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="858"/>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="136"/>
         <source>Total Patients</source>
         <translation>Pazienti totali</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="858"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="859"/>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="137"/>
         <source>Eligible</source>
         <translation>Idoneo</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="859"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="860"/>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="424"/>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="138"/>
         <source>Not Eligible</source>
@@ -1429,8 +1447,8 @@ L&apos;elaborazione verrà interrotta.</translation>
     </message>
     <message>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="249"/>
-        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
-        <translation>Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
+        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_seg /*_seg.nii[.gz])</source>
+        <translation>Segmentazione (manual_masks/*_mask.nii[.gz] o deep_learning_seg /*_seg.nii[.gz])</translation>
     </message>
     <message>
         <location filename="../ui/ui_pipeline_patient_selection_page.py" line="350"/>
@@ -1465,55 +1483,59 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Selezionato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="851"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="852"/>
         <source>Select Patients for Pipeline Analysis</source>
         <translation>Selezione pazienti per analisi con Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="852"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="853"/>
         <source>Select All Eligible</source>
         <translation>Seleziona tutti gli idonei</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="853"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="854"/>
         <source>Deselect All</source>
         <translation>Deseleziona tutti</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="854"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="855"/>
         <source>Refresh Status</source>
         <translation>Aggiorna stato</translation>
+    </message>
+    <message>
+        <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
+        <translation type="vanished">Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
     </message>
 </context>
 <context>
     <name>PipelineReviewPage</name>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="227"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="226"/>
         <source>Configuration Incomplete</source>
         <translation>Configurazione incompleta</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="228"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="227"/>
         <source>Some patients still require configuration review.</source>
         <translation>Alcuni pazienti richiedono revisione alla configurazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="231"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="230"/>
         <source>Please review and save configuration for: {patients}</source>
         <translation>Per favore revisiona e salva la configurazione per: {patients}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="279"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="280"/>
         <source>Pipeline Configuration Review</source>
         <translation>Revisione configurazioni per Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="280"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="281"/>
         <source>Reviewing: {0}</source>
         <translation>Revisione: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="281"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="282"/>
         <source>&lt;strong&gt;Click&lt;/strong&gt; a frame to review file selections. &lt;strong&gt;Save&lt;/strong&gt; yellow frames after selection.</source>
         <translation>&lt;strong&gt;Fai clic&lt;/strong&gt; su un frame per rivedere le selezioni dei file. &lt;strong&gt;Salva&lt;/strong&gt; i frame gialli dopo la selezione.</translation>
     </message>
@@ -1521,67 +1543,67 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>SkullStrippingFrame</name>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="532"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="531"/>
         <source>Output binary brain mask image</source>
         <translation>Immagine della maschera cerebrale binaria in uscita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="534"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="533"/>
         <source>Apply thresholding to brain and mask image</source>
         <translation>Applicare la soglia al cervello e mascherare l&apos;immagine</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="535"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="534"/>
         <source>Output exterior skull surface image</source>
         <translation>Immagine della superficie esterna del cranio in uscita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="537"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="536"/>
         <source>Output brain surface overlaid onto original image</source>
         <translation>Superficie cerebrale di output sovrapposta all&apos;immagine originale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="538"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="537"/>
         <source>Threshold gradient; positive values give larger brain outline at bottom, smaller at top</source>
         <translation>Gradiente di soglia; i valori positivi danno un contorno del cervello più grande in basso, più piccolo in alto</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="540"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="539"/>
         <source>Coordinates (voxels) for centre of initial brain surface sphere</source>
         <translation>Coordinate (voxel) per il centro della sfera iniziale della superficie cerebrale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="542"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="541"/>
         <source>Using tool: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET&apos;&gt;BET from FSL toolkit&lt;/a&gt;</source>
         <translation>Utilizzo dello strumento: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET&apos;&gt;BET dal toolkit FSL&lt;/a&gt;</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="543"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="542"/>
         <source>Hide Advanced Options</source>
         <translation>Nascondi opzioni avanzate</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="544"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="543"/>
         <source>Show Advanced Options</source>
         <translation>Mostra opzioni avanzate</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="547"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="546"/>
         <source>Using tool: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;To use BET from FSL toolkit, you have to be on linux and follow the instructions at: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;FSL installation&lt;/a&gt;</source>
         <translation>Utilizzo dello strumento: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;Per utilizzare BET dal toolkit FSL, è necessario essere su Linux e seguire le istruzioni su: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;Installazione FSL&lt;/a&gt;</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="550"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="549"/>
         <source>Open link</source>
         <translation>Apri link</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="552"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="551"/>
         <source>Run Skull Stripping</source>
         <translation>Eseguire lo skull stripping</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="553"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="552"/>
         <source>Cancel</source>
         <translation>Cancellare</translation>
     </message>
@@ -1637,68 +1659,68 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>SkullStrippingPage</name>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="321"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="320"/>
         <source>No files</source>
         <translation>Nessun file selezionato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="321"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="320"/>
         <source>Please select at least one NIfTI file first.</source>
         <translation>Per favore selezionare almeno un NIfTI file.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="367"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="366"/>
         <source>Cancelling...</source>
         <translation>Cancellazione...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="418"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="417"/>
         <source>Skull Stripping completed successfully for {0} file(s)</source>
         <translation>Skull Strip completato con successo per {0} file</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="420"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="419"/>
         <source>{count} file(s) failed: {files}</source>
         <translation>{count} file falliti: {files}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="433"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="432"/>
         <source>All {0} file(s) failed to process</source>
         <translation>Elaborazione di tutti i {0} file fallita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="457"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="456"/>
         <source>Processing in progress</source>
         <translation>Elaborazione in corso</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="458"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="457"/>
         <source>Cannot go back while skull stripping is in progress. Please wait or cancel the operation.</source>
         <translation>Impossibile tornare indietro mentre l&apos;esecuzione dello skull strip è in corso. Per favore aspettare o cancellare l&apos;operazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="528"/>
-        <location filename="../ui/ui_skull_stripping_page.py" line="496"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="527"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="495"/>
         <source>Show Advanced Options</source>
         <translation>Mostra opzioni avanzate</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="522"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="521"/>
         <source>Select a NIfTI file for Skull Stripping</source>
         <translation>Selezionare un NIfTI file per procedere con lo skull stripping</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="526"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="525"/>
         <source>Fractional intensity threshold, smaller values give larger brain outline estimates</source>
         <translation>Soglia di intensità frazionaria, valori più piccoli forniscono stime più ampie del contorno del cervello</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="529"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="528"/>
         <source>Advanced options:</source>
         <translation>Opzioni avanzate:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="531"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="530"/>
         <source>Output brain-extracted image</source>
         <translation>Immagine estratta dal cervello in uscita</translation>
     </message>

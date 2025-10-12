@@ -49,7 +49,7 @@ def prepare_predictions(preds, output_dir):
         p = back_to_original_labels(pred_mean)
 
         # save as NIfTI
-        img = nib.load(f"/mnt/c/Users/nicol/Desktop/codice_per_DL/prepared/{fname}.nii.gz")
+        img = nib.load("pediatric_fdopa_pipeline/atlas/BraTS-GLI-01-001.nii")
         out_path = os.path.join(output_dir, f"{fname}-seg.nii.gz")
         nib.save(
             nib.Nifti1Image(p, img.affine, header=img.header),
@@ -92,6 +92,10 @@ parser.add_argument(
     help="Directory where to save the final NIfTI predictions"
 )
 parser.add_argument(
+    "--w", type=str, required=True,
+    help="Workspace path"
+)
+parser.add_argument(
     "--mri", type=str, required=True,
     help="Original FLAIR mri"
 )
@@ -123,7 +127,8 @@ if __name__ == "__main__":
         raise ValueError(f"Cannot extract subject ID from filename: {os.path.basename(mri)}")
 
     # Crea il prefix con subject ID
-    prefix = f".workspace/derivatives/deep_learning_seg/{subject_id}/anat/"
+    prefix = f"{args.w}/derivatives/deep_learning_seg/{subject_id}/anat/"
+    print(f"Final path: {prefix}")
     outprefix = f"{args.output}/{subject_id}_mrib2mri_Rigid_"
 
     print(f"Extracted subject ID: {subject_id}")

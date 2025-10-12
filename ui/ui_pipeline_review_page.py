@@ -91,7 +91,6 @@ class PipelineReviewPage(Page):
                 continue  # Skip non-conforming filenames
 
         if latest_config:
-            log.info(f"Using latest config file: {latest_config}")
             return latest_config
 
         return os.path.join(pipeline_dir, "pipeline_config.json")
@@ -325,6 +324,8 @@ class PipelineReviewPage(Page):
                     log.info(f"Keeping config file: {self.config_path}")
             except (OSError, IndexError, ValueError) as e:
                 log.error(f"Error processing config file {self.config_path}: {e}")
+        else:
+            log.error(f"Invalid config path: {self.config_path}")
 
         if self.previous_page:
             self.previous_page.on_enter()
