@@ -176,6 +176,8 @@ class FolderCard(QWidget):
     def reset_state(self):
         """Resetta lo stato della card"""
 
+        self.files.clear()
+
         self.status_label.setText(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
             font-size: 12px;
