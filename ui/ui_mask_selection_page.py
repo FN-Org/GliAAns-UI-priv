@@ -9,7 +9,7 @@ from logger import get_logger
 log = get_logger()
 
 
-class NiftiMaskSelectionPage(Page):
+class MaskNiftiSelectionPage(Page):
     """
     A page that allows the user to select a NIfTI file for automatic drawing (mask creation).
 

@@ -14,7 +14,7 @@ from logger import get_logger
 log = get_logger()
 
 
-class DlPatientSelectionPage(Page):
+class DlNiftiSelectionPage(Page):
     """
     GUI page that allows the user to select NIfTI files for Deep Learning-based segmentation.
 
