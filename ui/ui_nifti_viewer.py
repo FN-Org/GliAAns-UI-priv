@@ -386,9 +386,9 @@ class NiftiViewer(QMainWindow):
 
         self.colormap_combo = QComboBox()
         self.colormap_combo.addItems(
-            [QtCore.QCoreApplication.translate("NIfTIViewer", 'gray'), QtCore.QCoreApplication.translate("NIfTIViewer", 'viridis'), QtCore.QCoreApplication.translate("NIfTIViewer", 'plasma'),
-             QtCore.QCoreApplication.translate("NIfTIViewer", 'inferno'), QtCore.QCoreApplication.translate("NIfTIViewer", 'magma'), QtCore.QCoreApplication.translate("NIfTIViewer", 'hot'),
-             QtCore.QCoreApplication.translate("NIfTIViewer", 'cool'), QtCore.QCoreApplication.translate("NIfTIViewer", 'bone')])
+            ['gray', 'viridis', 'plasma',
+             'inferno', 'magma', 'hot',
+             'cool', 'bone'])
         self.colormap_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.colormap_combo.setMaximumHeight(25)
         colormap_layout.addWidget(self.colormap_combo)
@@ -1692,11 +1692,6 @@ class NiftiViewer(QMainWindow):
         self.time_point_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Time Point:"))
 
         self.display_options_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Display Options:"))
-
-        colormap_names = ['gray', 'viridis','plasma', 'inferno','magma','hot','cool','bone']
-
-        for i,name in enumerate(colormap_names):
-            self.colormap_combo.setItemText(i, name)
 
         self.colormap_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Colormap:"))
         self.overlay_control_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay Controls:"))
