@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 
-from components.nifti_file_selector import NiftiFileDialog
+from components.nifti_file_dialog import NiftiFileDialog
 
 
 class FileSelectorWidget(QWidget):

@@ -845,6 +845,7 @@ class PipelinePatientSelectionPage(Page):
             # Otherwise, create a new review page and register it in navigation history
             self.next_page = PipelineReviewPage(context, self)
             self.context["history"].append(self.next_page)
+            self.next_page.on_enter()
             return self.next_page
 
     def back(self):

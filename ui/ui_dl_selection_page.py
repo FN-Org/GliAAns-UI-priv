@@ -165,6 +165,8 @@ class DlNiftiSelectionPage(Page):
         """
         Reset the page to its initial state, clearing all selections and messages.
         """
+        self.file_selector_widget._selected_files = []
+
         self.status_label.setText("")
 
         # Clear any saved data in the context

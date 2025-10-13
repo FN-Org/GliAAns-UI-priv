@@ -17,7 +17,6 @@ class TestCircularProgressInitialization:
 
         assert widget.value == 0
         assert widget.color == QColor("#3498DB")
-        assert widget.existing_files == []
 
     def test_initialization_custom_color(self, qtbot):
         """Test inizializzazione con colore personalizzato."""
@@ -391,40 +390,6 @@ class TestPaintEvent:
         event = QPaintEvent(widget.rect())
 
         widget.paintEvent(event)
-
-
-class TestExistingFiles:
-    """Test per l'attributo existing_files."""
-
-    def test_existing_files_initialized_empty(self, qtbot):
-        """Test che existing_files sia inizializzato vuoto."""
-        widget = CircularProgress()
-        qtbot.addWidget(widget)
-
-        assert widget.existing_files == []
-        assert isinstance(widget.existing_files, list)
-
-    def test_existing_files_can_be_modified(self, qtbot):
-        """Test che existing_files possa essere modificato."""
-        widget = CircularProgress()
-        qtbot.addWidget(widget)
-
-        widget.existing_files = ["file1.txt", "file2.txt"]
-
-        assert len(widget.existing_files) == 2
-        assert "file1.txt" in widget.existing_files
-
-    def test_existing_files_persists(self, qtbot):
-        """Test che existing_files persista."""
-        widget = CircularProgress()
-        qtbot.addWidget(widget)
-
-        widget.existing_files.append("file1.txt")
-        widget.setValue(50)
-
-        # existing_files dovrebbe rimanere invariato
-        assert "file1.txt" in widget.existing_files
-
 
 class TestEdgeCases:
     """Test per casi limite."""

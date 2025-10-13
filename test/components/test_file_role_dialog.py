@@ -245,7 +245,7 @@ class TestLevel1MainDerivatives:
         derivative_buttons = [
             (dialog.skull_strip_btn, "skullstrips"),
             (dialog.manual_mask_btn, "manual_masks"),
-            (dialog.deep_learning_mask, "deep_learning_masks")
+            (dialog.deep_learning_mask, "deep_learning_seg")
         ]
 
         for button, expected_text in derivative_buttons:

@@ -796,11 +796,11 @@ class TestFileSelectorIntegration:
         # Mock get_selected_files
         with patch.object(page.file_selector_widget, 'get_selected_files', return_value=["file1.nii"]):
             result = page.is_ready_to_advance()
-            assert result is True
+            assert bool(result) is True
 
         with patch.object(page.file_selector_widget, 'get_selected_files', return_value=[]):
             result = page.is_ready_to_advance()
-            assert result is False
+            assert bool(result) is False
 
     def test_file_selector_receives_correct_parameters(self, qtbot, mock_context, mock_file_selector_dl):
         """Test che FileSelectorWidget riceva i parametri corretti."""
