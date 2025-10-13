@@ -1016,7 +1016,7 @@ class NiftiViewer(QMainWindow):
                 allow_multiple=False,
                 has_existing_func=False,
                 label=None,
-                forced_filters={"search": "derivatives"}
+                forced_filters=None
             )
         else:
             result = NiftiFileDialog.get_files(
