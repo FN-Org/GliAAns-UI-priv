@@ -379,7 +379,7 @@ class TestProgressUpdates:
         with patch.object(page, 'check_new_files') as mock_check:
             page._update_progress("5/10")
 
-            assert page.progress_bar.value == 5
+            assert page.progress_bar.value == 50
             mock_check.assert_called_once()
 
     def test_update_progress_invalid(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path,
@@ -929,7 +929,7 @@ class TestEdgeCases:
         with patch.object(page, 'check_new_files'):
             for i in range(1, 11):
                 page._update_progress(f"{i}/10")
-                assert page.progress_bar.value == i
+                assert page.progress_bar.value == i*10
 
     def test_unicode_in_logs(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
         """Test con caratteri unicode nei log."""

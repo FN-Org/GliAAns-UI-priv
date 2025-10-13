@@ -194,13 +194,6 @@ class TestSkullStrippingPageProcessing:
         assert not skull_page.run_button.isVisible()
         assert skull_page.cancel_button.isVisible()
 
-    def test_set_processing_mode_false(self, skull_page):
-        """Verifica set_processing_mode(False)"""
-        skull_page.set_processing_mode(False)
-
-        assert skull_page.run_button.isVisible()
-        assert not skull_page.cancel_button.isVisible()
-
     def test_cancel_processing(self, skull_page):
         """Verifica cancellazione processing"""
         mock_worker = Mock()

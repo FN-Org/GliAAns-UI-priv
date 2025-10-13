@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import platform
 import sys
-from PyQt6.QtCore import QStandardPaths
+from PyQt6.QtCore import QStandardPaths, QCoreApplication
 from pathlib import Path
 
 
@@ -25,6 +25,9 @@ def get_bin_path(name):
     Raises:
         FileNotFoundError: If the executable cannot be found.
     """
+    if not name or not str(name).strip():
+        raise ValueError(QCoreApplication.translate("Utils", "Tool name not provided"))
+
     exe_name = f"{name}.exe" if platform.system() == "Windows" else name
 
     # Case 1: Running from a PyInstaller bundle
@@ -43,7 +46,7 @@ def get_bin_path(name):
     if path:
         return path
 
-    raise FileNotFoundError(f"Could not find executable: {exe_name}")
+    raise FileNotFoundError(QCoreApplication.translate("Utils", "Could not find executable: {exe_name}").format(exe_name=exe_name))
 
 
 def get_app_dir():
@@ -65,7 +68,7 @@ def get_app_dir():
     except OSError as e:
         # Errno 30 = read-only filesystem, 13 = forbidden
         if getattr(e, "errno", None) in (13, 30):
-            raise PermissionError("Error while creating the app working directory") from e
+            raise PermissionError(QCoreApplication.translate("Utils", "Error while creating the app working directory")) from e
         raise
 
     return base

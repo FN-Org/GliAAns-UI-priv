@@ -24,7 +24,6 @@ class NiftiFileDialog(QDialog):
         self.has_existing_func = has_existing_func or (lambda *_: False)
         self.forced_filters = forced_filters or {}
 
-
         self.selected_files = []
         self.relative_to_absolute = {}
         self.files_with_flag = set()
