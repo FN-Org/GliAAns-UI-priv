@@ -17,7 +17,6 @@ class CrosshairGraphicsView(QGraphicsView):
     - `view_idx`: The index of the active view (e.g., axial, coronal, sagittal).  
     - `x`, `y`: The current mouse coordinates within that view.
     """
-    slice_changed = pyqtSignal(int, int)  # view_idx, new_slice
 
     def __init__(self, view_idx, parent=None):
         """
