@@ -111,11 +111,14 @@ class TestNiftiViewer(unittest.TestCase):
         result = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
         self.assertTrue(np.all(result == rgba_image), "No overlay should leave image unchanged")
 
+        rgba_image = np.zeros((10, 10, 4), dtype=np.float64)
         overlay_color = (0.0, 1.0, 0.0)
+        overlay_intensity = np.ones((10, 10)) * 0.5
         overlay_mask[5, 5] = True
         result = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
-        self.assertEqual(result[5, 5, 1], 0.5, "Green channel should reflect overlay intensity")
+
         self.assertEqual(result[5, 5, 0], 0.0, "Red channel should be zero for green overlay")
+        self.assertEqual(result[5, 5, 1], 0.5, "Green channel should reflect overlay intensity")
         self.assertEqual(result[5, 5, 2], 0.0, "Blue channel should be zero for green overlay")
 
     def test_pad_volume_to_shape(self):
