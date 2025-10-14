@@ -103,6 +103,16 @@ class SkullStripThread(QThread):
 
         At the end, emits `all_completed` with a summary of successful and failed files.
         """
+
+        if not self.files:
+            log.warning("Nessun file da processare (lista vuota).")
+            self.progress_value_updated.emit(100)
+            self.progress_updated.emit(
+                QCoreApplication.translate("Threads", "No files to process.")
+            )
+            self.all_completed.emit(0, [])
+            return
+
         base_progress = 10
         progress_per_file = int(90 / len(self.files))
 
