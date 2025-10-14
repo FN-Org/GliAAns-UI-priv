@@ -9,7 +9,7 @@ import os
 import subprocess
 
 from components.file_selector_widget import FileSelectorWidget
-from threads.skull_stripping_thread import SkullStripThread
+from threads.skull_strip_thread import SkullStripThread
 from page import Page
 from logger import get_logger
 
