@@ -200,7 +200,7 @@ class CollapsiblePatientFrame(QFrame):
             all_files_rel = [os.path.relpath(f, self.workspace_path) for f in all_files]
 
             # --- SINGLE FILE MODE (locked) ---
-            if self.locked or len(all_files_rel) == 1:
+            if self.locked:
                 self.chosen_file = self.files.get(category, "")
                 self.file_label = QLabel(self.chosen_file if self.chosen_file else QCoreApplication.translate("Components", "No file found"))
                 category_layout.addWidget(category_label)
@@ -355,7 +355,7 @@ class CollapsiblePatientFrame(QFrame):
         self.toggle_button.setText(QCoreApplication.translate("Components", "Patient: {patient}").format(patient=self.patient_id))
         self.subject_name.setText(QCoreApplication.translate("Components", "Patient: {0}").format(self.patient_id))
 
-        if self.locked:
+        if self.locked and hasattr(self, "file_label"):
             self.file_label.setText(self.chosen_file if self.chosen_file else QCoreApplication.translate("Components", "No file found"))
         if not self.locked:
             self.save_btn.setText(QCoreApplication.translate("Components", "Save Patient Configuration"))
