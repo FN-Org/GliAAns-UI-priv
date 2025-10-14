@@ -19,15 +19,16 @@ class TestNiftiViewer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
-        cls.test_nii_path = os.path.join(cls.temp_dir.name, 'test.nii')
+        os.makedirs(os.path.join(cls.temp_dir.name,'sub-01'), exist_ok=True)
+        cls.test_nii_path = os.path.join(cls.temp_dir.name,'sub-01', 'test.nii')
         img = nib.Nifti1Image(np.random.rand(20, 20, 20), np.eye(4))
         nib.save(img, cls.test_nii_path)
 
-        cls.test_4d_nii_path = os.path.join(cls.temp_dir.name, 'test4d.nii')
+        cls.test_4d_nii_path = os.path.join(cls.temp_dir.name,'sub-01', 'test4d.nii')
         img4d = nib.Nifti1Image(np.random.rand(20, 20, 20, 10), np.eye(4))
         nib.save(img4d, cls.test_4d_nii_path)
 
-        cls.test_overlay_path = os.path.join(cls.temp_dir.name, 'overlay.nii')
+        cls.test_overlay_path = os.path.join(cls.temp_dir.name,'sub-01','overlay.nii')
         overlay = nib.Nifti1Image(np.random.rand(20, 20, 20), np.eye(4))
         nib.save(overlay, cls.test_overlay_path)
 
@@ -53,7 +54,7 @@ class TestNiftiViewer(unittest.TestCase):
         img[10, 10, 10] = 100
         x0, y0, z0 = 10, 10, 10
         radius_mm = 3.0
-        voxel_sizes = (1.0, 1.0, 1.0)
+        voxel_sizes = (1.0, 1.0, 1.0)  # Use tuple for function call
         seed_intensity = 100
         diff = 5
         x_min, x_max = 7, 13
@@ -67,7 +68,8 @@ class TestNiftiViewer(unittest.TestCase):
         self.assertEqual(mask.shape, (20, 20, 20))
         indices = np.indices((20, 20, 20))
         seed_point = np.array([x0, y0, z0]).reshape(3, 1, 1, 1)
-        distances = np.linalg.norm((indices - seed_point) * voxel_sizes, axis=0)
+        voxel_sizes_array = np.array([1.0, 1.0, 1.0]).reshape(3, 1, 1, 1)  # Reshaped for test calculation
+        distances = np.linalg.norm((indices - seed_point) * voxel_sizes_array, axis=0)
         expected_nonzero = np.sum((distances <= radius_mm) & (np.abs(img - seed_intensity) <= diff))
         self.assertEqual(np.sum(mask), expected_nonzero, "Mask size incorrect")
 
@@ -107,7 +109,7 @@ class TestNiftiViewer(unittest.TestCase):
 
         overlay_mask = np.zeros((10, 10), dtype=bool)
         result = apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_color)
-        self.assertTrue(np.all(result == 0), "No overlay should leave image unchanged")
+        self.assertTrue(np.all(result == rgba_image), "No overlay should leave image unchanged")
 
         overlay_color = (0.0, 1.0, 0.0)
         overlay_mask[5, 5] = True
@@ -343,18 +345,26 @@ class TestNiftiViewer(unittest.TestCase):
         self.assertTrue(self.viewer.coord_label.text().startswith("Coordinates:"), "Coordinate label should be updated")
 
     def test_update_cross_view_lines(self):
-        # Load data
         self.viewer.open_file(self.test_nii_path)
         loop = QEventLoop()
         QTimer.singleShot(1000, loop.quit)
         loop.exec()
 
-        # Call update_cross_view_lines
+        # Mock set_crosshair_position for all views
+        mock_crosshair_positions = []
+        for view in self.viewer.views:
+            mock_crosshair = patch.object(view, 'set_crosshair_position')
+            mock_crosshair_positions.append(mock_crosshair.start())
+
         self.viewer.update_cross_view_lines()
         QTest.qWait(500)
 
-        for view in self.viewer.views:
-            self.assertTrue(view.set_crosshair_position.called, "Crosshair position should be updated")
+        for mock_crosshair in mock_crosshair_positions:
+            self.assertTrue(mock_crosshair.called, "Crosshair position should be updated")
+
+        # Clean up mocks
+        for _ in mock_crosshair_positions:
+            patch.stopall()
 
     def test_translate_ui(self):
         # Call _translate_ui
