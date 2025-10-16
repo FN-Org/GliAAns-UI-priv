@@ -51,6 +51,7 @@ class SkullStrippingPage(Page):
         self.next_page = None
         self.worker = None  # Background thread reference
         self.has_cuda = torch.cuda.is_available()
+        self.bet_tool = ""
 
         self._setup_ui()
         self._translate_ui()
@@ -110,12 +111,22 @@ class SkullStrippingPage(Page):
         if self.has_bet:
             self._setup_bet_options()
         else:
-            # Switch to HD-BET if BET not available
-            self.info_label.setText(
-                'Using tool: <a href="https://github.com/MIC-DKFZ/HD-BET">hd-bet</a> <br>'
-                'To use BET from FSL toolkit, install it following the instructions at: '
-                '<a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index">FSL installation</a>'
-            )
+            try:
+                subprocess.run(['mri_synthstrip'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self.has_synthstrip = True
+            except FileNotFoundError:
+                self.has_synthstrip = False
+
+            if self.has_synthstrip:
+                self.info_label.setText(
+                    'Using tool: <a href="https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/">SynthStrip</a> <br>'
+                )
+            else:
+                self.info_label.setText(
+                    'Using tool: <a href="https://github.com/MIC-DKFZ/HD-BET">hd-bet</a> <br>'
+                    'To use BET from FSL toolkit, install it following the instructions at: '
+                    '<a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index">FSL installation</a>'
+                )
             self.info_label.setOpenExternalLinks(True)
             self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
             self.info_label.setToolTip("Open link")
@@ -330,8 +341,15 @@ class SkullStrippingPage(Page):
                 'c_z': self.c_z_spinbox.value(),
             }
 
+        if self.has_bet:
+            self.bet_tool = "fsl-bet"
+        elif self.has_synthstrip:
+            self.bet_tool = "synthstrip"
+        else:
+            self.bet_tool = "hd-bet"
+
         # Create worker thread
-        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters, self.has_cuda, self.has_bet)
+        self.worker = SkullStripThread(selected_files, self.context["workspace_path"], parameters, self.has_cuda, self.bet_tool)
 
         # Connect worker signals
         self.worker.progress_updated.connect(self.on_progress_updated)

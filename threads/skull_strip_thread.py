@@ -62,13 +62,14 @@ class SkullStripThread(QThread):
     The parameters are: the total number of processed files and a list of results or statuses.
     """
 
-    def __init__(self, files, workspace_path, parameters, has_cuda, has_bet):
+    def __init__(self, files, workspace_path, parameters, has_cuda, bet_tool):
         super().__init__()
         self.files = files
         self.workspace_path = workspace_path
         self.parameters = parameters
         self.has_cuda = has_cuda
-        self.has_bet = has_bet
+
+        self.bet_tool = bet_tool if bet_tool in ["fsl-bet","synthstrip","hd-bet"] else None
         self.is_cancelled = False
         self.success_count = 0
         self.failed_files = []
@@ -164,7 +165,7 @@ class SkullStripThread(QThread):
                 temp_dir = tempfile.mkdtemp(prefix="skullstrip_")
 
                 # Build the appropriate command (BET or HD-BET)
-                if self.has_bet:
+                if self.bet_tool == "fsl-bet":
                     # Configure FSL environment variables
                     os.environ["FSLDIR"], os.environ["FSLOUTPUTTYPE"] = setup_fsl_env()
                     f_val = self.parameters.get('f_val', 0.5)
@@ -193,17 +194,27 @@ class SkullStripThread(QThread):
                     method = "FSL BET"
 
                 else:
-                    # HD-BET command
-                    temp_output = os.path.join(temp_dir, f"{base_name}_hd-bet_brain.nii.gz")
-                    final_output = os.path.join(output_dir, f"{base_name}_hd-bet_brain.nii.gz")
+                    temp_output = os.path.join(temp_dir, f"{base_name}_{self.bet_tool}_brain.nii.gz")
+                    final_output = os.path.join(output_dir, f"{base_name}_{self.bet_tool}_brain.nii.gz")
+                    if self.bet_tool == "synthstrip":
 
-                    cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", temp_output]
+                        cmd = [get_bin_path("mri_synthstrip"), "-i", nifti_file, "-o", temp_output]
 
-                    # Disable CUDA if unavailable
-                    if not self.has_cuda:
-                        cmd += ["-device", "cpu", "--disable_tta"]
+                        method = "SynthStrip"
 
-                    method = "HD-BET"
+                    elif self.bet_tool == "hd-bet":
+
+                        cmd = [get_bin_path("hd-bet"), "-i", nifti_file, "-o", temp_output]
+
+                        # Disable CUDA if unavailable
+                        if not self.has_cuda:
+                            cmd += ["-device", "cpu", "--disable_tta"]
+
+                        method = "HD-BET"
+
+                    else:
+                        log.error("Bet tool not recognized.")
+                        return
 
                 # Run skull-stripping command
                 self.process = QProcess()
