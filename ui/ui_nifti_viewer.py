@@ -1859,7 +1859,7 @@ class NiftiViewer(QMainWindow):
         """Apply colormap using matplotlib and return QImage"""
         try:
             # Retrieve selected colormap from matplotlib
-            cmap = cm.get_cmap(colormap_name)
+            cmap = matplotlib.colormaps.get_cmap(colormap_name)
 
             # Apply colormap to normalized image data
             colored_data = cmap(data)
