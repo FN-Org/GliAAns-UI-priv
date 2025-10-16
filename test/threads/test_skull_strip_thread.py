@@ -33,14 +33,14 @@ class TestSkullStripThreadInitialization:
             workspace_path=temp_workspace,
             parameters=parameters,
             has_cuda=False,
-            has_bet=True
+            bet_tool="fsl-bet"
         )
 
         assert thread.files == files
         assert thread.workspace_path == temp_workspace
         assert thread.parameters == parameters
         assert thread.has_cuda is False
-        assert thread.has_bet is True
+        assert thread.bet_tool == "fsl-bet"
         assert thread.is_cancelled is False
         assert thread.success_count == 0
         assert thread.failed_files == []
@@ -55,15 +55,32 @@ class TestSkullStripThreadInitialization:
             workspace_path=temp_workspace,
             parameters=parameters,
             has_cuda=True,
-            has_bet=False
+            bet_tool="fsl-bet"
         )
 
         assert thread.has_cuda is True
-        assert thread.has_bet is False
+        assert thread.bet_tool == "fsl-bet"
+
+    def test_init_with_synthstrip(self, temp_workspace):
+        """Test inizializzazione con HD-BET"""
+        files = [os.path.join(temp_workspace, "test.nii")]
+        parameters = {}
+
+        thread = SkullStripThread(
+            files=files,
+            workspace_path=temp_workspace,
+            parameters=parameters,
+            has_cuda=True,
+            bet_tool="synthstrip"
+        )
+
+        assert thread.has_cuda is True
+        assert thread.bet_tool == "synthstrip"
+
 
     def test_signals_exist(self, temp_workspace):
         """Verifica che i signal siano definiti correttamente"""
-        thread = SkullStripThread([], temp_workspace, {}, False, True)
+        thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         assert hasattr(thread, 'progress_updated')
         assert hasattr(thread, 'progress_value_updated')
@@ -77,7 +94,7 @@ class TestSkullStripThreadCancellation:
 
     def test_cancel_flag_set(self, temp_workspace):
         """Test che il flag di cancellazione venga impostato"""
-        thread = SkullStripThread([], temp_workspace, {}, False, True)
+        thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         assert thread.is_cancelled is False
         thread.cancel()
@@ -85,7 +102,7 @@ class TestSkullStripThreadCancellation:
 
     def test_cancel_terminates_process(self, temp_workspace):
         """Test terminazione processo durante cancellazione"""
-        thread = SkullStripThread([], temp_workspace, {}, False, True)
+        thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         # Mock processo in esecuzione
         mock_process = Mock(spec=QProcess)
@@ -98,7 +115,7 @@ class TestSkullStripThreadCancellation:
 
     def test_cancel_no_process(self, temp_workspace):
         """Test cancellazione senza processo attivo"""
-        thread = SkullStripThread([], temp_workspace, {}, False, True)
+        thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         # Non dovrebbe sollevare eccezioni
         thread.cancel()
@@ -106,7 +123,7 @@ class TestSkullStripThreadCancellation:
 
     def test_cancel_process_error_handling(self, temp_workspace):
         """Test gestione errore durante cancellazione processo"""
-        thread = SkullStripThread([], temp_workspace, {}, False, True)
+        thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         mock_process = Mock()
         mock_process.terminate.side_effect = RuntimeError("Process error")
@@ -141,7 +158,7 @@ class TestBETCommandBuilding:
             f.write("nifti data")
 
         parameters = {'f_val': 0.5}
-        thread = SkullStripThread([input_file], temp_workspace, parameters, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, parameters, False, "fsl-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -181,7 +198,7 @@ class TestBETCommandBuilding:
             'opt_o': True
         }
 
-        thread = SkullStripThread([input_file], temp_workspace, parameters, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, parameters, False, "fsl-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -220,7 +237,7 @@ class TestBETCommandBuilding:
             'c_z': 64
         }
 
-        thread = SkullStripThread([input_file], temp_workspace, parameters, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, parameters, False, "fsl-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -255,7 +272,7 @@ class TestBETCommandBuilding:
             'opt_brain_extracted': False  # Disabilita estrazione mask
         }
 
-        thread = SkullStripThread([input_file], temp_workspace, parameters, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, parameters, False, "fsl-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -287,7 +304,7 @@ class TestHDBETCommandBuilding:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {}, True, False)
+        thread = SkullStripThread([input_file], temp_workspace, {}, True, "hd-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -317,7 +334,7 @@ class TestHDBETCommandBuilding:
             f.write("data")
 
         # has_cuda = False
-        thread = SkullStripThread([input_file], temp_workspace, {}, False, False)
+        thread = SkullStripThread([input_file], temp_workspace, {}, False, "hd-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -349,7 +366,7 @@ class TestHDBETCommandBuilding:
             f.write("data")
 
         # has_cuda = True
-        thread = SkullStripThread([input_file], temp_workspace, {}, True, False)
+        thread = SkullStripThread([input_file], temp_workspace, {}, True, "hd-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
@@ -360,6 +377,34 @@ class TestHDBETCommandBuilding:
         # NON dovrebbe avere opzioni CPU
         assert "-device" not in cmd or "cpu" not in cmd
 
+    @patch('threads.skull_strip_thread.get_bin_path')
+    @patch('threads.skull_strip_thread.QProcess')
+    def test_sinthstrip_basic_command(self, mock_qprocess, mock_get_bin, temp_workspace):
+        """Test comando SynthStrip di base"""
+        mock_get_bin.return_value = "/usr/bin/mri_sinthstrip"
+
+        mock_process = Mock()
+        mock_process.waitForFinished.return_value = True
+        mock_process.exitCode.return_value = 0
+        mock_process.readAllStandardError.return_value = b''
+        mock_process.readAllStandardOutput.return_value = b''
+        mock_qprocess.return_value = mock_process
+
+        input_file = os.path.join(temp_workspace, "sub-01", "anat", "brain.nii.gz")
+        os.makedirs(os.path.dirname(input_file), exist_ok=True)
+        with open(input_file, 'w') as f:
+            f.write("data")
+
+        thread = SkullStripThread([input_file], temp_workspace, {}, True, "synthstrip")
+
+        with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
+            thread.run()
+
+        call_args = mock_process.start.call_args[0]
+
+        assert call_args[0] == "/usr/bin/mri_sinthstrip"
+        assert "-i" in call_args[1]
+        assert "-o" in call_args[1]
 
 class TestOutputGeneration:
     """Test per la generazione output e metadata"""
@@ -382,7 +427,7 @@ class TestOutputGeneration:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         # Mock shutil.move per simulare file creato
         def mock_move(src, dst):
@@ -417,7 +462,7 @@ class TestOutputGeneration:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.4}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.4}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -461,7 +506,7 @@ class TestOutputGeneration:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {}, True, False)
+        thread = SkullStripThread([input_file], temp_workspace, {}, True, "hd-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -502,7 +547,7 @@ class TestOutputGeneration:
             f.write("data")
 
         # f_val = 0.7 -> f07
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.7}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.7}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -519,6 +564,46 @@ class TestOutputGeneration:
         )
 
         assert os.path.exists(output_file)
+
+    @patch('threads.skull_strip_thread.get_bin_path')
+    @patch('threads.skull_strip_thread.QProcess')
+    def test_json_metadata_creation_synthstrip(self, mock_qprocess, mock_get_bin, temp_workspace):
+        """Test creazione metadata JSON per SynthStrip"""
+        mock_get_bin.return_value = "/usr/bin/mri_synthstrip"
+
+        mock_process = Mock()
+        mock_process.waitForFinished.return_value = True
+        mock_process.exitCode.return_value = 0
+        mock_process.readAllStandardError.return_value = b''
+        mock_process.readAllStandardOutput.return_value = b''
+        mock_qprocess.return_value = mock_process
+
+        input_file = os.path.join(temp_workspace, "sub-07", "anat", "brain.nii")
+        os.makedirs(os.path.dirname(input_file), exist_ok=True)
+        with open(input_file, 'w') as f:
+            f.write("data")
+
+        thread = SkullStripThread([input_file], temp_workspace, {}, True, "synthstrip")
+
+        def mock_move(src, dst):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            with open(dst, 'w') as f:
+                f.write("stripped")
+
+        with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
+            thread.run()
+
+        json_file = os.path.join(
+            temp_workspace, 'derivatives', 'skullstrips', 'sub-07', 'anat',
+            'brain_synthstrip_brain.json'
+        )
+
+        assert os.path.exists(json_file)
+
+        with open(json_file, 'r') as f:
+            metadata = json.load(f)
+
+        assert metadata["SkullStrippingMethod"] == "SynthStrip"
 
 
 class TestBatchProcessing:
@@ -546,7 +631,7 @@ class TestBatchProcessing:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         file_started_count = [0]
         file_completed_count = [0]
@@ -588,7 +673,7 @@ class TestBatchProcessing:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         progress_values = []
         thread.progress_value_updated.connect(lambda val: progress_values.append(val))
@@ -628,7 +713,7 @@ class TestBatchProcessing:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         completed_results = []
         thread.all_completed.connect(lambda count, failed: completed_results.append((count, failed)))
@@ -668,7 +753,7 @@ class TestErrorHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         completed_files = []
         thread.file_completed.connect(lambda f, s, m: completed_files.append((f, s, m)))
@@ -695,7 +780,7 @@ class TestErrorHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         completed_files = []
         thread.file_completed.connect(lambda f, s, m: completed_files.append((f, s, m)))
@@ -724,7 +809,7 @@ class TestErrorHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         completed_files = []
         thread.file_completed.connect(lambda f, s, m: completed_files.append((f, s, m)))
@@ -771,7 +856,7 @@ class TestErrorHandling:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -814,7 +899,7 @@ class TestCancellationDuringProcessing:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         with patch('shutil.rmtree'):
             thread.run()
@@ -844,7 +929,7 @@ class TestCancellationDuringProcessing:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         file_count = [0]
 
@@ -890,7 +975,7 @@ class TestSubjectIDExtraction:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -925,7 +1010,7 @@ class TestSubjectIDExtraction:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -964,7 +1049,7 @@ class TestTempDirectoryHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         with patch('shutil.move'), patch('shutil.rmtree') as mock_rmtree:
             thread.run()
@@ -991,7 +1076,7 @@ class TestTempDirectoryHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         with patch('shutil.rmtree') as mock_rmtree:
             thread.run()
@@ -1019,7 +1104,7 @@ class TestTempDirectoryHandling:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         with patch('shutil.rmtree') as mock_rmtree:
             thread.run()
@@ -1037,7 +1122,7 @@ class TestEdgeCases:
         """Test con lista file vuota"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
-        thread = SkullStripThread([], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         # Non dovrebbe sollevare eccezioni
         # Nota: potrebbe causare division by zero in progress_per_file
@@ -1064,7 +1149,7 @@ class TestEdgeCases:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -1094,7 +1179,7 @@ class TestEdgeCases:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -1131,7 +1216,7 @@ class TestEdgeCases:
             with open(input_file, 'w') as f:
                 f.write("data")
 
-            thread = SkullStripThread([input_file], temp_workspace, {'f_val': f_val}, False, True)
+            thread = SkullStripThread([input_file], temp_workspace, {'f_val': f_val}, False, "fsl-bet")
 
             def mock_move(src, dst):
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -1165,7 +1250,7 @@ class TestSignalEmissions:
         with open(input_file, 'w') as f:
             f.write("data")
 
-        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         progress_messages = []
         thread.progress_updated.connect(lambda msg: progress_messages.append(msg))
@@ -1204,7 +1289,7 @@ class TestSignalEmissions:
                 f.write("data")
             files.append(file_path)
 
-        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, True)
+        thread = SkullStripThread(files, temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
         started_files = []
         thread.file_started.connect(lambda f: started_files.append(f))
