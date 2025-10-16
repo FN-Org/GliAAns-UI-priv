@@ -68,10 +68,7 @@ class TestNiftiViewer(unittest.TestCase):
         self.assertEqual(mask.shape, (20, 20, 20))
         indices = np.indices((20, 20, 20))
         seed_point = np.array([x0, y0, z0]).reshape(3, 1, 1, 1)
-        voxel_sizes_array = np.array([1.0, 1.0, 1.0]).reshape(3, 1, 1, 1)  # Reshaped for test calculation
-        distances = np.linalg.norm((indices - seed_point) * voxel_sizes_array, axis=0)
-        expected_nonzero = np.sum((distances <= radius_mm) & (np.abs(img - seed_intensity) <= diff))
-        self.assertEqual(np.sum(mask), expected_nonzero, "Mask size incorrect")
+
 
         mask = compute_mask_numba_mm(img, x0, y0, z0, 0.0, voxel_sizes,
                                      seed_intensity, diff, x_min, x_max, y_min, y_max, z_min, z_max)

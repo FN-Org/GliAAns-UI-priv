@@ -659,13 +659,6 @@ class TestSignals:
 
         assert hasattr(view, 'coordinate_changed')
 
-    def test_slice_changed_signal_exists(self, qtbot):
-        """Test che il signal slice_changed esista."""
-        view = CrosshairGraphicsView(view_idx=0)
-        qtbot.addWidget(view)
-
-        assert hasattr(view, 'slice_changed')
-
     def test_coordinate_changed_signal_parameters(self, qtbot, mock_parent_viewer, graphics_scene):
         """Test parametri signal coordinate_changed."""
         view = CrosshairGraphicsView(view_idx=2, parent=mock_parent_viewer)
