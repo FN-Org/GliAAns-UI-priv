@@ -83,9 +83,9 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 if [ -n "$MODULE" ]; then
-    PYTEST_CMD="$PYTEST_CMD test/**/test_${MODULE}.py"
+    PYTEST_CMD="$PYTEST_CMD tests/**/test_${MODULE}.py"
 else
-    PYTEST_CMD="$PYTEST_CMD test"
+    PYTEST_CMD="$PYTEST_CMD tests"
 fi
 
 if [ -n "$PATTERN" ]; then
@@ -93,7 +93,7 @@ if [ -n "$PATTERN" ]; then
 fi
 
 # Esegui test
-print_header "Esecuzione test"
+print_header "Esecuzione tests"
 
 if [ "$COVERAGE" = true ]; then
     COVERAGE_DIR="$SCRIPT_DIR/htmlcov"

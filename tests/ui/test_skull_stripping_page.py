@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 from PyQt6.QtWidgets import QMessageBox
 
-from test.conftest import SignalEmitter
+from tests.conftest import SignalEmitter
 # Import dal tuo progetto
 from ui.ui_skull_stripping_page import SkullStrippingPage
 

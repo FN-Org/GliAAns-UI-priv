@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QCoreApplication, Qt
 
-from test.conftest import DummyFileSelectorWidget
+from tests.conftest import DummyFileSelectorWidget
 from ui.ui_dl_selection_page import DlNiftiSelectionPage
 
 
