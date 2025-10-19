@@ -7,5 +7,4 @@ llvmlite == 0.44.0
 dcm2niix
 hd-bet
 pyinstaller
-
 pdoc
