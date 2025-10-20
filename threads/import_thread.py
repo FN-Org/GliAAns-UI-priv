@@ -290,6 +290,7 @@ class ImportThread(QThread):
             # Otherwise, emit error and log it
             self.error.emit(str(e))
             log.error(f"Error: {str(e)}")
+
     def _handle_import(self, folder_path):
         """
         Handle the import of a single folder (which may itself contain subfolders).
