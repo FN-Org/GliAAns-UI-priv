@@ -14,9 +14,7 @@ This file is presented in parts. Part 1 contains:
  - __init__ and run() (main orchestration and top-level flow)
 """
 
-import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -83,6 +81,7 @@ class ImportThread(QThread):
 
         # reference to subprocess.Popen used during DICOM conversion (so we can terminate it)
         self.process = None
+
 
     def run(self):
         """
@@ -290,6 +289,7 @@ class ImportThread(QThread):
             # Otherwise, emit error and log it
             self.error.emit(str(e))
             log.error(f"Error: {str(e)}")
+
 
     def _handle_import(self, folder_path):
         """
