@@ -1,5 +1,5 @@
 from PyQt6.QtCore import pyqtSignal, Qt
-from PyQt6.QtGui import QPainter, QPen, QColor, QMouseEvent
+from PyQt6.QtGui import QPainter, QPen, QColor, QMouseEvent, QWheelEvent
 from PyQt6.QtWidgets import QGraphicsView
 
 
@@ -96,6 +96,15 @@ class CrosshairGraphicsView(QGraphicsView):
 
         # Pass event to base class for default behavior
         super().mouseMoveEvent(event)
+
+    # -------------------------------------------------------------------------
+    # Mouse scroll: change slices
+    # -------------------------------------------------------------------------
+
+    def wheelEvent(self, event: QWheelEvent):
+        delta = int(event.angleDelta().y()/120)
+        self.parent_viewer.handle_scroll(self.view_idx, delta)
+        event.accept()
 
     # -------------------------------------------------------------------------
     # Mouse click: trigger coordinate selection or slice updates

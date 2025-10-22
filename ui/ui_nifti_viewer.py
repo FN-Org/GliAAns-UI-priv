@@ -1594,7 +1594,7 @@ class NiftiViewer(QMainWindow):
             self.value_label.setText(QtCore.QCoreApplication.translate(
                 "NIfTIViewer", "Value") + f": {value:.2f}")
         except (IndexError, ValueError):
-            pass
+            log.exception("Failed to update coordinates")
 
     def update_coordinate_displays(self):
         """
@@ -1693,6 +1693,7 @@ class NiftiViewer(QMainWindow):
                 pixel_spacing = self.voxel_sizes[1:3]  # Y and Z spacing
 
             else:
+                log.error("Plane index out of range")
                 return  # Invalid plane index
 
             # Prepare overlay if available and enabled
@@ -2182,6 +2183,45 @@ class NiftiViewer(QMainWindow):
 
         # Apply constant padding and return result
         return np.pad(volume, pads, mode="constant", constant_values=constant_value)
+
+    def handle_scroll(self,plane_idx,delta):
+        if plane_idx == 0:  # Axial (XY plane)
+            if delta>0:
+                self.current_coordinates[2] = min(self.current_coordinates[2] + delta,self.dims[2]-1)
+                self.current_slices[0]= min(self.current_slices[0] + delta,self.dims[2]-1)
+            elif delta<0:
+                self.current_coordinates[2] = max(self.current_coordinates[2] + delta,0)
+                self.current_slices[0] = max(self.current_slices[0] + delta,0)
+            else:
+                return
+        elif plane_idx == 1:  # Coronal (XZ plane)
+            if delta>0:
+                self.current_coordinates[1] = min(self.current_coordinates[1] + delta,self.dims[1]-1)
+                self.current_slices[1] = min(self.current_slices[1] + delta,self.dims[1]-1)
+            elif delta<0:
+                self.current_coordinates[1] = max(self.current_coordinates[1] + delta,0)
+                self.current_slices[1] = max(self.current_slices[1] + delta,0)
+            else:
+                return
+        elif plane_idx == 2:  # Sagittal (YZ plane)
+            if delta>0:
+                self.current_coordinates[0] = min(self.current_coordinates[0] + delta,self.dims[0]-1)
+                self.current_slices[2] = min(self.current_slices[2] + delta,0)
+            elif delta<0:
+                self.current_coordinates[0] = max(self.current_coordinates[0] + delta,0)
+                self.current_slices[2] = max(self.current_slices[2] - delta,0)
+            else:
+                return
+        else:
+            log.error("Plane index out of range")
+            return
+            # Synchronize controls for all planes
+        for i in range(3):
+            self.slice_sliders[i].setValue(self.current_slices[i])
+            self.slice_spins[i].setValue(self.current_slices[i])
+        self.update_cross_view_lines()
+        self.update_coordinate_displays()
+
 
     def _translate_ui(self):
         """
