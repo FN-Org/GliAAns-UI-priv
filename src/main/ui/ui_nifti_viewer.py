@@ -2206,10 +2206,10 @@ class NiftiViewer(QMainWindow):
         elif plane_idx == 2:  # Sagittal (YZ plane)
             if delta>0:
                 self.current_coordinates[0] = min(self.current_coordinates[0] + delta,self.dims[0]-1)
-                self.current_slices[2] = min(self.current_slices[2] + delta,0)
+                self.current_slices[2] = min(self.current_slices[2] + delta,self.dims[0]-1)
             elif delta<0:
                 self.current_coordinates[0] = max(self.current_coordinates[0] + delta,0)
-                self.current_slices[2] = max(self.current_slices[2] - delta,0)
+                self.current_slices[2] = max(self.current_slices[2] + delta,0)
             else:
                 return
         else:
