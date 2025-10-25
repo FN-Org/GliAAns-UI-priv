@@ -66,17 +66,23 @@ class SaveNiftiThread(QThread):
         try:
             # Save the NIfTI file
             nib.save(nib.Nifti1Image(self.data.astype(np.uint8), self.affine), self.path)
-
-            # Build a BIDS-like JSON descriptor
-            json_dict = {
-                "Type": "ROI",
-                "Sources": [f"bids:{self.relative_path}"],
-                "Description": "Automatic ROI using intensity threshold-based region growing.",
-                "AutomaticRoiParameters": {
-                    "radius": self.radius,
-                    "difference": self.difference
+            if self.radius == 0 and self.difference == 0:
+                json_dict= {
+                    "Type": "ROI",
+                    "Sources": [f"bids:{self.relative_path}"],
+                    "Description": "ROI obtained overlapping ROIs",
                 }
-            }
+            else:
+                # Build a BIDS-like JSON descriptor
+                json_dict = {
+                    "Type": "ROI",
+                    "Sources": [f"bids:{self.relative_path}"],
+                    "Description": "Automatic ROI using intensity threshold-based region growing.",
+                    "AutomaticRoiParameters": {
+                        "radius": self.radius,
+                        "difference": self.difference
+                    }
+                }
 
             # Write the JSON metadata
             with open(self.json_path, "w") as json_file:
