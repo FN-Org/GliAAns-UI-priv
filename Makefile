@@ -62,20 +62,37 @@ else
     PIPELINE_ATLAS     = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
-    NIPREPS_SYNTHSTRIP =
-    DL_VENV_DIR  	   = $(DL_DIR)/$(VENV_DIR)
-    DL_PIP       	   = $(DL_VENV_DIR)/bin/pip
-    DL_PYTHON    	   = $(DL_VENV_DIR)/bin/python
-    DL_REQUIREMENTS    = $(DL_DIR)/$(REQUIREMENTS)
-    COREGISTRATION	   = $(DL_DIR)/coregistration.py
-    COREGISTRATION_EXE = coregistration
+    NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
+    COREG_VENV_DIR  	= $(DL_DIR)/.venv-coreg
+    COREG_PIP       	= $(COREG_VENV_DIR)/bin/pip
+    COREG_PYTHON    	= $(COREG_VENV_DIR)/bin/python
+    COREG_REQUIREMENTS  = $(DL_DIR)/requirements-coreg.txt
+    COREGISTRATION	   	= $(DL_DIR)/coregistration.py
+    COREGISTRATION_EXE 	= coregistration
+    DL_ATLAS			= $(DL_DIR)/atlas
+    REOR_VENV_DIR  		= $(DL_DIR)/.venv-reorient
+    REOR_PIP       		= $(REOR_VENV_DIR)/bin/pip
+    REOR_PYTHON    		= $(REOR_VENV_DIR)/bin/python
+    REOR_REQUIREMENTS   = $(DL_DIR)/requirements-reorient.txt
     REORIENTATION	   = $(DL_DIR)/reorientation.py
     REORIENTATION_EXE  = reorientation
+    PRE_VENV_DIR  		= $(DL_DIR)/.venv-pre
+    PRE_PIP       		= $(PRE_VENV_DIR)/bin/pip
+    PRE_PYTHON    		= $(PRE_VENV_DIR)/bin/python
+    PRE_REQUIREMENTS   = $(DL_DIR)/requirements-pre.txt
     PREPROCESS	   	   = $(DL_DIR)/preprocess.py
     PREPROCESS_EXE     = preprocess
+    DL_VENV_DIR  		= $(DL_DIR)/.venv-dl
+    DL_PIP       		= $(DL_VENV_DIR)/bin/pip
+    DL_PYTHON    		= $(DL_VENV_DIR)/bin/python
+    DL_REQUIREMENTS   	= $(DL_DIR)/requirements.txt
     DEEP_LEARNING	   = $(DL_DIR)/deep_learning_runner.py
-    DEEP_LEARNING_EXE  = deep_learning
+    DEEP_LEARNING_EXE  = deep_learning_runner
     CHECKPOINTS		   = $(DL_DIR)/checkpoints
+    POST_VENV_DIR  		= $(DL_DIR)/.venv-post
+    POST_PIP       		= $(POST_VENV_DIR)/bin/pip
+    POST_PYTHON    		= $(POST_VENV_DIR)/bin/python
+    POST_REQUIREMENTS   = $(DL_DIR)/requirements-post.txt
     POSTPROCESS	       = $(DL_DIR)/postprocess.py
     POSTPROCESS_EXE    = postprocess
     POSTPROCESS_ATLAS  = $(DL_DIR)/atlas
@@ -90,8 +107,20 @@ $(VENV_DIR):
 $(PIPELINE_VENV_DIR):
 	$(PYTHON) -m venv $(PIPELINE_VENV_DIR)
 
+#$(COREG_VENV_DIR):
+#	$(PYTHON) -m venv $(COREG_VENV_DIR)
+#
+#$(REOR_VENV_DIR):
+#	$(PYTHON) -m venv $(REOR_VENV_DIR)
+#
+#$(PRE_VENV_DIR):
+#	$(PYTHON) -m venv $(PRE_VENV_DIR)
+
 $(DL_VENV_DIR):
 	$(PYTHON) -m venv $(DL_VENV_DIR)
+
+#$(POST_VENV_DIR):
+#	$(PYTHON) -m venv $(POST_VENV_DIR)
 
 # -------------------------
 # Installazione pacchetti
@@ -106,10 +135,14 @@ pipeline_python-setup: $(PIPELINE_VENV_DIR)
 
 .PHONY: dl_python-setup
 dl_python-setup: $(DL_VENV_DIR)
+#	$(COREG_PIP) install -r $(COREG_REQUIREMENTS)
+#	$(REOR_PIP) install -r $(REOR_REQUIREMENTS)
+#	$(PRE_PIP) install -r $(PRE_REQUIREMENTS)
 	$(DL_PIP) install -r $(DL_REQUIREMENTS)
+#	$(POST_PIP) install -r $(POST_REQUIREMENTS)
 
 .PHONY: setup-all
-setup-all: main_python-setup pipeline_python-setup dl_python-setup
+setup-all: main_python-setup pipeline_python-setup
 
 # -------------------------
 # Compilazione pipeline con Nuitka
@@ -133,44 +166,44 @@ endif
 # -------------------------
 # Compilazione coregistration con Nuitka
 # -------------------------
-$(COREGISTRATION_DIST): $(DL_VENV_DIR)
-	$(DL_PYTHON) -m nuitka $(COREGISTRATION) \
-	    --standalone \
-	    --follow-imports \
-	    --remove-output \
-	    $(ICON_FLAG) \
-	    --output-filename=$(COREGISTRATION_EXE)
+$(COREGISTRATION_NO_DIST): $(DL_VENV_DIR)
+	rm -rf $(COREGISTRATION_NO_DIST)
+	mkdir $(COREGISTRATION_NO_DIST)
+	$(COREG_PYTHON) -OO -m PyInstaller \
+		--noconfirm \
+		--add-data "$(DL_ATLAS)$(SEP)atlas" \
+		--onefile $(COREGISTRATION)
 
-$(COREGISTRATION_NO_DIST):$(COREGISTRATION_DIST)
-	mv $(COREGISTRATION_DIST) $(COREGISTRATION_NO_DIST)
+.PHONY: nuitka-coreg
+nuitka-coreg: $(COREGISTRATION_NO_DIST)
 
 # -------------------------
 # Compilazione reorientation con Nuitka
 # -------------------------
-$(REORIENTATION_DIST): $(DL_VENV_DIR)
-	$(DL_PYTHON) -m nuitka $(REORIENTATION) \
-	    --standalone \
-	    --follow-imports \
-	    --remove-output \
-	    $(ICON_FLAG) \
-	    --output-filename=$(REORIENTATION_EXE)
+$(REORIENTATION_NO_DIST): $(DL_VENV_DIR)
+	rm -rf $(REORIENTATION_NO_DIST)
+	mkdir $(REORIENTATION_NO_DIST)
+	$(REOR_PYTHON) -OO -m PyInstaller \
+		--noconfirm \
+		--add-data "$(DL_ATLAS)$(SEP)atlas" \
+		--onefile $(REORIENTATION)
 
-$(REORIENTATION_NO_DIST):$(REORIENTATION_DIST)
-	mv $(REORIENTATION_DIST) $(REORIENTATION_NO_DIST)
+.PHONY: nuitka-reor
+nuitka-reor: $(REORIENTATION_NO_DIST)
 
 # -------------------------
 # Compilazione preprocess con Nuitka
 # -------------------------
-$(PREPROCESS_DIST): $(DL_VENV_DIR)
-	$(DL_PYTHON) -m nuitka $(PREPROCESS) \
-	    --standalone \
-	    --follow-imports \
-	    --remove-output \
-	    $(ICON_FLAG) \
-	    --output-filename=$(PREPROCESS_EXE)
+$(PREPROCESS_NO_DIST): $(DL_VENV_DIR)
+	rm -rf $(PREPROCESS_NO_DIST)
+	mkdir $(PREPROCESS_NO_DIST)
+	$(PRE_PYTHON) -m PyInstaller \
+		--clean \
+		--noconfirm \
+		--onedir $(PREPROCESS)
 
-$(PREPROCESS_NO_DIST):$(PREPROCESS_DIST)
-	mv $(PREPROCESS_DIST) $(PREPROCESS_NO_DIST)
+.PHONY: nuitka-pre
+nuitka-pre: $(PREPROCESS_NO_DIST)
 
 # -------------------------
 # Compilazione deep learning con Nuitka
@@ -187,41 +220,39 @@ $(DEEP_LEARNING_DIST): $(DL_VENV_DIR)
 $(DEEP_LEARNING_NO_DIST):$(DEEP_LEARNING_DIST)
 	mv $(DEEP_LEARNING_DIST) $(DEEP_LEARNING_NO_DIST)
 
+.PHONY: nuitka-dl
+nuitka-dl: $(DEEP_LEARNING_DIST)
+
 # -------------------------
 # Compilazione postprocess con Nuitka
 # -------------------------
-$(POSTPROCESS_DIST): $(DL_VENV_DIR)
-	$(DL_PYTHON) -m nuitka $(POSTPROCESS) \
+$(POSTPROCESS_NO_DIST): $(DL_VENV_DIR)
+	rm -rf $(POSTPROCESS_NO_DIST)
+	mkdir $(POSTPROCESS_NO_DIST)
+	$(POST_PYTHON) -m nuitka $(POSTPROCESS) \
 	    --standalone \
+	    --onefile \
 	    --follow-imports \
 	    --remove-output \
 	    --include-data-dir=$(POSTPROCESS_ATLAS)=atlas \
 	    $(ICON_FLAG) \
-	    --output-filename=$(POSTPROCESS_EXE)
-
-$(POSTPROCESS_NO_DIST):$(POSTPROCESS_DIST)
-	mv $(POSTPROCESS_DIST) $(POSTPROCESS_NO_DIST)
+	    --output-filename=$(POSTPROCESS_NO_DIST)/$(POSTPROCESS_EXE)
 
 # -------------------------
 # Compilazione app con PyInstaller
 # -------------------------
 .PHONY: compile-app
 compile-app: $(VENV_DIR)
-	$(MAIN_PYTHON) -m PyInstaller \
+	$(MAIN_PYTHON) -OO -m PyInstaller \
+		--clean \
 	    --onedir \
-	    --noconsole \
 	    --icon=$(ICON) \
 	    --add-data "resources$(SEP)resources" \
 	    --add-data "translations$(SEP)translations" \
 	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
-	    --add-data "$(COREGISTRATION_NO_DIST)$(SEP)coregistration" \
-	    --add-data "$(REORIENTATION_NO_DIST)$(SEP)reorientation" \
-	    --add-data "$(PREPROCESS_NO_DIST)$(SEP)preprocess" \
-	    --add-data "$(DEEP_LEARNING_NO_DIST)$(SEP)deep_learning_runner" \
-	    --add-data "$(POSTPROCESS_NO_DIST)$(SEP)postprocess" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
-	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps_synthstrip" \
+	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
@@ -233,7 +264,7 @@ compile-app: $(VENV_DIR)
 all: setup-all app
 
 .PHONY: app
-app: $(PIPELINE_NO_DIST) compile-dl compile-app
+app: $(PIPELINE_NO_DIST) compile-app
 
 .PHONY: compile-dl
 compile-dl: $(COREGISTRATION_NO_DIST) $(REORIENTATION_NO_DIST) $(PREPROCESS_NO_DIST) $(DEEP_LEARNING_NO_DIST) $(POSTPROCESS_NO_DIST)

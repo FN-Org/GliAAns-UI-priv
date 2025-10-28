@@ -1,0 +1,5 @@
+numpy
+monai
+nibabel
+joblib
+nuitka

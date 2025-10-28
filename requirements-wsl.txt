@@ -1,7 +1,10 @@
+# --- Core scientific stack ---
+numpy==1.26.4
 scipy==1.13.1
 pandas
 matplotlib
 seaborn
+statsmodels==0.13.5
 
 # --- Machine Learning & Deep Learning ---
 scikit-learn==1.6.1
@@ -14,14 +17,26 @@ pytorch-lightning==2.5.0.post0
 monai==0.9.1
 joblib==1.4.2
 
-
+# --- Medical imaging & neuroimaging ---
+pydicom
 nibabel
 antspyx
+dcm2niix
+nipreps-synthstrip
+hd-bet; sys_platform == "win32"
 
+# --- Performance & compilation ---
+numba==0.61.2
+llvmlite==0.44.0
 
+# --- Visualization & UI ---
+pyqt6
 rich==12.2.0
 
 # --- NVIDIA & logging ---
 --extra-index-url https://developer.download.nvidia.com/compute/redist/nightly
 git+https://github.com/NVIDIA/dllogger
 nvidia-dali-nightly-cuda120
+
+# --- Build tools ---
+pyinstaller

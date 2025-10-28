@@ -28,3 +28,4 @@ nuitka-crash-report.xml
 /postprocess
 /preprocess
 /reorientation
+/.venv-wsl

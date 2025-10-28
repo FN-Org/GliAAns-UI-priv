@@ -10,11 +10,11 @@ import os
 from glob import glob
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
+from deep_learning.utils.coreg import align, transform
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-from pediatric_fdopa_pipeline.utils import align, transform
 
 
 # inspired by the NVIDIA nnU-Net GitHub repository available at:
