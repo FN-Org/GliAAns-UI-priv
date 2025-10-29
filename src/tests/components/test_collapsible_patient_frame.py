@@ -20,7 +20,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import QComboBox, QLabel, QPushButton
 from PyQt6.QtTest import QTest
 
-from components.collapsible_patient_frame import CollapsiblePatientFrame, ClickableFrame
+from main.components.collapsible_patient_frame import ClickableFrame, CollapsiblePatientFrame
 
 
 class TestClickableFrame:

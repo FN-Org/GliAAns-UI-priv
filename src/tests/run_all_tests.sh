@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# Determina la directory in cui si trova questo script
+# Determine the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Script per eseguire TUTTI i test del progetto
-
 echo "=========================================="
-echo "Test Suite Completa - GliAAns UI"
+echo "Complete test suite - GliAAns UI"
 echo "=========================================="
 echo ""
 
@@ -22,12 +20,12 @@ print_header() {
 
 # Verifica pytest
 if ! command -v pytest &> /dev/null; then
-    echo -e "${RED}pytest non installato!${NC}"
+    echo -e "${RED}pytest not installed!${NC}"
     echo "pip install -r requirements-test.txt"
     exit 1
 fi
 
-# Parsing argomenti
+# Parsing argoments
 COVERAGE=false
 VERBOSE=false
 MODULE=""
@@ -75,7 +73,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Costruisci comando
+# Construct command
 PYTEST_CMD="pytest"
 
 if [ "$VERBOSE" = true ]; then
@@ -85,14 +83,14 @@ fi
 if [ -n "$MODULE" ]; then
     PYTEST_CMD="$PYTEST_CMD tests/**/test_${MODULE}.py"
 else
-    PYTEST_CMD="$PYTEST_CMD tests"
+    PYTEST_CMD="$PYTEST_CMD"
 fi
 
 if [ -n "$PATTERN" ]; then
     PYTEST_CMD="$PYTEST_CMD -k $PATTERN"
 fi
 
-# Esegui test
+# Test execution
 print_header "Esecuzione tests"
 
 if [ "$COVERAGE" = true ]; then

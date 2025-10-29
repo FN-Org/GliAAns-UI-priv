@@ -7,10 +7,10 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QCheckBox)
 from PyQt6.QtCore import Qt, QThread, QCoreApplication
 
-from ..components.circular_progress_bar import CircularProgress
-from ..threads.dl_worker import DlWorker
-from ..page import Page
-from ..logger import get_logger
+from components.circular_progress_bar import CircularProgress
+from threads.dl_worker import DlWorker
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

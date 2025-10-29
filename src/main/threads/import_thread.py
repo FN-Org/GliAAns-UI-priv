@@ -23,8 +23,8 @@ import pydicom
 
 from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
 
-from ..logger import get_logger
-from ..utils import get_bin_path
+from logger import get_logger
+from utils import get_bin_path
 
 log = get_logger()
 

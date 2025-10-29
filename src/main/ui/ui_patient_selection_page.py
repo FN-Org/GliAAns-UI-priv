@@ -9,10 +9,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ..ui.ui_tool_selection_page import ToolSelectionPage
-from ..utils import resource_path
-from ..page import Page
-from ..logger import get_logger
+from ui.ui_tool_selection_page import ToolSelectionPage
+from utils import resource_path
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

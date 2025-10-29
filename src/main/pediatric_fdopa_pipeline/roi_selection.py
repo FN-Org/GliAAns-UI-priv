@@ -1,6 +1,6 @@
 import nibabel as nib
 import numpy as np
-from main.pediatric_fdopa_pipeline.ref_tumor_seg import calculate_distance_map
+from pediatric_fdopa_pipeline.ref_tumor_seg import calculate_distance_map
 
 '''
 Regions of Interests: 

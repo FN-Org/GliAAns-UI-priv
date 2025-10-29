@@ -87,7 +87,7 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	    --nofollow-import-to=unittest \
 	    --nofollow-import-to=test \
 	    --nofollow-import-to=tkinter \
-	    --enable-plugin=no-qt
+	    --enable-plugin=no-qt \
 	    --nofollow-import-to=distutils \
 	    --lto=yes \
 	    --python-flag=-OO \
@@ -120,7 +120,6 @@ compile-app: $(VENV_DIR)
 	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
-	    --exclude-module test \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py

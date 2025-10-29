@@ -6,12 +6,12 @@ from typing import Any
 from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication, QPushButton
 
-from . import logger
-from .ui.ui_workspace_tree_view import WorkspaceTreeView
-from .ui.ui_import_page import ImportPage
-from .ui.ui_main_window import MainWindow
-from .ui.ui_nifti_viewer import NiftiViewer
-from .utils import resource_path, get_app_dir
+from logger import set_log_level
+from ui.ui_workspace_tree_view import WorkspaceTreeView
+from ui.ui_import_page import ImportPage
+from ui.ui_main_window import MainWindow
+from ui.ui_nifti_viewer import NiftiViewer
+from utils import resource_path, get_app_dir
 
 
 class Controller(QObject):
@@ -46,7 +46,7 @@ class Controller(QObject):
         # Enable debug logging if user has this setting enabled
         log_debug = self.settings.value("debug_log", False, type=bool)
         if log_debug:
-            logger.set_log_level(logging.DEBUG)
+            set_log_level(logging.DEBUG)
 
         # --- Language setup ---
         self.set_language(self.saved_lang)

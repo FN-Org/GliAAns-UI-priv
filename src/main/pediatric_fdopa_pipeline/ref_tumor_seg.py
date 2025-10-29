@@ -126,10 +126,10 @@ def create_tumor_dictionary(distance_map, sinus_map, tumor_index, tumor_idx):
 
 def ref_seg(subj):
 
-    subj.sinus = subj.prefix + 'sinus_map.nii.gz'
-    subj.tumor_lab = subj.prefix + 'tumor_label_volume.nii.gz'
-    subj.distance_map = subj.prefix + 'distance_map.nii.gz'
-    subj.volume_seg = subj.prefix + 'segmented_volume.nii.gz'
+    subj.sinus = subj.ref_prefix + 'sinus_map.nii.gz'
+    subj.tumor_lab = subj.ref_prefix + 'tumor_label_volume.nii.gz'
+    subj.distance_map = subj.ref_prefix + 'distance_map.nii.gz'
+    subj.volume_seg = subj.ref_prefix + 'segmented_volume.nii.gz'
 
     atlas_hd = nib.load(subj.atlas_space_pet)
     atlas_vol = np.rint(atlas_hd.get_fdata()).astype(int)
@@ -185,7 +185,7 @@ def ref_seg(subj):
             
             plt.figure()
             sns.scatterplot(data=df_tumor, x='distance', y='sinus', hue='label', alpha=0.1)
-            plt.savefig(subj.prefix + '_clusters.png')
+            plt.savefig(subj.ref_prefix + '_clusters.png')
             plt.close()
 
             from sklearn.svm import SVC
@@ -208,7 +208,7 @@ def ref_seg(subj):
 
             plt.figure()
             sns.scatterplot(data=df_tumor, x='distance', y='sinus', hue='label_svm', alpha=0.1)
-            plt.savefig(subj.prefix + '_clusters_SVM.png')
+            plt.savefig(subj.ref_prefix + '_clusters_SVM.png')
             plt.close()
             segmented_volume = np.zeros_like(atlas_vol).reshape(-1,)
             segmented_volume[df_tumor['index'].values] = df_tumor['label_svm'].values + 1

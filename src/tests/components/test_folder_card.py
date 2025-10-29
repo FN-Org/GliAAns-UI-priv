@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtCore import Qt
 
-from components.folder_card import FolderCard
+from main.components.folder_card import FolderCard
 
 
 @pytest.fixture

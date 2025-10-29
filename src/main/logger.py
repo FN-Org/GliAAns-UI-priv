@@ -7,7 +7,7 @@ import shutil
 from logging.handlers import BaseRotatingHandler
 from pathlib import Path
 
-from .utils import get_app_dir
+from utils import get_app_dir
 
 
 class CompressedRotatingFileHandler(BaseRotatingHandler):

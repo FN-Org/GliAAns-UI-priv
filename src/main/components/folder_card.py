@@ -32,7 +32,8 @@ class FolderCard(QWidget):
 
         self.folder = folder
         self.files = []  # Tracks new files added since the last check
-        self.existing_files = set(os.listdir(folder)) if os.path.isdir(folder) else set()
+        # self.existing_files = set(os.listdir(folder)) if os.path.isdir(folder) else set()
+        self.existing_files = self._list_all_files(folder)
 
         # Animation and visual properties
         self.pulse_animation = None
@@ -307,7 +308,7 @@ class FolderCard(QWidget):
 
         # Populate list with filenames
         for f in sorted(self.files):
-            item = QListWidgetItem(f"📄  {f}")
+            item = QListWidgetItem(f"📄  {f.replace(os.sep, '/')}")
             item.setToolTip(os.path.join(self.folder, f))
             list_widget.addItem(item)
 
@@ -376,11 +377,22 @@ class FolderCard(QWidget):
         if not os.path.isdir(self.folder):
             return
 
-        current_files = set(os.listdir(self.folder))
+        current_files = self._list_all_files(self.folder)
         new_files = current_files - self.existing_files
 
         if new_files:
             self.add_files(list(new_files))
 
-        # Update the record of known files
         self.existing_files = current_files
+
+    def _list_all_files(self, root_folder):
+        """Restituisce un set con tutti i file nella cartella e nelle sottocartelle."""
+        all_files = set()
+        if not os.path.isdir(root_folder):
+            return all_files
+        for dirpath, _, filenames in os.walk(root_folder):
+            for f in filenames:
+                # Salva percorsi relativi (rispetto alla root) per coerenza
+                relative_path = os.path.relpath(os.path.join(dirpath, f), root_folder)
+                all_files.add(relative_path)
+        return all_files

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QDialog, QMessageBox, QListWidgetItem
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
-from components.nifti_file_dialog import NiftiFileDialog
+from main.components.nifti_file_dialog import NiftiFileDialog
 
 
 @pytest.fixture

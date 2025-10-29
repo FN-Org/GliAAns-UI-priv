@@ -8,10 +8,10 @@ from PyQt6.QtWidgets import (
     QProgressDialog, QApplication
 )
 
-from ..threads.import_thread import ImportThread
-from ..ui.ui_patient_selection_page import PatientSelectionPage
-from ..page import Page
-from ..logger import get_logger
+from threads.import_thread import ImportThread
+from ui.ui_patient_selection_page import PatientSelectionPage
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

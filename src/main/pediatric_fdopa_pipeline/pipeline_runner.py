@@ -5,9 +5,9 @@ import argparse
 import pandas as pd
 from pathlib import Path
 
-from main.pediatric_fdopa_pipeline.analysis import tumor_striatum_analysis
-from main.pediatric_fdopa_pipeline.subject import Subject
-from main.pediatric_fdopa_pipeline.utils import log_progress,log_message,log_error
+from pediatric_fdopa_pipeline.analysis import tumor_striatum_analysis
+from pediatric_fdopa_pipeline.subject import Subject
+from pediatric_fdopa_pipeline.utils import log_progress,log_message,log_error
 
 os.environ["OMP_NUM_THREADS"] = "30"
 os.environ["OPENBLAS_NUM_THREADS"] = "30"

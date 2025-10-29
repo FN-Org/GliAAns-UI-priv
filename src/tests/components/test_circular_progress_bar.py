@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt, QRectF, QSize
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QFont
 from PyQt6.QtWidgets import QWidget
 
-from components.circular_progress_bar import CircularProgress
+from main.components.circular_progress_bar import CircularProgress
 
 
 class TestCircularProgressInitialization:

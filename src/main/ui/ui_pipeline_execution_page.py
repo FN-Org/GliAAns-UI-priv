@@ -9,11 +9,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QProcess, QCoreApplication
 
-from ..components.circular_progress_bar import CircularProgress
-from ..components.folder_card import FolderCard
-from ..utils import get_bin_path
-from ..page import Page
-from ..logger import get_logger
+from components.circular_progress_bar import CircularProgress
+from components.folder_card import FolderCard
+from utils import get_bin_path
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

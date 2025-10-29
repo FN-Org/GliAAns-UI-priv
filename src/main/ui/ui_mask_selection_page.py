@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QPushButton)
 from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
-from ..components.file_selector_widget import FileSelectorWidget
-from ..page import Page
-from ..logger import get_logger
+from components.file_selector_widget import FileSelectorWidget
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QListWidgetItem
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from components.file_selector_widget import FileSelectorWidget
+from main.components.file_selector_widget import FileSelectorWidget
 
 
 @pytest.fixture
