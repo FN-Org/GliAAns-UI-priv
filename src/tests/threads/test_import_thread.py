@@ -11,15 +11,12 @@ Questa suite testa tutte le funzionalità principali di ImportThread:
 """
 
 import os
-import json
-import shutil
-import tempfile
 from types import SimpleNamespace
 from unittest.mock import Mock, patch, MagicMock, call
 import pytest
 from PyQt6.QtCore import QCoreApplication
 
-from threads.import_thread import ImportThread
+from main.threads.import_thread import ImportThread
 
 
 class TestImportThreadInitialization:
@@ -222,7 +219,7 @@ class TestPatientDetectionHeuristics:
 
         assert thread._subfolders_look_like_different_patients(series_folders) is False
 
-    @patch('threads.import_thread.pydicom.dcmread')
+    @patch('main.threads.import_thread.pydicom.dcmread')
     def test_are_dicom_series_of_same_patient_true(self, mock_dcmread, mock_context, temp_workspace):
         """Test DICOM dello stesso paziente"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
@@ -250,7 +247,7 @@ class TestPatientDetectionHeuristics:
         result = thread._are_dicom_series_of_same_patient(series_folders)
         assert result is True
 
-    @patch('threads.import_thread.pydicom.dcmread')
+    @patch('main.threads.import_thread.pydicom.dcmread')
     def test_are_dicom_series_of_same_patient_false(self, mock_dcmread, mock_context, temp_workspace):
         """Test DICOM di pazienti diversi"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
@@ -376,8 +373,8 @@ class TestBIDSImport:
 class TestDICOMConversion:
     """Test per la conversione DICOM → NIfTI"""
 
-    @patch('threads.import_thread.subprocess.run')
-    @patch('threads.import_thread.get_bin_path')
+    @patch('main.threads.import_thread.subprocess.run')
+    @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_success(self, mock_get_bin, mock_subprocess,
                                           mock_context, temp_workspace):
         """Test conversione DICOM riuscita"""
@@ -401,7 +398,7 @@ class TestDICOMConversion:
         assert src_folder in call_args
         assert dest_folder in call_args
 
-    @patch('threads.import_thread.get_bin_path')
+    @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_missing_tool(self, mock_get_bin,
                                                mock_context, temp_workspace):
         """Test quando dcm2niix non è disponibile"""
@@ -412,8 +409,8 @@ class TestDICOMConversion:
         # Non dovrebbe sollevare eccezione, solo loggare errore
         thread._convert_dicom_folder_to_nifti(temp_workspace, temp_workspace)
 
-    @patch('threads.import_thread.subprocess.run')
-    @patch('threads.import_thread.get_bin_path')
+    @patch('main.threads.import_thread.subprocess.run')
+    @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_process_error(self, mock_get_bin, mock_subprocess,
                                                 mock_context, temp_workspace):
         """Test errore durante esecuzione dcm2niix"""
@@ -974,7 +971,7 @@ class TestComplexScenarios:
         nifti_files = [f for f in os.listdir(folder) if thread._is_nifti_file(f)]
         assert len(nifti_files) > 0
 
-    @patch('threads.import_thread.pydicom.dcmread')
+    @patch('main.threads.import_thread.pydicom.dcmread')
     def test_dicom_missing_patient_info(self, mock_dcmread, mock_context, temp_workspace):
         """Test DICOM senza informazioni paziente"""
         # Mock DICOM senza PatientID né PatientName
@@ -1149,8 +1146,8 @@ class TestEdgeCases:
 class TestIntegrationScenarios:
     """Test di integrazione end-to-end"""
 
-    @patch('threads.import_thread.subprocess.run')
-    @patch('threads.import_thread.get_bin_path')
+    @patch('main.threads.import_thread.subprocess.run')
+    @patch('main.threads.import_thread.get_bin_path')
     def test_full_dicom_to_bids_workflow(self, mock_get_bin, mock_subprocess,
                                          mock_context, temp_workspace):
         """Test workflow completo DICOM → BIDS"""

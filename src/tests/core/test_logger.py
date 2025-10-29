@@ -8,9 +8,7 @@ import logging
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-# Import dal tuo progetto
-import logger
-from logger import CompressedRotatingFileHandler, setup_logger, get_logger, set_log_level
+from main.logger import CompressedRotatingFileHandler, setup_logger, get_logger, set_log_level
 
 
 class TestCompressedRotatingFileHandler:
@@ -218,7 +216,7 @@ class TestSetupLogger:
 
     def test_setup_logger_creates_logger(self, temp_log_dir, clean_logger):
         """Verifica creazione logger"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger,
@@ -231,7 +229,7 @@ class TestSetupLogger:
 
     def test_setup_logger_creates_log_file(self, temp_log_dir, clean_logger):
         """Verifica creazione file log"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger
@@ -243,7 +241,7 @@ class TestSetupLogger:
 
     def test_setup_logger_with_console(self, temp_log_dir, clean_logger):
         """Verifica aggiunta console handler"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=True,
                 logger_name=clean_logger
@@ -260,7 +258,7 @@ class TestSetupLogger:
 
     def test_setup_logger_without_console(self, temp_log_dir, clean_logger):
         """Verifica setup senza console handler"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger
@@ -276,7 +274,7 @@ class TestSetupLogger:
         """Verifica uso di file log personalizzato"""
         custom_file = temp_log_dir / "custom.log"
 
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger,
@@ -295,7 +293,7 @@ class TestSetupLogger:
         test_logger.addHandler(logging.NullHandler())
         initial_count = len(test_logger.handlers)
 
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger
@@ -306,7 +304,7 @@ class TestSetupLogger:
 
     def test_setup_logger_max_bytes(self, temp_log_dir, clean_logger):
         """Verifica impostazione maxBytes"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger,
@@ -320,7 +318,7 @@ class TestSetupLogger:
 
     def test_setup_logger_backup_count(self, temp_log_dir, clean_logger):
         """Verifica impostazione backupCount"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name=clean_logger,
@@ -413,7 +411,7 @@ class TestLoggerFormatting:
 
     def test_file_formatter(self, temp_log_dir):
         """Verifica formato file log"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name="TestFormat",
@@ -431,7 +429,7 @@ class TestLoggerFormatting:
 
     def test_console_formatter(self, temp_log_dir, capsys):
         """Verifica formato console log"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=True,
                 logger_name="TestConsoleFormat",
@@ -456,7 +454,7 @@ class TestLoggerIntegration:
 
     def test_full_logging_workflow(self, temp_log_dir):
         """Test flusso completo di logging"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             # Setup logger
             log = setup_logger(
                 console=False,
@@ -482,7 +480,7 @@ class TestLoggerIntegration:
 
     def test_logger_persistence(self, temp_log_dir):
         """Verifica persistenza tra chiamate"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             # Prima chiamata
             log1 = setup_logger(
                 console=False,
@@ -513,7 +511,7 @@ class TestEdgeCases:
 
     def test_empty_log_message(self, temp_log_dir):
         """Verifica gestione messaggio vuoto"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name="EmptyTest",
@@ -526,7 +524,7 @@ class TestEdgeCases:
 
     def test_very_long_message(self, temp_log_dir):
         """Verifica gestione messaggio molto lungo"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name="LongTest",
@@ -542,7 +540,7 @@ class TestEdgeCases:
 
     def test_special_characters_in_message(self, temp_log_dir):
         """Verifica gestione caratteri speciali"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name="SpecialTest",
@@ -555,7 +553,7 @@ class TestEdgeCases:
 
     def test_zero_backup_count(self, temp_log_dir):
         """Verifica comportamento con backupCount=0"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             log = setup_logger(
                 console=False,
                 logger_name="NoBackupTest",
@@ -569,7 +567,7 @@ class TestEdgeCases:
 
     def test_permission_error_handling(self, temp_log_dir):
         """Verifica gestione errori di permessi"""
-        with patch('logger.get_app_dir', return_value=temp_log_dir):
+        with patch('main.logger.get_app_dir', return_value=temp_log_dir):
             # Crea directory read-only (se possibile)
             restricted_dir = temp_log_dir / "restricted"
             restricted_dir.mkdir()

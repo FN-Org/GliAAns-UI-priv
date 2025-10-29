@@ -8,8 +8,7 @@ import shutil
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
-# Import dal tuo progetto
-import utils
+from main import utils
 
 
 class TestGetBinPath:

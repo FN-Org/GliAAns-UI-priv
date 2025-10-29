@@ -930,7 +930,7 @@ class TestOpenTreeDialog:
         )
         qtbot.addWidget(widget)
 
-        with patch("components.file_selector_widget.NiftiFileDialog") as mock_dialog:
+        with patch("main.components.file_selector_widget.NiftiFileDialog") as mock_dialog:
             mock_dialog.get_files = Mock(return_value=None)
 
             widget.open_tree_dialog()
@@ -948,7 +948,7 @@ class TestOpenTreeDialog:
         )
         qtbot.addWidget(widget)
 
-        with patch("components.file_selector_widget.NiftiFileDialog") as mock_dialog:
+        with patch("main.components.file_selector_widget.NiftiFileDialog") as mock_dialog:
             mock_dialog.get_files = Mock(return_value=test_nifti_files[:2])
 
             widget.open_tree_dialog()
@@ -966,7 +966,7 @@ class TestOpenTreeDialog:
         )
         qtbot.addWidget(widget)
 
-        with patch("components.file_selector_widget.NiftiFileDialog") as mock_dialog:
+        with patch("main.components.file_selector_widget.NiftiFileDialog") as mock_dialog:
             mock_dialog.get_files = Mock(return_value=test_nifti_files[:2])
 
             widget.open_tree_dialog()
@@ -985,7 +985,7 @@ class TestOpenTreeDialog:
         )
         qtbot.addWidget(widget)
 
-        with patch("components.file_selector_widget.NiftiFileDialog") as mock_dialog:
+        with patch("main.components.file_selector_widget.NiftiFileDialog") as mock_dialog:
             mock_dialog.get_files = Mock(return_value=None)
 
             widget.open_tree_dialog()

@@ -286,7 +286,7 @@ class TestPaintEvent:
         widget.show()
 
         # Usa un mock non intrusivo che non rompe QPainter
-        with patch("components.circular_progress_bar.QPainter", autospec=True) as mock_painter_class:
+        with patch("main.components.circular_progress_bar.QPainter", autospec=True) as mock_painter_class:
             event = QPaintEvent(widget.rect())
             widget.paintEvent(event)
 

@@ -31,3 +31,4 @@ nuitka-crash-report.xml
 /src/main/build
 /src/main/dist
 /src/main/pipeline_runner
+/src/tests/.venv

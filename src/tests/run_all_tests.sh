@@ -2,6 +2,7 @@
 
 # Determine the script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR/../main:$SCRIPT_DIR/.."
 
 echo "=========================================="
 echo "Complete test suite - GliAAns UI"

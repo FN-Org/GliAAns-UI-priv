@@ -16,7 +16,7 @@ import tempfile
 from unittest.mock import Mock, patch, call
 import pytest
 
-from threads.utils_threads import CopyDeleteThread
+from main.threads.utils_threads import CopyDeleteThread
 
 
 class TestCopyDeleteThreadInitialization:

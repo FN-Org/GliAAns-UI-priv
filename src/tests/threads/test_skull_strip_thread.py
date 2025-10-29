@@ -17,7 +17,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 import pytest
 from PyQt6.QtCore import QProcess
 
-from threads.skull_strip_thread import SkullStripThread
+from main.threads.skull_strip_thread import SkullStripThread
 
 
 class TestSkullStripThreadInitialization:
@@ -137,8 +137,8 @@ class TestSkullStripThreadCancellation:
 class TestBETCommandBuilding:
     """Test per la costruzione comandi FSL BET"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_basic_command(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test comando BET di base"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -172,8 +172,8 @@ class TestBETCommandBuilding:
         assert "-f" in call_args[1]
         assert "0.5" in call_args[1]
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_with_options(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test comando BET con opzioni avanzate"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -212,8 +212,8 @@ class TestBETCommandBuilding:
         assert "-o" in cmd  # opt_o
         assert "-s" not in cmd  # opt_s è False
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_with_center_coordinates(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test comando BET con coordinate centro"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -249,8 +249,8 @@ class TestBETCommandBuilding:
         assert "-c" in cmd
         assert "128" in cmd or "64" in cmd
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_brain_extracted_option(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test opzione -n per brain extraction"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -286,8 +286,8 @@ class TestBETCommandBuilding:
 class TestHDBETCommandBuilding:
     """Test per la costruzione comandi HD-BET"""
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_basic_command(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test comando HD-BET di base"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
@@ -315,8 +315,8 @@ class TestHDBETCommandBuilding:
         assert "-i" in call_args[1]
         assert "-o" in call_args[1]
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_cpu_mode(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test HD-BET in modalità CPU (senza CUDA)"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
@@ -347,8 +347,8 @@ class TestHDBETCommandBuilding:
         assert "cpu" in cmd
         assert "--disable_tta" in cmd
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_cuda_mode(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test HD-BET con CUDA"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
@@ -377,8 +377,8 @@ class TestHDBETCommandBuilding:
         # NON dovrebbe avere opzioni CPU
         assert "-device" not in cmd or "cpu" not in cmd
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_sinthstrip_basic_command(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test comando SynthStrip di base"""
         mock_get_bin.return_value = "/usr/bin/mri_sinthstrip"
@@ -409,8 +409,8 @@ class TestHDBETCommandBuilding:
 class TestOutputGeneration:
     """Test per la generazione output e metadata"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_output_directory_creation(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test creazione directory output"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -444,8 +444,8 @@ class TestOutputGeneration:
         )
         assert os.path.exists(expected_dir)
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_bet(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test creazione metadata JSON per BET"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -488,8 +488,8 @@ class TestOutputGeneration:
         assert "T1w.nii.gz" in metadata["Sources"]
         assert metadata["SkullStrippingMethod"] == "FSL BET"
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_hdbet(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test creazione metadata JSON per HD-BET"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
@@ -528,8 +528,8 @@ class TestOutputGeneration:
 
         assert metadata["SkullStrippingMethod"] == "HD-BET"
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_output_filename_format_bet(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test formato nome file output per BET"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -565,8 +565,8 @@ class TestOutputGeneration:
 
         assert os.path.exists(output_file)
 
-    @patch('threads.skull_strip_thread.get_bin_path')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.get_bin_path')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_synthstrip(self, mock_qprocess, mock_get_bin, temp_workspace):
         """Test creazione metadata JSON per SynthStrip"""
         mock_get_bin.return_value = "/usr/bin/mri_synthstrip"
@@ -609,8 +609,8 @@ class TestOutputGeneration:
 class TestBatchProcessing:
     """Test per il processing batch di file multipli"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_multiple_files_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test processamento di file multipli"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -652,8 +652,8 @@ class TestBatchProcessing:
         assert file_completed_count[0] == 3
         assert thread.success_count == 3
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_progress_tracking_multiple_files(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test tracking progress con file multipli"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -692,8 +692,8 @@ class TestBatchProcessing:
         for i in range(1, len(progress_values)):
             assert progress_values[i] >= progress_values[i - 1]
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_all_completed_signal(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test signal all_completed al termine"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -735,8 +735,8 @@ class TestBatchProcessing:
 class TestErrorHandling:
     """Test per la gestione degli errori"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_process_failure_nonzero_exit(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test gestione errore processo con exit code non zero"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -768,8 +768,8 @@ class TestErrorHandling:
         assert "error" in message.lower() or "invalid" in message.lower()
         assert len(thread.failed_files) == 1
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_missing_subject_id(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test gestione file senza subject ID BIDS"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -794,8 +794,8 @@ class TestErrorHandling:
         assert "Impossibile estrarre" in message or "Cannot extract" in message
         assert len(thread.failed_files) == 1
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_exception_during_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test gestione eccezione generica durante processing"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -823,8 +823,8 @@ class TestErrorHandling:
         assert success is False
         assert "failed" in message.lower() or "error" in message.lower()
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_partial_failure_multiple_files(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test con alcuni file che falliscono e altri che riescono"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -874,8 +874,8 @@ class TestErrorHandling:
 class TestCancellationDuringProcessing:
     """Test per cancellazione durante il processing"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_cancel_during_single_file(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test cancellazione durante processamento file singolo"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -908,8 +908,8 @@ class TestCancellationDuringProcessing:
         mock_process.kill.assert_called()
         assert thread.is_cancelled is True
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_cancel_stops_batch_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test che la cancellazione fermi il batch"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -956,8 +956,8 @@ class TestCancellationDuringProcessing:
 class TestSubjectIDExtraction:
     """Test per l'estrazione del subject ID"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_extract_subject_id_standard_bids(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test estrazione subject ID da path BIDS standard"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -989,8 +989,8 @@ class TestSubjectIDExtraction:
 
         assert thread.success_count == 1
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_extract_subject_id_nested_path(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test estrazione subject ID da path annidato"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1027,8 +1027,8 @@ class TestSubjectIDExtraction:
 class TestTempDirectoryHandling:
     """Test per la gestione delle directory temporanee"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     @patch('tempfile.mkdtemp')
     def test_temp_directory_created(self, mock_mkdtemp, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test che la directory temporanea venga creata"""
@@ -1058,8 +1058,8 @@ class TestTempDirectoryHandling:
         mock_mkdtemp.assert_called()
         mock_rmtree.assert_called()
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_temp_directory_cleanup_on_error(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test pulizia temp directory in caso di errore"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1084,8 +1084,8 @@ class TestTempDirectoryHandling:
         # Dovrebbe pulire temp directory anche con errore
         assert mock_rmtree.called
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_temp_directory_cleanup_on_cancel(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test pulizia temp directory su cancellazione"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1116,8 +1116,8 @@ class TestTempDirectoryHandling:
 class TestEdgeCases:
     """Test per casi limite"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_empty_file_list(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test con lista file vuota"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1131,8 +1131,8 @@ class TestEdgeCases:
         except ZeroDivisionError:
             pytest.fail("Division by zero con lista vuota")
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_file_with_spaces_in_name(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test file con spazi nel nome"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1161,8 +1161,8 @@ class TestEdgeCases:
 
         assert thread.success_count == 1
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_nifti_without_gz_extension(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test file NIfTI non compresso (.nii)"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1193,8 +1193,8 @@ class TestEdgeCases:
 
         assert thread.success_count == 1
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_extreme_f_values(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test con valori estremi di f_val"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1232,8 +1232,8 @@ class TestEdgeCases:
 class TestSignalEmissions:
     """Test per le emissioni dei signal"""
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_progress_updated_signal(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test emissione signal progress_updated"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
@@ -1267,8 +1267,8 @@ class TestSignalEmissions:
         # Messaggio dovrebbe contenere info su file processato
         assert any("T1w.nii" in msg or "Processing" in msg for msg in progress_messages)
 
-    @patch('threads.skull_strip_thread.setup_fsl_env')
-    @patch('threads.skull_strip_thread.QProcess')
+    @patch('main.threads.skull_strip_thread.setup_fsl_env')
+    @patch('main.threads.skull_strip_thread.QProcess')
     def test_file_started_signal_order(self, mock_qprocess, mock_fsl_env, temp_workspace):
         """Test ordine emissione signal file_started"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
