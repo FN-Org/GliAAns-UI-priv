@@ -29,3 +29,9 @@ nuitka-crash-report.xml
 /preprocess
 /reorientation
 /.venv-wsl
+/src/main/.venv
+/src/main/build
+/src/main/dist
+/src/main/pediatric_fdopa_pipeline/.venv
+/src/main/pipeline_runner
+/src/tests/.venv
