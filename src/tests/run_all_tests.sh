@@ -82,7 +82,7 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 if [ -n "$MODULE" ]; then
-    PYTEST_CMD="$PYTEST_CMD tests/**/test_${MODULE}.py"
+    PYTEST_CMD="$PYTEST_CMD src/tests/**/test_${MODULE}.py"
 else
     PYTEST_CMD="$PYTEST_CMD"
 fi

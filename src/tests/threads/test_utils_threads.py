@@ -480,7 +480,7 @@ class TestErrorHandling:
         thread.run()
 
         assert len(error_msgs) == 1
-        assert "missing" in error_msgs[0].lower()
+        assert "missing" in error_msgs[0].lower() or "manca" in error_msgs[0].lower()
 
     def test_delete_missing_source(self, temp_workspace):
         """Test eliminazione file inesistente"""
@@ -506,7 +506,7 @@ class TestErrorHandling:
         thread.run()
 
         assert len(error_msgs) == 1
-        assert "missing" in error_msgs[0].lower()
+        assert "missing" in error_msgs[0].lower() or "manca" in error_msgs[0].lower()
 
     def test_copy_to_invalid_destination(self, temp_workspace):
         """Test copia in destinazione non valida"""

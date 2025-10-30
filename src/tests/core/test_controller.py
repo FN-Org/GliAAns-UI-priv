@@ -427,7 +427,7 @@ class TestControllerSettings:
 
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @patch('logger.set_log_level')
+    @patch('main.controller.set_log_level')
     def test_debug_log_setting(self, mock_set_log_level, qtbot, clean_settings):
         """Verifica impostazione debug log"""
         import logging

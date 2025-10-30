@@ -124,7 +124,7 @@ class DummyFileSelectorWidget(QWidget):
 def mock_file_selector():
     """Patcha FileSelectorWidget con un mock compatibile."""
     with patch(
-        "ui.ui_skull_stripping_page.FileSelectorWidget",
+        "main.ui.ui_skull_stripping_page.FileSelectorWidget",
         return_value=DummyFileSelectorWidget()
     ) as mock:
         yield mock
@@ -133,7 +133,7 @@ def mock_file_selector():
 def mock_file_selector_mask():
     """Patcha FileSelectorWidget nel modulo ui_mask_selection_page con un widget valido."""
     with patch(
-        "ui.ui_mask_selection_page.FileSelectorWidget",
+        "main.ui.ui_mask_selection_page.FileSelectorWidget",
         return_value=DummyFileSelectorWidget()
     ) as mock:
         yield mock
@@ -142,7 +142,7 @@ def mock_file_selector_mask():
 def mock_file_selector_dl():
     """Patcha FileSelectorWidget nel modulo ui_dl_selection_page."""
     with patch(
-            "ui.ui_dl_selection_page.FileSelectorWidget",
+            "main.ui.ui_dl_selection_page.FileSelectorWidget",
             return_value=DummyFileSelectorWidget()
     ) as mock:
         yield mock
