@@ -327,23 +327,22 @@ class PipelineExecutionPage(Page):
     # OUTPUT INTERPRETATION
     # ─────────────────────────────────────────────
     def _process_pipeline_output(self, line):
-        """Processa una riga di output dalla pipeline."""
+        """Process the pipeline output logs"""
         if line.startswith("LOG: "):
-            message = line[5:]  # Rimuove "LOG: "
+            message = line[5:]
             self._log_message(message)
             self._update_current_operation(message)
         elif line.startswith("ERROR: "):
-            error_msg = line[7:]  # Rimuove "ERROR: "
+            error_msg = line[7:]
             self._log_message(
                 QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error}").format(error=error_msg))
         elif line.startswith("PROGRESS: "):
-            progress_info = line[10:]  # Rimuove "PROGRESS: "
+            progress_info = line[10:]
             self._update_progress(progress_info)
         elif line.startswith("FINISHED: "):
-            message = line[10:]  # Rimuove "FINISHED: "
-            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: "))
+            message = line[10:]
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: {message}").format(message=message))
         else:
-            # Output generico
             self._log_message(line)
 
     # ─────────────────────────────────────────────

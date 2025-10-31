@@ -107,7 +107,7 @@ class FolderCard(QWidget):
         card_layout.addLayout(info_layout, stretch=1)
 
         # Right section: action button
-        self.action_btn = QPushButton("Visualizza")
+        self.action_btn = QPushButton(QLabel(QCoreApplication.translate("Components", "Visualize")))
         self.action_btn.setStyleSheet("""
             QPushButton {
                 background-color: #3498db;
