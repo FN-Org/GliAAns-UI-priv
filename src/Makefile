@@ -1,5 +1,5 @@
 # -------------------------
-# Configurazioni principali
+# Main configuration
 # -------------------------
 VENV_DIR          = .venv
 PIPELINE_DIR      = pediatric_fdopa_pipeline
@@ -9,7 +9,7 @@ PIPELINE_NO_DIST  = pipeline_runner
 DOC_DIR			  = docs
 
 # -------------------------
-# Rilevamento OS
+# OS Management
 # -------------------------
 ifeq ($(OS),Windows_NT)
     # ---- Windows ----
@@ -65,7 +65,7 @@ else
 endif
 
 # -------------------------
-# Creazione virtualenv
+# Virtualenv creation
 # -------------------------
 $(APP_VENV_DIR):
 	$(PYTHON) -m venv $(APP_VENV_DIR)
@@ -77,7 +77,7 @@ $(TESTS_VENV_DIR):
 	$(PYTHON) -m venv $(TESTS_VENV_DIR)
 
 # -------------------------
-# Installazione pacchetti
+# Package installation
 # -------------------------
 .PHONY: main_python-setup
 main_python-setup: $(APP_VENV_DIR)
@@ -95,7 +95,7 @@ tests_python-setup: $(TESTS_VENV_DIR)
 setup-all: main_python-setup pipeline_python-setup tests_python-setup
 
 # -------------------------
-# Compilazione pipeline con Nuitka
+# Pipeline compilation with Nuitka
 # -------------------------
 $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	cd main && $(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
@@ -126,7 +126,7 @@ endif
 compile-pipeline: $(PIPELINE_NO_DIST)
 
 # -------------------------
-# Compilazione app con PyInstaller
+# App compilation with PyInstaller
 # -------------------------
 .PHONY: compile-app
 compile-app: $(APP_VENV_DIR)
@@ -145,7 +145,7 @@ compile-app: $(APP_VENV_DIR)
 	    main.py
 
 # -------------------------
-# Target principali
+# Principal targets
 # -------------------------
 .PHONY: all
 all: setup-all app
@@ -154,7 +154,7 @@ all: setup-all app
 app: compile-pipeline compile-app
 
 # -------------------------
-# Pulizia cross-platform
+# Cleaning
 # -------------------------
 .PHONY: clean
 clean: clean-pipeline
@@ -178,6 +178,26 @@ else
 	rm -rf main/$(PIPELINE_DIST) main/$(PIPELINE_NO_DIST)
 endif
 
+# -------------------------
+# Tests
+# -------------------------
+.PHONY: tests
+tests:
+	env PATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+	    PYTHONPATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/main \
+	    VIRTUAL_ENV=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv \
+	    /bin/bash /Users/niky/Documents/1_projects/GliAAns-UI/src/tests/run_all_tests.sh
+
+.PHONY: tests-coverage
+tests:
+	env PATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+	    PYTHONPATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/main \
+	    VIRTUAL_ENV=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv \
+	    /bin/bash /Users/niky/Documents/1_projects/GliAAns-UI/src/tests/run_all_tests.sh -c
+
+# -------------------------
+# Create documentation
+# -------------------------
 .PHONY: doc
 doc:
 ifeq ($(OS),Windows_NT)
