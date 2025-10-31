@@ -31,20 +31,20 @@ class Subject():
         '''
 
         # Inputs :
-        self.data_dir = work_dir
+        self.work_dir = work_dir
         self.sub = sub
         self.clobber = clobber
 
-        self.pet = os.path.join(self.data_dir, pet_file)
+        self.pet = os.path.join(self.work_dir, pet_file)
 
         if pet4d_file:
-            self.pet4d = os.path.join(self.data_dir, pet4d_file)
+            self.pet4d = os.path.join(self.work_dir, pet4d_file)
 
-        self.mri = os.path.join(self.data_dir, mri_file)
-        self.mri_str = os.path.join(self.data_dir, mri_str_file)
+        self.mri = os.path.join(self.work_dir, mri_file)
+        self.mri_str = os.path.join(self.work_dir, mri_str_file)
         self.stx = stx_fn
         self.atlas_fn = atlas_fn
-        self.tumor_MRI = os.path.join(self.data_dir, flair_tumor)
+        self.tumor_MRI = os.path.join(self.work_dir, flair_tumor)
 
         # Outputs :
         self.sub_dir = out_dir + os.sep + 'sub-'+ sub
@@ -55,7 +55,7 @@ class Subject():
 
         self.pet_json = pet_json_file
         if self.pet_json is not None:
-            self.pet_header = json.load(open(os.path.join(self.data_dir, self.pet_json), 'r'))
+            self.pet_header = json.load(open(os.path.join(self.work_dir, self.pet_json), 'r'))
 
         self.tacs_csv = self.sub_dir + '/' + f'sub-{sub}_TACs.csv'
         self.tacs_sub_regions_csv = self.sub_dir + '/' + f'sub-{sub}_TACs_sub_regions.csv'
@@ -105,7 +105,7 @@ class Subject():
         os.makedirs(self.ref_dir, exist_ok=True)
         os.makedirs(self.data_dir, exist_ok=True)
 
-        if (Path(self.data_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
+        if (Path(self.work_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
             self.frame_duration, self.frame_time_start, self.frame_weight = self.set_frame_times()
 
     def process(self):
@@ -159,7 +159,7 @@ class Subject():
         # Defining attributes for static and dynamic analysis
         self.tumor_atlas, self.tumor_label, self.striatum_atlas, self.striatum_label, self.suvr_m = variable_def(self)
 
-        if (Path(self.data_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
+        if (Path(self.work_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
             # Extract time-activity curves (TACs) from PET image using atlas in PET space 
             self.tacs = get_tacs(self, self.roi_labels, self.ref_labels ,  self.frame_time_start, self.tacs_csv, self.tacs_qc_plot, self.tacs_sub_regions_qc_plot)
             current_progress = current_progress + progress_per_process

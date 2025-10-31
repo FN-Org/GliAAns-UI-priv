@@ -169,6 +169,7 @@ class PipelineExecutionPage(Page):
         self.folder_cards = {}
         self.watch_dirs = self.get_sub_list(self.config_path)
         self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
+        self.dir_completed = 0
         for d in self.watch_dirs:
             card = FolderCard(self.context, d)
             card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
@@ -360,6 +361,8 @@ class PipelineExecutionPage(Page):
             QCoreApplication.translate("PipelineExecutionPage", "Results saved in: {pipeline_output_dir}").format(
                 pipeline_output_dir=self.pipeline_output_dir))
         self.pipeline_process = None
+        for card in self.folder_cards.values():
+            card.set_finished_state()
         self.context["update_main_buttons"]()
 
     def _on_pipeline_error(self, error_message):
@@ -394,7 +397,17 @@ class PipelineExecutionPage(Page):
                 current, total = map(int, progress_info.split('/'))
                 percentage = int((current / total) * 100)
                 self.progress_bar.setValue(percentage)
+
                 self.check_new_files()  # Update folder views
+            elif "sub" in progress_info:
+                self.dir_completed += 1
+                if 0 <= self.dir_completed < len(self.watch_dirs):
+                    finished_dir = self.watch_dirs[self.dir_completed]
+                    finished_card = self.folder_cards.get(finished_dir)
+                    if finished_card:
+                        log.debug(f"Setting finished state for card: {finished_dir}")
+                        finished_card.set_finished_state()
+
         except ValueError:
             log.warning("Failed to parse progress info")
 
@@ -610,6 +623,8 @@ class PipelineExecutionPage(Page):
         self.pipeline_process = None
         self.pipeline_error = None
         self.pipeline_completed = False
+        for card in self.folder_cards.values():
+            card.reset_state()
 
     def __del__(self):
         """Ensure that any running pipeline process is terminated on destruction."""

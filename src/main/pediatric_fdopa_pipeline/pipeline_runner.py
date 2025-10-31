@@ -83,6 +83,7 @@ def run_pipeline_from_config(config_path, work_dir, out_dir):
 
         subject_list.append(subj)
         log_message(f"  - Completed processing for {patient_id}")
+        log_progress(f"sub-{patient_id}")
 
     log_message("Patient processing completed. Starting analysis phase...")
 

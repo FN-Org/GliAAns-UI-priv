@@ -15,6 +15,7 @@ ifeq ($(OS),Windows_NT)
     # ---- Windows ----
     PYTHON             = python3.11.exe
     SEP 			   = ;
+    APP_VENV_DIR       = main\$(VENV_DIR)
     MAIN_PYTHON        = $(VENV_DIR)\Scripts\python.exe
     MAIN_PIP           = $(VENV_DIR)\Scripts\pip
     PIPELINE_VENV_DIR  = $(PIPELINE_DIR)\$(VENV_DIR)
@@ -23,6 +24,10 @@ ifeq ($(OS),Windows_NT)
     PIPELINE_RUNNER    = $(PIPELINE_DIR)\pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)\$(REQUIREMENTS)
     PIPELINE_EXE 	   = pipeline_runner.exe
+    TESTS_VENV_DIR	   = tests\$(VENV_DIR)
+    TESTS_PIP 		   = $(TESTS_VENV_DIR)\Scripts\pip
+    TESTS_PYTHON       = $(TESTS_VENV_DIR)\Scripts\python
+    TESTS_REQUIREMENTS = $(TESTS_DIR)\requirements-test.txt
     ICON               = resources\GliAAns-logo.ico
     ICON_FLAG          = --windows-icon-from-ico=$(ICON)
     ATLAS              = $(PIPELINE_DIR)\atlas
@@ -41,14 +46,19 @@ else
     endif
     PYTHON             = python3.11
     SEP		 		   = :
+    APP_VENV_DIR       = main/$(VENV_DIR)
     MAIN_PYTHON        = $(VENV_DIR)/bin/python
     MAIN_PIP           = $(VENV_DIR)/bin/pip
     PIPELINE_VENV_DIR  = $(PIPELINE_DIR)/$(VENV_DIR)
     PIPELINE_PIP       = $(PIPELINE_VENV_DIR)/bin/pip
     PIPELINE_PYTHON    = $(PIPELINE_VENV_DIR)/bin/python
     PIPELINE_RUNNER    = $(PIPELINE_DIR)/pipeline_runner.py
-    PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)/$(REQUIREMENTS)
+    PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)/requirements.txt
     PIPELINE_EXE 	   = pipeline_runner
+    TESTS_VENV_DIR	   = tests/$(VENV_DIR)
+    TESTS_PIP 		   = $(TESTS_VENV_DIR)/bin/pip
+    TESTS_PYTHON       = $(TESTS_VENV_DIR)/bin/python
+    TESTS_REQUIREMENTS = tests/requirements-test.txt
     ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
@@ -57,31 +67,38 @@ endif
 # -------------------------
 # Creazione virtualenv
 # -------------------------
-$(VENV_DIR):
-	$(PYTHON) -m venv $(VENV_DIR)
+$(APP_VENV_DIR):
+	$(PYTHON) -m venv $(APP_VENV_DIR)
 
 $(PIPELINE_VENV_DIR):
-	$(PYTHON) -m venv $(PIPELINE_VENV_DIR)
+	cd main && $(PYTHON) -m venv $(PIPELINE_VENV_DIR)
+
+$(TESTS_VENV_DIR):
+	$(PYTHON) -m venv $(TESTS_VENV_DIR)
 
 # -------------------------
 # Installazione pacchetti
 # -------------------------
 .PHONY: main_python-setup
-main_python-setup: $(VENV_DIR)
-	$(MAIN_PIP) install -r $(REQUIREMENTS)
+main_python-setup: $(APP_VENV_DIR)
+	cd main && $(MAIN_PIP) install -r $(REQUIREMENTS)
 
 .PHONY: pipeline_python-setup
 pipeline_python-setup: $(PIPELINE_VENV_DIR)
-	$(PIPELINE_PIP) install -r $(PIPELINE_REQUIREMENTS)
+	cd main && $(PIPELINE_PIP) install -r $(PIPELINE_REQUIREMENTS)
+
+.PHONY: tests_python-setup
+tests_python-setup: $(TESTS_VENV_DIR)
+	$(TESTS_PIP) install -r $(TESTS_REQUIREMENTS)
 
 .PHONY: setup-all
-setup-all: main_python-setup pipeline_python-setup
+setup-all: main_python-setup pipeline_python-setup tests_python-setup
 
 # -------------------------
 # Compilazione pipeline con Nuitka
 # -------------------------
 $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
-	$(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
+	cd main && $(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
 	    --standalone \
 	    --remove-output \
 	    --nofollow-import-to=unittest \
@@ -102,22 +119,25 @@ $(PIPELINE_NO_DIST):$(PIPELINE_DIST)
 ifeq ($(OS),Windows_NT)
 	cmd /C move $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
 else
-	mv $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
+	cd main && mv $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
 endif
+
+.PHONY: compile-pipeline
+compile-pipeline: $(PIPELINE_NO_DIST)
 
 # -------------------------
 # Compilazione app con PyInstaller
 # -------------------------
 .PHONY: compile-app
-compile-app: $(VENV_DIR)
-	$(MAIN_PYTHON) -OO -m PyInstaller \
+compile-app: $(APP_VENV_DIR)
+	cd main && $(MAIN_PYTHON) -OO -m PyInstaller \
 		--clean \
 	    --onedir \
 	    --noconsole \
 	    --icon=$(ICON) \
 	    --add-data "resources$(SEP)resources" \
 	    --add-data "translations$(SEP)translations" \
-	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
+	    --add-data "pipeline_runner$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
 	    --name GliAAns-UI \
@@ -131,7 +151,7 @@ compile-app: $(VENV_DIR)
 all: setup-all app
 
 .PHONY: app
-app: $(PIPELINE_NO_DIST) compile-app
+app: compile-pipeline compile-app
 
 # -------------------------
 # Pulizia cross-platform
@@ -139,13 +159,14 @@ app: $(PIPELINE_NO_DIST) compile-app
 .PHONY: clean
 clean: clean-pipeline
 ifeq ($(OS),Windows_NT)
-	if exist "$(VENV_DIR)" rmdir /S /Q "$(VENV_DIR)"
-	if exist "$(PIPELINE_VENV_DIR)" rmdir /S /Q "$(PIPELINE_VENV_DIR)"
-	if exist "build" rmdir /S /Q "build"
-	if exist "dist" rmdir /S /Q "dist"
-	if exist "*.spec" del /Q *.spec
+	if exist "$(APP_VENV_DIR)" rmdir /S /Q "$(APP_VENV_DIR)"
+	if exist "$main/(PIPELINE_VENV_DIR)" rmdir /S /Q "main/$(PIPELINE_VENV_DIR)"
+	if exist "$(TESTS_VENV_DIR)" rmdir /S /Q "$(TESTS_VENV_DIR)"
+	if exist "main/build" rmdir /S /Q "main/build"
+	if exist "main/dist" rmdir /S /Q "main/dist"
+	if exist "main/*.spec" del /Q "main/*.spec"
 else
-	rm -rf $(VENV_DIR) $(PIPELINE_VENV_DIR) build dist *.spec
+	rm -rf $(APP_VENV_DIR) main/$(PIPELINE_VENV_DIR) $(TESTS_VENV_DIR) main/build main/dist main/*.spec
 endif
 
 .PHONY: clean-pipeline
@@ -154,7 +175,7 @@ ifeq ($(OS),Windows_NT)
 	if exist "$(PIPELINE_DIST)" rmdir /S /Q "$(PIPELINE_DIST)"
 	if exist "$(PIPELINE_NO_DIST)" rmdir /S /Q "$(PIPELINE_NO_DIST)"
 else
-	rm -rf $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
+	rm -rf main/$(PIPELINE_DIST) main/$(PIPELINE_NO_DIST)
 endif
 
 .PHONY: doc

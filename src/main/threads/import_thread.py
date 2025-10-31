@@ -13,8 +13,9 @@ This file is presented in parts. Part 1 contains:
  - ImportThread class definition (signals)
  - __init__ and run() (main orchestration and top-level flow)
 """
-
+import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -124,16 +125,20 @@ class ImportThread(QThread):
                     self.progress.emit(self.current_progress)
 
                     # choose next sub-id (e.g. sub-03) and copy tree
+                    old_sub_id = os.path.basename(os.path.normpath(folder_path))
                     new_sub_id = self._get_next_sub_id()
                     dest = os.path.join(self.workspace_path, new_sub_id)
                     shutil.copytree(folder_path, dest, dirs_exist_ok=True)
+
+                    if not self._is_canceled:
+                        self._rename_bids_files(dest, old_sub_id, new_sub_id)
 
                     if self._is_canceled:
                         return
                     self.current_progress = 100
                     self.progress.emit(self.current_progress)
 
-                    log.debug(f"BIDS folder copied as {new_sub_id}.")
+                    log.debug(f"BIDS folder copied and renamed to {new_sub_id}.")  # <-- Log aggiornato
                     self.finished.emit()
                     return
 
@@ -316,10 +321,17 @@ class ImportThread(QThread):
         # Case 1: The folder is already BIDS-organized -> just copy
         if self._is_bids_folder(folder_path):
             log.debug(f"BIDS structure detected in: {folder_path}")
+
+            old_sub_id = os.path.basename(os.path.normpath(folder_path))
             new_sub_id = self._get_next_sub_id()
             dest = os.path.join(self.workspace_path, new_sub_id)
             shutil.copytree(folder_path, dest, dirs_exist_ok=True)
-            log.debug(f"BIDS folder copied as {new_sub_id}.")
+
+            if not self._is_canceled:
+                self._rename_bids_files(dest, old_sub_id, new_sub_id)
+
+            log.debug(f"BIDS folder copied and renamed to {new_sub_id}.")  # <-- Log aggiornato
+            self.finished.emit()
             return
 
         # Case 2: Does the folder directly contain DICOM/NIfTI files (no subfolders)?
@@ -559,7 +571,7 @@ class ImportThread(QThread):
             self.context["update_main_buttons"]()
         log.debug("Import completed for single patient.")
 
-    def _convert_dicom_folder_to_nifti(self, src_folder, dest_folder):
+    def _convert_dicom_folder_to_nifti(self, dicom_folder, output_folder):
         """
         Converts a DICOM folder into NIfTI format using the external tool `dcm2niix`.
 
@@ -571,39 +583,58 @@ class ImportThread(QThread):
             src_folder (str): The source folder containing DICOM files.
             dest_folder (str): The folder where NIfTI files should be saved.
         """
+        if os.path.isdir(output_folder):
+            for filename in os.listdir(output_folder):
+                if self._is_canceled:
+                    return
+                file_path = os.path.join(output_folder, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    log.debug(f"Errore durante la rimozione di {file_path}: {e}")
+        else:
+            os.makedirs(output_folder, exist_ok=True)
+
         if self._is_canceled:
+            shutil.rmtree(output_folder, ignore_errors=True)
             return
-
+        self.current_progress += 10
+        self.progress.emit(self.current_progress)
         try:
-            dcm2niix_path = get_bin_path("dcm2niix")
-        except FileNotFoundError as e:
-            log.error(f"Cannot find dcm2niix executable: {e}")
-            return
+            log.debug("DCM2NIIX path:" + get_bin_path("dcm2niix"))
+            command = [
+                get_bin_path("dcm2niix"),
+                "-f", "%p_%s",  # Naming format
+                "-p", "y",  # Preserve original acquisition order
+                "-z", "y",  # Compress output as .nii.gz
+                "-o", output_folder,  # Destination folder
+                dicom_folder  # Source DICOM folder
+            ]
 
-        log.debug(f"Running dcm2niix on {src_folder} → {dest_folder}")
-        cmd = [dcm2niix_path, "-z", "y", "-o", dest_folder, src_folder]
+            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = self.process.communicate()
+            if self.process.returncode != 0:
+                raise RuntimeError(f"dcm2niix failed: {stderr.decode()}")
 
-        try:
-            process = subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True
-            )
-            log.debug(f"dcm2niix output:\n{process.stdout}")
+            self.current_progress += 10
+            self.progress.emit(self.current_progress)
+            log.debug(f"Converted DICOM in {dicom_folder} to NIfTI using dcm2niix (optimized)")
         except subprocess.CalledProcessError as e:
-            log.error(f"dcm2niix failed: {e.stderr}")
+            log.error(f"Conversion error: {e}")
+            raise RuntimeError(QCoreApplication.translate("Threads", "Conversion error: {0}").format(e)) from e
         except Exception as e:
-            log.error(f"Unexpected error during DICOM conversion: {e}")
+            if self._is_canceled:
+                log.info("Import canceled")
+                raise Exception(QCoreApplication.translate("Threads", "Import canceled"))
+            else:
+                log.info(f"Import failed: {e}")
+                raise RuntimeError(
+                    QCoreApplication.translate("Threads", "Failed to convert DICOM: {0}").format(e)) from e
 
-        if self._is_canceled:
-            return
-
-        log.debug("DICOM to NIfTI conversion completed.")
-
-
-    def _convert_to_bids_structure(self, source_folder):
+    def _convert_to_bids_structure(self, input_folder):
         """
         Converts a folder containing NIfTI and JSON files into a BIDS-like directory structure.
 
@@ -620,23 +651,101 @@ class ImportThread(QThread):
         """
         if self._is_canceled:
             return
-
-        new_sub_id = self._get_next_sub_id()
-        subject_folder = os.path.join(self.workspace_path, new_sub_id, "anat")
-        os.makedirs(subject_folder, exist_ok=True)
-
-        log.debug(f"Creating BIDS-like structure for {new_sub_id} at {subject_folder}")
-
-        for root, _, files in os.walk(source_folder):
+        all_json_files = []
+        for root, _, files in os.walk(input_folder):
             for file in files:
-                src = os.path.join(root, file)
-                if file.endswith((".nii", ".nii.gz", ".json")):
-                    dest = os.path.join(subject_folder, file)
-                    shutil.copy2(src, dest)
-                    log.debug(f"Copied {file} → {dest}")
+                if file.endswith(".json"):
+                    all_json_files.append(os.path.join(root, file))
 
-        log.debug(f"BIDS conversion complete for {new_sub_id}.")
+        if not all_json_files:
+            log.debug("[BIDS] Nessun file JSON trovato. Conversione annullata.")
+            return
 
+        sub_id = self._get_next_sub_id()
+        dest_sub_dir = os.path.join(self.workspace_path, sub_id)
+        os.makedirs(dest_sub_dir, exist_ok=True)
+
+        pet_run_counter = 1
+        mr_run_counter = {}
+
+        for json_path in all_json_files:
+            nii_path = json_path.replace(".json", ".nii.gz")
+            if not os.path.exists(nii_path):
+                log.debug(f"[BIDS] Skipping: no matching NIfTI for {json_path}")
+                continue
+
+            with open(json_path, "r") as f:
+                metadata = json.load(f)
+
+            modality = metadata.get("Modality", "").upper()
+
+            if modality == "MR":
+                series_desc = metadata.get("ProtocolName", "").lower()
+
+                # Identifica il tipo (suffix BIDS)
+                if "flair" in series_desc:
+                    suffix = "flair"
+                elif "t1" in series_desc:
+                    suffix = "T1w"
+                elif "t2" in series_desc:
+                    suffix = "T2w"
+                else:
+                    suffix = "T1w"  # fallback
+
+                # Contatore run per stesso tipo
+                mr_run_counter.setdefault(suffix, 1)
+                run_label = f"run-{mr_run_counter[suffix]}"
+                mr_run_counter[suffix] += 1
+
+                # Directory anat
+                anat_dir = os.path.join(dest_sub_dir, "anat")
+                os.makedirs(anat_dir, exist_ok=True)
+
+                new_base = f"{sub_id}_{run_label}_{suffix}"
+
+                # Copia file
+                shutil.copy2(nii_path, os.path.join(anat_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(anat_dir, f"{new_base}.json"))
+
+            elif modality == "PT":
+                # --- Ricava il tracciante ---
+                raw_trc = metadata.get("Radiopharmaceutical", "unknown")
+                # estrai la prima parola alfabetica come tracciante
+                trc = re.sub(r'[^a-zA-Z]', '', raw_trc.split()[0]).lower()
+                trc_label = f"trc-{trc}" if trc else "trc-unknown"
+
+                # --- Ricava il task ---
+                raw_task = metadata.get("SeriesDescription", "unknown")
+                task_clean = re.sub(r'[^a-zA-Z0-9]', '', raw_task.lower())
+                task_label = f"task-{task_clean}" if task_clean else "task-unknown"
+
+                # --- Determina se statico o dinamico ---
+                frame_durations = metadata.get("FrameDuration", [])
+                frame_times = metadata.get("FrameReferenceTime", [])
+                if (isinstance(frame_durations, (list, tuple)) and len(frame_durations) > 1) or \
+                        (isinstance(frame_times, (list, tuple)) and len(frame_times) > 1):
+                    acq_label = "rec-acdync"
+                    ses_label = "ses-02"
+                else:
+                    acq_label = "rec-acstat"
+                    ses_label = "ses-01"
+
+                pet_dir = os.path.join(dest_sub_dir, ses_label, "pet")
+                os.makedirs(pet_dir, exist_ok=True)
+
+                run_label = f"run-{pet_run_counter}"
+
+                # Add:
+                # trc_label for the tracer
+                # acq_label for the acquisition type (dynamic or static)
+                new_base = f"{sub_id}_{task_label}_{run_label}_pet"
+
+                shutil.copy2(nii_path, os.path.join(pet_dir, f"{new_base}.nii.gz"))
+                shutil.copy2(json_path, os.path.join(pet_dir, f"{new_base}.json"))
+
+                pet_run_counter += 1
+
+        log.debug(f"[BIDS] Imported {sub_id} in BIDS structure.")
 
     def _is_bids_folder(self, folder_path):
         """
@@ -652,18 +761,26 @@ class ImportThread(QThread):
         Returns:
             bool: True if the folder appears to be BIDS-compatible.
         """
-        for item in os.listdir(folder_path):
-            item_path = os.path.join(folder_path, item)
-            if os.path.isdir(item_path) and item.startswith("sub-"):
-                for subfolder in ["anat", "func", "dwi"]:
-                    anat_path = os.path.join(item_path, subfolder)
-                    if os.path.isdir(anat_path):
-                        for f in os.listdir(anat_path):
-                            if f.endswith((".nii", ".nii.gz")):
-                                log.debug(f"BIDS-like folder detected: {anat_path}")
-                                return True
-        return False
+        base = os.path.basename(folder_path.rstrip(os.sep))
 
+        # Deve chiamarsi sub-*
+        if not base.startswith("sub-"):
+            return False
+
+        # Cerca sottocartelle BIDS standard con file utili
+        for session_or_modality in os.listdir(folder_path):
+            session_path = os.path.join(folder_path, session_or_modality)
+            if os.path.isdir(session_path):
+                for modality in os.listdir(session_path):
+                    modality_path = os.path.join(session_path, modality)
+                    if os.path.isdir(modality_path):
+                        if any(f.endswith(".nii") or f.endswith(".nii.gz") for f in os.listdir(modality_path)):
+                            return True
+                # oppure è una cartella "anat", "func", ecc. direttamente sotto sub-01 (senza ses-*)
+                if any(f.endswith(".nii") or f.endswith(".nii.gz") for f in os.listdir(session_path)):
+                    return True
+
+        return False
 
     def _get_next_sub_id(self):
         """
@@ -675,53 +792,169 @@ class ImportThread(QThread):
         Returns:
             str: The next subject ID, e.g. 'sub-004'.
         """
-        existing_subs = []
-        for name in os.listdir(self.workspace_path):
-            if name.startswith("sub-"):
-                try:
-                    num = int(name.split("-")[1])
-                    existing_subs.append(num)
-                except (IndexError, ValueError):
-                    continue
+        existing = [
+            name for name in os.listdir(self.workspace_path)
+            if os.path.isdir(os.path.join(self.workspace_path, name)) and name.startswith("sub-")
+        ]
+        numbers = sorted([
+            int(name.split("-")[1]) for name in existing
+            if name.split("-")[1].isdigit()
+        ])
+        next_number = numbers[-1] + 1 if numbers else 1
+        return f"sub-{next_number:02d}"
 
-        next_id = max(existing_subs, default=0) + 1
-        sub_name = f"sub-{next_id:03d}"
-        log.debug(f"Next subject ID assigned: {sub_name}")
-        return sub_name
+    def _rename_bids_files(self, destination_folder, old_sub_id, new_sub_id):
+        """
+        Recursively scans a copied BIDS folder and renames the files
+        so that they match the new subject ID.
 
+        Example: sub-03_T1w.nii.gz -> sub-09_T1w.nii.gz
+
+        Args:
+            destination_folder (str): The path to the newly copied subject folder (e.g., /path/to/workspace/sub-09).
+            old_sub_id (str): The original subject ID (e.g., "sub-03").
+            new_sub_id (str): The new subject ID (e.g., "sub-09").
+        """
+        # If the subject IDs are identical, no renaming is necessary
+        if old_sub_id == new_sub_id:
+            log.debug(f"Identical subject ids ({new_sub_id}), no renaming needed.")
+            return
+
+        log.debug(f"File BIDS renamed from {old_sub_id} to {new_sub_id} in {destination_folder}")
+
+        # Recursively scan the entire structure of the new subject’s folder
+        for root, _, files in os.walk(destination_folder):
+            for filename in files:
+                # Stop renaming if a cancellation flag is triggered
+                if self._is_canceled:
+                    return
+
+                # Check if the filename contains the old subject ID
+                if old_sub_id in filename:
+                    try:
+                        # Create the new filename by replacing the old ID with the new one
+                        # Replace only the first occurrence for safety
+                        new_filename = filename.replace(old_sub_id, new_sub_id, 1)
+
+                        old_filepath = os.path.join(root, filename)
+                        new_filepath = os.path.join(root, new_filename)
+
+                        # Perform the actual file rename
+                        os.rename(old_filepath, new_filepath)
+                        log.debug(f"Renamed: {old_filepath} -> {new_filepath}")
+
+                    # Handle OS-level errors (e.g., permission or file access issues)
+                    except OSError as e:
+                        log.warning(f"Failed renaming the file {filename}: {e}")
+                    # Catch any other unexpected errors
+                    except Exception as e:
+                        log.error(f"Unexpected error renaming {filename}: {e}")
 
     def _is_dicom_file(self, file_path):
         """
-        Check whether a file is a DICOM file by reading its magic bytes.
+        Determines whether a given file is a valid DICOM file.
 
-        DICOM files contain the ASCII string "DICM" at byte offset 128.
+        The function attempts to read the file header using `pydicom`.
+        If the file can be parsed as a DICOM dataset (i.e., it contains
+        valid DICOM metadata, including the "DICM" marker at byte offset 128),
+        the function returns True.
 
         Args:
             file_path (str): Path to the file to check.
 
         Returns:
-            bool: True if the file appears to be a valid DICOM file.
+            bool: True if the file is a readable DICOM file, False otherwise.
         """
         try:
-            with open(file_path, "rb") as f:
-                f.seek(128)
-                magic = f.read(4)
-                return magic == b"DICM"
+            dcm = pydicom.dcmread(file_path, stop_before_pixels=True)
+            return True
         except Exception:
             return False
 
 
-    def _is_nifti_file(self, filename):
+    def _is_nifti_file(self, file_path):
         """
-        Check whether a filename indicates a NIfTI file.
+        Check whether a file is a NIfTI file.
 
         Args:
-            filename (str): File name to test.
+            file_path (str): File path to test.
 
         Returns:
             bool: True if the file ends with '.nii' or '.nii.gz'.
         """
-        return filename.endswith((".nii", ".nii.gz"))
+        return file_path.endswith(".nii") or file_path.endswith(".nii.gz")
+
+    def _subfolders_belong_to_single_subject(self, subfolders):
+        """
+        Heuristics: le sottocartelle appartengono allo stesso soggetto se:
+        - c'è al massimo 1 PatientID non vuoto E al massimo 1 PatientName non vuoto, oppure
+        - coincidono (<=1) Name + BirthDate + Sex, oppure
+        - pattern tipico MR+PT (modalità {'MR','PT'}) con BirthDate/Sex coerenti e
+          niente chiari segnali di più soggetti.
+        """
+        import re
+
+        ids = set()
+        names = set()
+        births = set()
+        sexes = set()
+        modalities = set()
+
+        found_any_dicom = False
+
+        for sub in subfolders:
+            first_dcm = None
+            for root, _, files in os.walk(sub):
+                for file in files:
+                    fp = os.path.join(root, file)
+                    if self._is_dicom_file(fp):
+                        first_dcm = fp
+                        break
+                if first_dcm:
+                    break
+
+            if not first_dcm:
+                continue
+
+            found_any_dicom = True
+            try:
+                dcm = pydicom.dcmread(first_dcm, stop_before_pixels=True, force=True)
+            except Exception:
+                continue
+
+            pid = (str(getattr(dcm, 'PatientID', '') or '')).strip().lower()
+            pname = (str(getattr(dcm, 'PatientName', '') or '')).strip().lower()
+            pname = re.sub(r'\\s+', '', pname)  # normalizza spazi
+            bdate = (str(getattr(dcm, 'PatientBirthDate', '') or '')).strip()
+            sex = (str(getattr(dcm, 'PatientSex', '') or '')).strip().upper()
+            mod = (str(getattr(dcm, 'Modality', '') or '')).strip().upper()
+
+            if pid:
+                ids.add(pid)
+            if pname:
+                names.add(pname)
+            if bdate:
+                births.add(bdate)
+            if sex:
+                sexes.add(sex)
+            if mod:
+                modalities.add(mod)
+
+        if not found_any_dicom:
+            return False
+
+        # Casi “forti” di singolo soggetto
+        if len(ids) <= 1 and len(names) <= 1:
+            return True
+        if len(names) <= 1 and len(births) <= 1 and len(sexes) <= 1:
+            return True
+
+        # Heuristica comune: MR+PT per lo stesso paziente ma sistemi diversi → ID discordanti
+        if modalities.issuperset({'MR', 'PT'}) and len(births) <= 1 and len(sexes) <= 1:
+            # Niente anagrafiche in conflitto → un solo soggetto
+            return True
+
+        return False
 
     def cancel(self):
         """
@@ -734,54 +967,8 @@ class ImportThread(QThread):
         while the import thread is still running.
         """
         self._is_canceled = True
-
-        # If there's an external process running (e.g., DICOM conversion), terminate it
-        if hasattr(self, "process") and self.process is not None:
-            try:
-                log.debug("Attempting to terminate running process...")
-                self.process.terminate()
-                self.process.wait(timeout=1)  # Wait briefly for clean shutdown
-                self.process.kill()  # Force kill if still alive
-                log.debug("External process terminated successfully.")
-            except Exception as e:
-                log.warning(f"Failed to terminate subprocess cleanly: {e}")
-
-        log.info("Import process canceled by user.")
-
-
-    def _cleanup_temp_dir(self, temp_dir):
-        """
-        Safely deletes a temporary directory, ignoring common errors.
-
-        Args:
-            temp_dir (str): Path to the temporary directory.
-        """
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            log.debug(f"Temporary directory removed: {temp_dir}")
-        except Exception as e:
-            log.warning(f"Failed to remove temp directory {temp_dir}: {e}")
-
-
-    def _emit_error(self, message):
-        """
-        Emits an error signal with a human-readable message
-        and logs it to the application logger.
-
-        Args:
-            message (str): The error message to show.
-        """
-        log.error(message)
-        self.error.emit(message)
-
-
-    def _emit_progress(self, step):
-        """
-        Utility to update the progress bar safely from within the thread.
-
-        Args:
-            step (int): The progress value (0–100).
-        """
-        self.current_progress = step
-        self.progress.emit(self.current_progress)
-        log.debug(f"Progress updated: {self.current_progress}%")
+        if hasattr(self, 'process') and self.process is not None:
+            self.process.terminate()
+            self.process.wait(1)
+            self.process.kill()
+        log.info("Import Canceled.")

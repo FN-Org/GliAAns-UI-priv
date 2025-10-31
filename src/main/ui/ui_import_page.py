@@ -184,25 +184,19 @@ class ImportPage(Page):
     # ----------------------------
 
     def _handle_import(self, folders_path):
-        """Start background import threads with progress dialogs."""
-        dialog = QProgressDialog(
-            QCoreApplication.translate("ImportPage", "Importing files..."),
-            QCoreApplication.translate("ImportPage", "Cancel"),
-            0, 100, self.context["main_window"]
-        )
-        dialog.setWindowModality(Qt.WindowModality.NonModal)
-        dialog.setMinimumDuration(0)
-        self.progress_dialogs.append(dialog)
+        self.progress_dialogs.append(QProgressDialog(QCoreApplication.translate("ImportFrame", "Importing files..."), QCoreApplication.translate("ImportFrame", "Cancel"),
+                                               0, 100, self.context["main_window"]))
+        self.progress_dialogs[-1].setWindowModality(Qt.WindowModality.NonModal)
+        self.progress_dialogs[-1].setMinimumDuration(0)
 
-        # Start thread for each import
-        thread = ImportThread(self.context, folders_path, self.workspace_path)
-        self.threads.append(thread)
-        thread.finished.connect(self.on_import_finished)
-        thread.error.connect(self.on_import_error)
-        thread.progress.connect(dialog.setValue)
-        thread.start()
+        # Start importing thread
+        self.threads.append(ImportThread(self.context, folders_path, self.workspace_path))
+        self.threads[-1].finished.connect(self.on_import_finished)
+        self.threads[-1].error.connect(self.on_import_error)
+        self.threads[-1].progress.connect(self.progress_dialogs[-1].setValue)
+        self.threads[-1].start()
 
-        dialog.canceled.connect(self.on_import_canceled)
+        self.progress_dialogs[-1].canceled.connect(self.on_import_canceled)
 
     # ----------------------------
     # Thread Callbacks
@@ -227,6 +221,10 @@ class ImportPage(Page):
     def on_import_finished(self):
         """Cleanup after an import finishes successfully."""
         thread = self.sender()
+        if thread not in self.threads:
+            log.warning("Ignored 'finished' signal from an already removed thread.")
+            return
+
         index = self.threads.index(thread)
         self.threads.remove(thread)
         self.progress_dialogs[index].close()
@@ -249,10 +247,10 @@ class ImportPage(Page):
 
     def closeEvent(self, event):
         """Clean up threads and dialogs on application exit."""
-        for dialog in list(self.progress_dialogs):
+        for dialog in self.progress_dialogs:
             dialog.destroy()
             self.progress_dialogs.remove(dialog)
-        for thread in list(self.threads):
+        for thread in self.threads:
             thread.cancel()
             self.threads.remove(thread)
         gc.collect()

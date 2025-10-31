@@ -32,6 +32,7 @@ class FolderCard(QWidget):
 
         self.folder = folder
         self.files = []  # Tracks new files added since the last check
+        self.is_finished = False
         # self.existing_files = set(os.listdir(folder)) if os.path.isdir(folder) else set()
         self.existing_files = self._list_all_files(folder)
 
@@ -144,6 +145,9 @@ class FolderCard(QWidget):
         Args:
             new_files (list[str]): Names of newly detected files.
         """
+        if self.is_finished:
+            return
+
         self.files.extend(new_files)
         file_count = len(self.files)
 
@@ -214,6 +218,8 @@ class FolderCard(QWidget):
         Called after viewing or clearing files.
         """
         self.files.clear()
+        self.is_finished = False  # Resetta lo stato
+        self.existing_files = self._list_all_files(self.folder)
 
         self.status_label.setText(QCoreApplication.translate("Components", "Waiting for files..."))
         self.status_label.setStyleSheet("""
@@ -374,6 +380,9 @@ class FolderCard(QWidget):
         Check if new files have appeared in the monitored folder.
         If new files are found, they are added and the UI is updated.
         """
+        if self.is_finished:
+            return
+
         if not os.path.isdir(self.folder):
             return
 
@@ -396,3 +405,48 @@ class FolderCard(QWidget):
                 relative_path = os.path.relpath(os.path.join(dirpath, f), root_folder)
                 all_files.add(relative_path)
         return all_files
+
+    # Aggiungi questo nuovo metodo a FolderCard
+
+    def set_finished_state(self):
+        """
+        Sets the card to a visual "Completed" state.
+        Performs a final file check and updates the interface.
+        """
+        if self.is_finished:
+            return
+
+        self.is_finished = True
+
+        self.check_new_files()
+
+        file_count = len(self.existing_files)
+
+        self.status_label.setText(
+            QCoreApplication.translate("Components", "Processing complete ({file_count} files)")
+            .format(file_count=file_count)
+        )
+        self.status_label.setStyleSheet("""
+            font-size: 12px;
+            color: #27ae60;
+            font-weight: 600;
+        """)
+
+        self.action_btn.setEnabled(False)
+
+        self.folder_icon.setText("✓")
+        self.folder_icon.setStyleSheet("""
+            font-size: 32px;
+            padding: 8px;
+            background-color: #d5f4e6;
+            border-radius: 8px;
+            color: #27ae60;
+        """)
+
+        self.card_frame.setStyleSheet("""
+            QFrame#outputsCard {
+                background-color: white;
+                border-radius: 12px;
+                border: 2px solid #27ae60;
+            }
+        """)
