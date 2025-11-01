@@ -2,6 +2,7 @@ import os
 import json
 import sys
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
     QTextEdit, QFrame, QHBoxLayout, QScrollArea, QGridLayout,
@@ -126,12 +127,7 @@ class PipelineExecutionPage(Page):
 
         # Header
         self.header = QLabel("Pipeline Execution")
-        self.header.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        """)
+        self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.header)
 

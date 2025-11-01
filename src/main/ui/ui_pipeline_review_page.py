@@ -2,6 +2,7 @@ import json
 import os
 import glob
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt, QCoreApplication
 
@@ -137,11 +138,7 @@ class PipelineReviewPage(Page):
         # ── Header ──────────────────────────────
         self.header = QLabel("Pipeline Configuration Review")
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.header.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            margin: 6px 0;
-        """)
+        self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(self.header)
 
         # ── Config file info ─────────────────────

@@ -1,4 +1,4 @@
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout, QHBoxLayout,
     QMessageBox, QGroupBox, QListWidget, QDialog, QLineEdit, QDialogButtonBox, QListWidgetItem
@@ -50,7 +50,7 @@ class DlNiftiSelectionPage(Page):
 
         # Title label
         self.title = QLabel("Select NIfTI files for Deep Learning Segmentation")
-        self.title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.title)
 
