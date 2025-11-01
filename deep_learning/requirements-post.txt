@@ -1,9 +1,0 @@
-numpy
-nibabel
-matplotlib
-antspyx
-pandas
-scikit-image
-scikit-learn
-seaborn
-nuitka
