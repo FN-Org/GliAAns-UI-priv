@@ -24,7 +24,7 @@ try:
                                  QListWidget, QDialogButtonBox, QListWidgetItem, QGroupBox)
     from PyQt6.QtCore import Qt, QPointF, QTimer, QThread, pyqtSignal, QSize, QCoreApplication, QRectF
     from PyQt6.QtGui import (QPixmap, QImage, QPainter, QColor, QPen, QPalette,
-                             QBrush, QResizeEvent, QMouseEvent, QTransform)
+                             QBrush, QResizeEvent, QMouseEvent, QTransform, QFont)
     from matplotlib.figure import Figure
 
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -75,7 +75,6 @@ def compute_mask_numba_mm(img, x0, y0, z0, radius_mm, voxel_sizes,
                 dy_mm = (y - y0) * vy
                 dz_mm = (z - z0) * vz
                 if dx_mm * dx_mm + dy_mm * dy_mm + dz_mm * dz_mm <= r2:
-                    val = img[x, y, z]
                     if abs(img[x, y, z] - seed_intensity) <= diff:
                         mask[x, y, z] = 1
     return mask
@@ -111,6 +110,21 @@ def apply_overlay_numba(rgba_image, overlay_mask, overlay_intensity, overlay_col
     return rgba_image
 
 
+def _slice(data, plane_idx, slice_idx):
+    slice = None
+    if plane_idx == 0:
+        slice = data[:, :, slice_idx].T
+        slice = np.flipud(slice)
+    elif plane_idx == 1:
+        slice = data[:, slice_idx, :].T
+        slice = np.flipud(slice)
+    elif plane_idx == 2:
+        slice = data[slice_idx, :, :].T
+        slice = np.flipud(slice)
+    else:
+        log.warning(f"Invalid plane_idx {plane_idx}")
+    return slice
+
 class NiftiViewer(QMainWindow):
     """
     Main application window for viewing and interacting with NIfTI images.
@@ -143,7 +157,6 @@ class NiftiViewer(QMainWindow):
             context (dict, optional): Shared context for language translation and inter-component signaling.
         """
         super().__init__()
-
 
         self.threads = []
         self.context = context
@@ -233,6 +246,12 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_seed_coordinates = None
         self.ROI_save_btn = None
         self.automaticROI_overlay = None
+
+        self.incrementalROI_data = None
+        self.incrementalROI_checkbox = None
+        self.incrementalROI_enabled = False
+        self.addOrigin_btn = None
+        self.cancelROI_btn = None
 
         # === Initialize and connect the UI ===
         self.init_ui()
@@ -528,19 +547,19 @@ class NiftiViewer(QMainWindow):
         automaticROIbtns_layout.setContentsMargins(0, 0, 0, 0)
         automaticROIbtns_layout.setSpacing(3)
 
-        self.automaticROIbtn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Auto ROI"))
+        self.automaticROIbtn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI"))
         self.automaticROIbtn.setEnabled(False)
         self.automaticROIbtn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.automaticROIbtn.setMaximumHeight(30)
         self.automaticROIbtn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI Drawing"))
         automaticROIbtns_layout.addWidget(self.automaticROIbtn)
 
-        self.ROI_save_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI"))
-        self.ROI_save_btn.setEnabled(False)
-        self.ROI_save_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.ROI_save_btn.setMaximumHeight(30)
-        self.ROI_save_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI Drawing"))
-        automaticROIbtns_layout.addWidget(self.ROI_save_btn)
+        self.addOrigin_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Fix ROI and add new Origin"))
+        self.addOrigin_btn.setEnabled(False)
+        self.addOrigin_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.addOrigin_btn.setMaximumHeight(30)
+        self.addOrigin_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Increment the current incremental ROI with the current ROI drawing"))
+        automaticROIbtns_layout.addWidget(self.addOrigin_btn)
 
         automaticROIbtns_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_layout.addWidget(automaticROIbtns_group)
@@ -550,6 +569,13 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_checkbox.setEnabled(False)
         self.automaticROI_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_layout.addWidget(self.automaticROI_checkbox)
+
+        # Incremental ROI checkbox
+        self.incrementalROI_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Show incremental ROI"))
+        self.incrementalROI_checkbox.setEnabled(False)
+        self.incrementalROI_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_layout.addWidget(self.incrementalROI_checkbox)
+
 
         self.automaticROI_sliders_group = QFrame()
         automaticROI_sliders_layout = QVBoxLayout(self.automaticROI_sliders_group)
@@ -620,6 +646,45 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_sliders_group.setVisible(False)
         self.automaticROI_sliders_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         automaticROI_layout.addWidget(self.automaticROI_sliders_group)
+
+        automaticROI_bottom_btns_group = QFrame()
+        automaticROIb_bottom_btns_layout = QVBoxLayout(automaticROI_bottom_btns_group)  # Cambiato a verticale
+        automaticROIb_bottom_btns_layout.setContentsMargins(0, 0, 0, 0)
+        automaticROIb_bottom_btns_layout.setSpacing(3)
+
+
+        self.ROI_save_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI"))
+        self.ROI_save_btn.setStyleSheet("""
+                    QPushButton {
+                    font-weight: bold;
+                    color:#27ae60 }
+                    QPushButton:disabled {
+                    color:none;
+                    font-weight: normal
+                    }""")
+        self.ROI_save_btn.setEnabled(False)
+        self.ROI_save_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.ROI_save_btn.setMaximumHeight(30)
+        self.ROI_save_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Save ROI Drawing"))
+        automaticROIb_bottom_btns_layout.addWidget(self.ROI_save_btn)
+
+
+        self.cancelROI_btn = QPushButton(QtCore.QCoreApplication.translate("NIfTIViewer", "Cancel ROI"))
+        self.cancelROI_btn.setEnabled(False)
+        self.cancelROI_btn.setStyleSheet("""
+                            QPushButton {
+                            font-weight: bold;
+                            color:#c0392b }
+                            QPushButton:disabled {
+                            color:none;
+                            font-weight: normal
+                            }""")
+        self.cancelROI_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.cancelROI_btn.setMaximumHeight(30)
+        self.cancelROI_btn.setToolTip(QtCore.QCoreApplication.translate("NIfTIViewer", "Cancel ROI Drawing"))
+        automaticROIb_bottom_btns_layout.addWidget(self.cancelROI_btn)
+
+        automaticROI_layout.addWidget(automaticROI_bottom_btns_group)
 
         layout.addWidget(self.automaticROI_group)
 
@@ -985,6 +1050,9 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_radius_slider.valueChanged.connect(self.update_automaticROI)
         self.ROI_save_btn.clicked.connect(self.ROI_save)
         self.automaticROI_checkbox.toggled.connect(self.toggle_automaticROI)
+        self.addOrigin_btn.clicked.connect(self.addOrigin_clicked)
+        self.incrementalROI_checkbox.toggled.connect(self.toggle_incrementalROI)
+        self.cancelROI_btn.clicked.connect(self.resetROI)
         # ----------------------------
         # Time-series control connections (for 4D images)
         # ----------------------------
@@ -1227,7 +1295,8 @@ class NiftiViewer(QMainWindow):
 
             # Enable ROI controls
             self.automaticROIbtn.setEnabled(True)
-            self.automaticROIbtn.setText("Automatic ROI")
+
+            self.automaticROIbtn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI"))
 
             # Update information panel
             self.file_info_label.setText(info_text)
@@ -1347,10 +1416,11 @@ class NiftiViewer(QMainWindow):
         self.overlay_enabled = enabled
 
         # Enable or disable overlay-related UI controls
-        self.overlay_alpha_slider.setEnabled(enabled or self.automaticROI_overlay)
-        self.overlay_alpha_spin.setEnabled(enabled or self.automaticROI_overlay)
-        self.overlay_threshold_slider.setEnabled(enabled or self.automaticROI_overlay)
-        self.overlay_threshold_spin.setEnabled(enabled or self.automaticROI_overlay)
+        self.overlay_alpha_slider.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
+        self.overlay_alpha_spin.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
+        self.overlay_threshold_slider.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
+        self.overlay_threshold_spin.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
+        self.ROI_save_btn.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
 
         # Redraw display if overlay data is available
         self.update_all_displays()
@@ -1705,41 +1775,26 @@ class NiftiViewer(QMainWindow):
                 log.error("Plane index out of range")
                 return  # Invalid plane index
 
-            # Prepare overlay if available and enabled
-            overlay_slice = None
-            if self.overlay_enabled and self.overlay_data is not None:
-                if plane_idx == 0:
-                    overlay_slice = self.overlay_data[:, :, slice_idx].T
-                    overlay_slice = np.flipud(overlay_slice)
-                elif plane_idx == 1:
-                    overlay_slice = self.overlay_data[:, slice_idx, :].T
-                    overlay_slice = np.flipud(overlay_slice)
-                elif plane_idx == 2:
-                    overlay_slice = self.overlay_data[slice_idx, :, :].T
-                    overlay_slice = np.flipud(overlay_slice)
+            automaticROI_slice = _slice(self.automaticROI_data, plane_idx, slice_idx) if self.automaticROI_overlay and self.automaticROI_data is not None else None
 
-            # Prepare automatic ROI overlay if available and enabled
-            automaticROI_slice = None
-            if self.automaticROI_overlay and self.automaticROI_data is not None:
-                if plane_idx == 0:
-                    automaticROI_slice = self.automaticROI_data[:, :, slice_idx].T
-                    automaticROI_slice = np.flipud(automaticROI_slice)
-                elif plane_idx == 1:
-                    automaticROI_slice = self.automaticROI_data[:, slice_idx, :].T
-                    automaticROI_slice = np.flipud(automaticROI_slice)
-                elif plane_idx == 2:
-                    automaticROI_slice = self.automaticROI_data[slice_idx, :, :].T
-                    automaticROI_slice = np.flipud(automaticROI_slice)
+            # Prepare overlay if available and enabled
+            overlay_slice = _slice(self.overlay_data,plane_idx, slice_idx)  if self.overlay_enabled and self.overlay_data is not None else None
+
+            incrementalROI_slice = _slice(self.incrementalROI_data,plane_idx, slice_idx) if self.incrementalROI_enabled and self.incrementalROI_data is not None else None
+
             # Prepare RGBA composite for display
             height, width = slice_data.shape
             rgba_image = self.apply_colormap_matplotlib(slice_data, self.colormap)
 
-            # Add overlay layer if active
-            if self.overlay_enabled and overlay_slice is not None:
-                rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
-            # Add automatic ROI layer if active
-            if self.automaticROI_overlay and self.overlay_data is not None:
+            if automaticROI_slice is not None:
                 rgba_image = self.create_overlay_composite(rgba_image, automaticROI_slice, self.colormap)
+
+            if overlay_slice is not None:
+                rgba_image = self.create_overlay_composite(rgba_image, overlay_slice, self.colormap)
+
+            if incrementalROI_slice is not None:
+                rgba_image = self.create_overlay_composite(rgba_image, incrementalROI_slice, self.colormap)
+
             # Convert RGBA data to 8-bit format for QImage
             rgba_data_uint8 = (rgba_image * 255).astype(np.uint8)
             qimage = QImage(rgba_data_uint8.data, width, height, width * 4, QImage.Format.Format_RGBA8888)
@@ -1969,7 +2024,7 @@ class NiftiViewer(QMainWindow):
 
     def update_automaticROI(self):
         """Update the automatic ROI overlay dynamically when parameters change"""
-        if self.overlay_enabled and self.automaticROI_overlay:
+        if self.automaticROI_overlay:
             self.automaticROI_drawing()
             self.update_all_displays()
 
@@ -1998,22 +2053,19 @@ class NiftiViewer(QMainWindow):
         # Show and enable ROI parameter controls
         self.automaticROI_sliders_group.setVisible(True)
         self.automaticROI_sliders_group.setEnabled(True)
-        self.automaticROIbtn.setText("Reset Origin")
+        self.automaticROIbtn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Reset Origin"))
         self.automaticROI_overlay = True
         self.ROI_save_btn.setEnabled(True)
+        self.addOrigin_btn.setEnabled(True)
+        self.cancelROI_btn.setEnabled(True)
 
         # Generate initial automatic ROI mask
         self.automaticROI_drawing()
 
-        # Update overlay info label
-        self.overlay_info_label.setText(
-            f"Overlay:" + QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI Drawing")
-        )
-
         self.automaticROI_checkbox.setChecked(True)
         self.automaticROI_checkbox.setEnabled(True)
         # Ensure overlay display is active
-        self.toggle_overlay(True)
+        self.toggle_automaticROI(True)
         #self.overlay_checkbox.setChecked(True)
         #self.overlay_checkbox.setEnabled(True)
 
@@ -2036,16 +2088,18 @@ class NiftiViewer(QMainWindow):
             None
         """
 
-
+        self.automaticROI_checkbox.setChecked(enabled)
         # Update internal overlay state
         self.automaticROI_overlay = enabled
         # Enable or disable overlay-related UI controls
-        self.overlay_alpha_slider.setEnabled(enabled or self.overlay_enabled)
-        self.overlay_alpha_spin.setEnabled(enabled or self.overlay_enabled)
-        self.overlay_threshold_slider.setEnabled(enabled or self.overlay_enabled)
-        self.overlay_threshold_spin.setEnabled(enabled or self.overlay_enabled)
+        self.overlay_alpha_slider.setEnabled(enabled or self.overlay_enabled or self.incrementalROI_enabled)
+        self.overlay_alpha_spin.setEnabled(enabled or self.overlay_enabled or self.incrementalROI_enabled)
+        self.overlay_threshold_slider.setEnabled(enabled or self.overlay_enabled or self.incrementalROI_enabled)
+        self.overlay_threshold_spin.setEnabled(enabled or self.overlay_enabled or self.incrementalROI_enabled)
+        self.ROI_save_btn.setEnabled(enabled or self.overlay_enabled or self.incrementalROI_enabled)
 
-
+        self.automaticROI_sliders_group.setEnabled(enabled)
+        self.automaticROIbtn.setEnabled(enabled)
         # Redraw display if overlay data is available
         self.update_all_displays()
 
@@ -2073,8 +2127,6 @@ class NiftiViewer(QMainWindow):
         x_min, x_max = max(0, x0 - rx_vox), min(img_data.shape[0], x0 + rx_vox + 1)
         y_min, y_max = max(0, y0 - ry_vox), min(img_data.shape[1], y0 + ry_vox + 1)
         z_min, z_max = max(0, z0 - rz_vox), min(img_data.shape[2], z0 + rz_vox + 1)
-
-        val = self.img_data[x0, y0, z0]
 
         # Compute ROI mask using parallelized Numba function
         mask = compute_mask_numba_mm(img_data, x0, y0, z0,
@@ -2171,16 +2223,13 @@ class NiftiViewer(QMainWindow):
         full_save_path = os.path.join(save_dir, new_name)
         json_save_path = os.path.join(save_dir, f"{new_base}.json")
 
-        total_ROI = None
-        if self.automaticROI_data is not None and self.automaticROI_overlay and self.overlay_data is not None and self.overlay_enabled:
-            total_ROI = np.logical_or(self.automaticROI_data, self.overlay_data).astype(np.uint8)
-        elif self.automaticROI_data is not None and self.automaticROI_overlay:
-            total_ROI = self.automaticROI_data
-        elif self.overlay_data is not None and self.overlay_enabled:
-            total_ROI = self.overlay_data
-        else:
-            log.warning("No ROI selected")
-            return
+        total_ROI = np.zeros(self.dims)
+        if self.overlay_data is not None and self.overlay_enabled:
+            total_ROI = np.logical_or(self.overlay_data, total_ROI).astype(np.uint8)
+        if self.automaticROI_data is not None and self.automaticROI_overlay:
+            total_ROI = np.logical_or(self.automaticROI_data, total_ROI).astype(np.uint8)
+        if self.incrementalROI_data is not None and self.incrementalROI_enabled:
+            total_ROI = np.logical_or(self.incrementalROI_data,total_ROI).astype(np.uint8)
 
 
         # Start threaded save operation
@@ -2206,6 +2255,36 @@ class NiftiViewer(QMainWindow):
             f"Error when saving: {error}"
         )
         log.critical(f"Error when saving ROI: {error}")
+
+    def addOrigin_clicked(self):
+        self.incrementalROI_data = self.incrementalROI_data if self.incrementalROI_data is not None else np.zeros(self.dims)
+
+        if self.automaticROI_overlay and self.automaticROI_data is not None:
+            self.incrementalROI_data = np.logical_or(self.incrementalROI_data, self.automaticROI_data).astype(np.uint8)
+
+        #if self.overlay_enabled and self.overlay_data is not None:
+        #    self.incrementalROI_data = np.logical_or(self.incrementalROI_data, self.overlay_data).astype(np.uint8)
+
+        self.incrementalROI_checkbox.setEnabled(True)
+        self.toggle_incrementalROI(True)
+
+    def toggle_incrementalROI(self,enabled):
+
+        self.incrementalROI_enabled = enabled
+        self.incrementalROI_checkbox.setChecked(enabled)
+
+        # Enable or disable overlay-related UI controls
+        self.overlay_alpha_slider.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
+        self.overlay_alpha_spin.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
+        self.overlay_threshold_slider.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
+        self.overlay_threshold_spin.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
+        self.ROI_save_btn.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
+
+        # Redraw display if overlay data is available
+        self.update_all_displays()
+
+        # Update time series plot if available
+        self.update_time_series_plot()
 
     def closeEvent(self, event):
         """Clean up on application exit"""
@@ -2252,6 +2331,30 @@ class NiftiViewer(QMainWindow):
             f"Overlay:\n" +
             QtCore.QCoreApplication.translate("NIfTIViewer", "Dimensions")
         )
+
+    def resetROI(self):
+        """Reset all ROI-related UI elements and internal variables."""
+        self.ROI_save_btn.setEnabled(False)
+        self.cancelROI_btn.setEnabled(False)
+        self.addOrigin_btn.setEnabled(False)
+
+        self.toggle_incrementalROI(False)
+        self.incrementalROI_checkbox.setEnabled(False)
+
+        self.toggle_automaticROI(False)
+        self.automaticROI_checkbox.setEnabled(False)
+
+        self.incrementalROI_data = None
+        self.automaticROI_data = None
+
+        self.automaticROI_sliders_group.setVisible(False)
+        self.automaticROI_sliders_group.setEnabled(False)
+
+        self.automaticROIbtn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI"))
+
+        self.automaticROIbtn.setEnabled(True)
+
+
 
     def pad_volume_to_shape(self, volume, target_shape, constant_value=0):
         """
