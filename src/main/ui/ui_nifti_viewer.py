@@ -1309,6 +1309,7 @@ class NiftiViewer(QMainWindow):
             self.initialize_display()
 
             self.resetROI()
+            self.reset_overlay()
 
     def on_load_error(self, error_message):
         """
