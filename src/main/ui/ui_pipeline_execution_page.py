@@ -254,7 +254,6 @@ class PipelineExecutionPage(Page):
         self.stop_button.setEnabled(True)
         self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Starting pipeline execution..."))
 
-
         cmd = [
             self.pipeline_bin_path,
             "--config", self.config_path,
