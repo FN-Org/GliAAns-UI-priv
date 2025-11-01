@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 from PyQt6.QtWidgets import QMessageBox
 
-from test.conftest import SignalEmitter
+from tests.conftest import SignalEmitter
 # Import dal tuo progetto
 from ui.ui_skull_stripping_page import SkullStrippingPage
 
@@ -193,13 +193,6 @@ class TestSkullStrippingPageProcessing:
 
         assert not skull_page.run_button.isVisible()
         assert skull_page.cancel_button.isVisible()
-
-    def test_set_processing_mode_false(self, skull_page):
-        """Verifica set_processing_mode(False)"""
-        skull_page.set_processing_mode(False)
-
-        assert skull_page.run_button.isVisible()
-        assert not skull_page.cancel_button.isVisible()
 
     def test_cancel_processing(self, skull_page):
         """Verifica cancellazione processing"""

@@ -3,20 +3,10 @@
 # -------------------------
 VENV_DIR          = .venv
 PIPELINE_DIR      = pediatric_fdopa_pipeline
-DL_DIR 			  = deep_learning
 REQUIREMENTS      = requirements.txt
 PIPELINE_DIST     = pipeline_runner.dist
 PIPELINE_NO_DIST  = pipeline_runner
-COREGISTRATION_DIST = $(COREGISTRATION_EXE).dist
-COREGISTRATION_NO_DIST = coregistration
-REORIENTATION_DIST  = $(REORIENTATION_EXE).dist
-REORIENTATION_NO_DIST = reorientation
-PREPROCESS_DIST     = $(PREPROCESS_EXE).dist
-PREPROCESS_NO_DIST = preprocess
-DEEP_LEARNING_DIST  = $(DEEP_LEARNING_EXE).dist
-DEEP_LEARNING_NO_DIST = deep_learning_runner
-POSTPROCESS_DIST    = $(POSTPROCESS_EXE).dist
-POSTPROCESS_NO_DIST = postprocess
+DOC_DIR			  = docs
 
 # -------------------------
 # Rilevamento OS
@@ -35,7 +25,7 @@ ifeq ($(OS),Windows_NT)
     PIPELINE_EXE 	   = pipeline_runner.exe
     ICON               = resources\GliAAns-logo.ico
     ICON_FLAG          = --windows-icon-from-ico=$(ICON)
-    PIPELINE_ATLAS     = $(PIPELINE_DIR)\atlas
+    ATLAS              = $(PIPELINE_DIR)\atlas
     HD_BET             = $(VENV_DIR)\Scripts\hd-bet.exe
     DCM2NIIX           = $(VENV_DIR)\Scripts\dcm2niix.exe
 else
@@ -59,43 +49,9 @@ else
     PIPELINE_RUNNER    = $(PIPELINE_DIR)/pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)/$(REQUIREMENTS)
     PIPELINE_EXE 	   = pipeline_runner
-    PIPELINE_ATLAS     = $(PIPELINE_DIR)/atlas
+    ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
-    NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
-    COREG_VENV_DIR  	= $(DL_DIR)/.venv-coreg
-    COREG_PIP       	= $(COREG_VENV_DIR)/bin/pip
-    COREG_PYTHON    	= $(COREG_VENV_DIR)/bin/python
-    COREG_REQUIREMENTS  = $(DL_DIR)/requirements-coreg.txt
-    COREGISTRATION	   	= $(DL_DIR)/coregistration.py
-    COREGISTRATION_EXE 	= coregistration
-    DL_ATLAS			= $(DL_DIR)/atlas
-    REOR_VENV_DIR  		= $(DL_DIR)/.venv-reorient
-    REOR_PIP       		= $(REOR_VENV_DIR)/bin/pip
-    REOR_PYTHON    		= $(REOR_VENV_DIR)/bin/python
-    REOR_REQUIREMENTS   = $(DL_DIR)/requirements-reorient.txt
-    REORIENTATION	   = $(DL_DIR)/reorientation.py
-    REORIENTATION_EXE  = reorientation
-    PRE_VENV_DIR  		= $(DL_DIR)/.venv-pre
-    PRE_PIP       		= $(PRE_VENV_DIR)/bin/pip
-    PRE_PYTHON    		= $(PRE_VENV_DIR)/bin/python
-    PRE_REQUIREMENTS   = $(DL_DIR)/requirements-pre.txt
-    PREPROCESS	   	   = $(DL_DIR)/preprocess.py
-    PREPROCESS_EXE     = preprocess
-    DL_VENV_DIR  		= $(DL_DIR)/.venv-dl
-    DL_PIP       		= $(DL_VENV_DIR)/bin/pip
-    DL_PYTHON    		= $(DL_VENV_DIR)/bin/python
-    DL_REQUIREMENTS   	= $(DL_DIR)/requirements.txt
-    DEEP_LEARNING	   = $(DL_DIR)/deep_learning_runner.py
-    DEEP_LEARNING_EXE  = deep_learning_runner
-    CHECKPOINTS		   = $(DL_DIR)/checkpoints
-    POST_VENV_DIR  		= $(DL_DIR)/.venv-post
-    POST_PIP       		= $(POST_VENV_DIR)/bin/pip
-    POST_PYTHON    		= $(POST_VENV_DIR)/bin/python
-    POST_REQUIREMENTS   = $(DL_DIR)/requirements-post.txt
-    POSTPROCESS	       = $(DL_DIR)/postprocess.py
-    POSTPROCESS_EXE    = postprocess
-    POSTPROCESS_ATLAS  = $(DL_DIR)/atlas
 endif
 
 # -------------------------
@@ -106,21 +62,6 @@ $(VENV_DIR):
 
 $(PIPELINE_VENV_DIR):
 	$(PYTHON) -m venv $(PIPELINE_VENV_DIR)
-
-#$(COREG_VENV_DIR):
-#	$(PYTHON) -m venv $(COREG_VENV_DIR)
-#
-#$(REOR_VENV_DIR):
-#	$(PYTHON) -m venv $(REOR_VENV_DIR)
-#
-#$(PRE_VENV_DIR):
-#	$(PYTHON) -m venv $(PRE_VENV_DIR)
-
-$(DL_VENV_DIR):
-	$(PYTHON) -m venv $(DL_VENV_DIR)
-
-#$(POST_VENV_DIR):
-#	$(PYTHON) -m venv $(POST_VENV_DIR)
 
 # -------------------------
 # Installazione pacchetti
@@ -133,14 +74,6 @@ main_python-setup: $(VENV_DIR)
 pipeline_python-setup: $(PIPELINE_VENV_DIR)
 	$(PIPELINE_PIP) install -r $(PIPELINE_REQUIREMENTS)
 
-.PHONY: dl_python-setup
-dl_python-setup: $(DL_VENV_DIR)
-#	$(COREG_PIP) install -r $(COREG_REQUIREMENTS)
-#	$(REOR_PIP) install -r $(REOR_REQUIREMENTS)
-#	$(PRE_PIP) install -r $(PRE_REQUIREMENTS)
-	$(DL_PIP) install -r $(DL_REQUIREMENTS)
-#	$(POST_PIP) install -r $(POST_REQUIREMENTS)
-
 .PHONY: setup-all
 setup-all: main_python-setup pipeline_python-setup
 
@@ -150,11 +83,20 @@ setup-all: main_python-setup pipeline_python-setup
 $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	$(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
 	    --standalone \
-	    --follow-imports \
 	    --remove-output \
-	    --include-data-dir=$(PIPELINE_ATLAS)=atlas \
+	    --nofollow-import-to=unittest \
+	    --nofollow-import-to=test \
+	    --nofollow-import-to=tkinter \
+	    --enable-plugin=no-qt
+	    --nofollow-import-to=distutils \
+	    --lto=yes \
+	    --python-flag=-OO \
+	    --include-data-dir=$(ATLAS)=atlas \
 	    $(ICON_FLAG) \
-	    --output-filename=$(PIPELINE_EXE)
+	    --output-filename=$(PIPELINE_EXE) \
+	    --show-progress \
+	    --show-modules
+
 
 $(PIPELINE_NO_DIST):$(PIPELINE_DIST)
 ifeq ($(OS),Windows_NT)
@@ -164,81 +106,6 @@ else
 endif
 
 # -------------------------
-# Compilazione coregistration con Nuitka
-# -------------------------
-$(COREGISTRATION_NO_DIST): $(DL_VENV_DIR)
-	rm -rf $(COREGISTRATION_NO_DIST)
-	mkdir $(COREGISTRATION_NO_DIST)
-	$(COREG_PYTHON) -OO -m PyInstaller \
-		--noconfirm \
-		--add-data "$(DL_ATLAS)$(SEP)atlas" \
-		--onefile $(COREGISTRATION)
-
-.PHONY: nuitka-coreg
-nuitka-coreg: $(COREGISTRATION_NO_DIST)
-
-# -------------------------
-# Compilazione reorientation con Nuitka
-# -------------------------
-$(REORIENTATION_NO_DIST): $(DL_VENV_DIR)
-	rm -rf $(REORIENTATION_NO_DIST)
-	mkdir $(REORIENTATION_NO_DIST)
-	$(REOR_PYTHON) -OO -m PyInstaller \
-		--noconfirm \
-		--add-data "$(DL_ATLAS)$(SEP)atlas" \
-		--onefile $(REORIENTATION)
-
-.PHONY: nuitka-reor
-nuitka-reor: $(REORIENTATION_NO_DIST)
-
-# -------------------------
-# Compilazione preprocess con Nuitka
-# -------------------------
-$(PREPROCESS_NO_DIST): $(DL_VENV_DIR)
-	rm -rf $(PREPROCESS_NO_DIST)
-	mkdir $(PREPROCESS_NO_DIST)
-	$(PRE_PYTHON) -m PyInstaller \
-		--clean \
-		--noconfirm \
-		--onedir $(PREPROCESS)
-
-.PHONY: nuitka-pre
-nuitka-pre: $(PREPROCESS_NO_DIST)
-
-# -------------------------
-# Compilazione deep learning con Nuitka
-# -------------------------
-$(DEEP_LEARNING_DIST): $(DL_VENV_DIR)
-	$(DL_PYTHON) -m nuitka $(DEEP_LEARNING) \
-	    --standalone \
-	    --follow-imports \
-	    --remove-output \
-	    --include-data-dir=$(CHECKPOINTS)=checkpoints \
-	    $(ICON_FLAG) \
-	    --output-filename=$(DEEP_LEARNING_EXE)
-
-$(DEEP_LEARNING_NO_DIST):$(DEEP_LEARNING_DIST)
-	mv $(DEEP_LEARNING_DIST) $(DEEP_LEARNING_NO_DIST)
-
-.PHONY: nuitka-dl
-nuitka-dl: $(DEEP_LEARNING_DIST)
-
-# -------------------------
-# Compilazione postprocess con Nuitka
-# -------------------------
-$(POSTPROCESS_NO_DIST): $(DL_VENV_DIR)
-	rm -rf $(POSTPROCESS_NO_DIST)
-	mkdir $(POSTPROCESS_NO_DIST)
-	$(POST_PYTHON) -m nuitka $(POSTPROCESS) \
-	    --standalone \
-	    --onefile \
-	    --follow-imports \
-	    --remove-output \
-	    --include-data-dir=$(POSTPROCESS_ATLAS)=atlas \
-	    $(ICON_FLAG) \
-	    --output-filename=$(POSTPROCESS_NO_DIST)/$(POSTPROCESS_EXE)
-
-# -------------------------
 # Compilazione app con PyInstaller
 # -------------------------
 .PHONY: compile-app
@@ -246,13 +113,14 @@ compile-app: $(VENV_DIR)
 	$(MAIN_PYTHON) -OO -m PyInstaller \
 		--clean \
 	    --onedir \
+	    --noconsole \
 	    --icon=$(ICON) \
 	    --add-data "resources$(SEP)resources" \
 	    --add-data "translations$(SEP)translations" \
 	    --add-data "$(PIPELINE_NO_DIST)$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
-	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
+	    --exclude-module test \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
@@ -266,14 +134,11 @@ all: setup-all app
 .PHONY: app
 app: $(PIPELINE_NO_DIST) compile-app
 
-.PHONY: compile-dl
-compile-dl: $(COREGISTRATION_NO_DIST) $(REORIENTATION_NO_DIST) $(PREPROCESS_NO_DIST) $(DEEP_LEARNING_NO_DIST) $(POSTPROCESS_NO_DIST)
-
 # -------------------------
 # Pulizia cross-platform
 # -------------------------
 .PHONY: clean
-clean: clean-pipeline clean-dl
+clean: clean-pipeline
 ifeq ($(OS),Windows_NT)
 	if exist "$(VENV_DIR)" rmdir /S /Q "$(VENV_DIR)"
 	if exist "$(PIPELINE_VENV_DIR)" rmdir /S /Q "$(PIPELINE_VENV_DIR)"
@@ -281,7 +146,7 @@ ifeq ($(OS),Windows_NT)
 	if exist "dist" rmdir /S /Q "dist"
 	if exist "*.spec" del /Q *.spec
 else
-	rm -rf $(VENV_DIR) $(PIPELINE_VENV_DIR) $(DL_VENV_DIR) build dist *.spec
+	rm -rf $(VENV_DIR) $(PIPELINE_VENV_DIR) build dist *.spec
 endif
 
 .PHONY: clean-pipeline
@@ -293,6 +158,12 @@ else
 	rm -rf $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
 endif
 
-.PHONY: clean-dl
-clean-dl:
-	rm -rf $(COREGISTRATION_DIST) $(REORIENTATION_DIST) $(PREPROCESS_DIST) $(DEEP_LEARNING_DIST) $(POSTPROCESS_DIST) $(COREGISTRATION_NO_DIST) $(REORIENTATION_NO_DIST) $(PREPROCESS_NO_DIST) $(DEEP_LEARNING_NO_DIST) $(POSTPROCESS_NO_DIST)
+.PHONY: doc
+doc:
+ifeq ($(OS),Windows_NT)
+	if exist "$(DOC_DIR)" rmdir /S /Q "$(DOC_DIR)"
+	pdoc -o $(DOC_DIR) --logo $(abspath resources\GliAAns-logo.png) --template-dir pdoc_template .\main.py .\controller.py .\utils.py .\logger.py .\ui .\threads .\components
+else
+	rm -rf $(DOC_DIR)
+	pdoc -o $(DOC_DIR) --logo $(abspath resources/GliAAns-logo.png) --template-dir pdoc_template ./main.py ./controller.py ./utils.py ./logger.py ./ui ./threads ./components
+endif

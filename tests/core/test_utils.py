@@ -80,7 +80,7 @@ class TestGetBinPath:
             with pytest.raises(FileNotFoundError) as exc_info:
                 utils.get_bin_path("nonexistent_tool")
 
-            assert "Impossibile trovare" in str(exc_info.value)
+            assert "Impossibile trovare" in str(exc_info.value) or "Could not find" in str(exc_info.value)
 
     @patch('platform.system', return_value='Windows')
     def test_get_bin_path_windows(self, mock_system, temp_bin_dir):
@@ -297,7 +297,7 @@ class TestSetupFSLEnv:
         with pytest.raises(RuntimeError) as exc_info:
             utils.setup_fsl_env()
 
-        assert "Impossibile leggere" in str(exc_info.value)
+        assert "Impossibile leggere" in str(exc_info.value) or "Could not read" in str(exc_info.value)
 
     @patch('subprocess.run')
     def test_setup_fsl_env_empty_output(self, mock_run):

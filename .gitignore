@@ -22,12 +22,6 @@ nuitka-crash-report.xml
 /pediatric_fdopa_pipeline/.venv
 /ui/__pycache__
 /test/.venv
-/coregistration
-/deep_learning/.venv
-/deep_learning_runner
-/postprocess
-/preprocess
-/reorientation
 /.venv-wsl
 /src/main/.venv
 /src/main/build
@@ -35,3 +29,5 @@ nuitka-crash-report.xml
 /src/main/pediatric_fdopa_pipeline/.venv
 /src/main/pipeline_runner
 /src/tests/.venv
+/docs
+.coverage
