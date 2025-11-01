@@ -3,14 +3,15 @@ import os
 import glob
 
 from PyQt6 import QtGui
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea,
                              QFrame, QGridLayout, QHBoxLayout, QSizePolicy)
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ..ui.ui_pipeline_review_page import PipelineReviewPage
-from ..utils import resource_path
-from ..page import Page
-from ..logger import get_logger
+from ui.ui_pipeline_review_page import PipelineReviewPage
+from utils import resource_path
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 
@@ -46,7 +47,7 @@ class PipelinePatientSelectionPage(Page):
 
         # --- Title ---
         self.title = QLabel("Select Patients for Pipeline Analysis")
-        self.title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+        self.title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.layout.addWidget(self.title)
 

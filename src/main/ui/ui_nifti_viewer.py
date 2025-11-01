@@ -5,10 +5,10 @@ import json
 import numpy as np
 import nibabel as nib
 
-from ..components.crosshair_graphic_view import CrosshairGraphicsView
-from ..components.nifti_file_dialog import NiftiFileDialog
-from ..logger import get_logger
-from ..threads.nifti_utils_threads import ImageLoadThread, SaveNiftiThread
+from components.crosshair_graphic_view import CrosshairGraphicsView
+from components.nifti_file_dialog import NiftiFileDialog
+from logger import get_logger
+from threads.nifti_utils_threads import ImageLoadThread, SaveNiftiThread
 
 log = get_logger()
 

@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 
-from main.page import Page
+from page import Page
 
 
 class WorkInProgressPage(Page):

@@ -4,8 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 from PyQt6.QtWidgets import QMessageBox, QRadioButton
 
-# Import dal tuo progetto
-from ui.ui_tool_selection_page import ToolSelectionPage
+from main.ui.ui_tool_selection_page import ToolSelectionPage
 
 @pytest.fixture
 def tool_page(qtbot, mock_context):
@@ -119,7 +118,7 @@ class TestToolSelectionPageNavigation:
         assert result == tool_page.previous_page
         tool_page.previous_page.on_enter.assert_called_once()
 
-    @patch('ui.ui_tool_selection_page.SkullStrippingPage')
+    @patch('main.ui.ui_tool_selection_page.SkullStrippingPage')
     def test_next_skull_stripping(self, MockPage, tool_page):
         """Verifica navigazione a skull stripping"""
         mock_page = Mock()
@@ -131,7 +130,7 @@ class TestToolSelectionPageNavigation:
         assert result == mock_page
         mock_page.on_enter.assert_called_once()
 
-    @patch('ui.ui_tool_selection_page.MaskNiftiSelectionPage')
+    @patch('main.ui.ui_tool_selection_page.MaskNiftiSelectionPage')
     def test_next_automatic_drawing(self, MockPage, tool_page):
         """Verifica navigazione a automatic drawing"""
         mock_page = Mock()
@@ -143,7 +142,7 @@ class TestToolSelectionPageNavigation:
         assert result == mock_page
         mock_page.on_enter.assert_called_once()
 
-    @patch('ui.ui_tool_selection_page.PipelinePatientSelectionPage')
+    @patch('main.ui.ui_tool_selection_page.PipelinePatientSelectionPage')
     def test_next_full_pipeline(self, MockPage, tool_page):
         """Verifica navigazione a full pipeline"""
         mock_page = Mock()
@@ -157,7 +156,7 @@ class TestToolSelectionPageNavigation:
 
     def test_next_caches_page(self, tool_page):
         """Verifica che le pagine siano cached"""
-        with patch('ui.ui_tool_selection_page.SkullStrippingPage') as MockPage:
+        with patch('main.ui.ui_tool_selection_page.SkullStrippingPage') as MockPage:
             mock_page = Mock()
             MockPage.return_value = mock_page
 
@@ -179,7 +178,7 @@ class TestToolSelectionPageDeepLearning:
 
     @patch('platform.system', return_value='Linux')
     @patch('torch.cuda.is_available', return_value=True)
-    @patch('ui.ui_tool_selection_page.DlNiftiSelectionPage')
+    @patch('main.ui.ui_tool_selection_page.DlNiftiSelectionPage')
     def test_dl_available_on_linux_with_gpu(self, MockPage, mock_cuda, mock_platform, tool_page):
         """Verifica che DL sia disponibile su Linux con GPU"""
         mock_page = Mock()
@@ -357,7 +356,7 @@ class TestToolSelectionPageIntegration:
         assert tool_page.is_ready_to_advance()
         assert tool_page.selected_option == 0
 
-    @patch('ui.ui_tool_selection_page.SkullStrippingPage')
+    @patch('main.ui.ui_tool_selection_page.SkullStrippingPage')
     def test_navigation_and_cache(self, MockPage, tool_page):
         """Test navigazione con caching"""
         mock_page = Mock()

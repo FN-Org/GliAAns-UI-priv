@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 
-from ..components.nifti_file_dialog import NiftiFileDialog
+from components.nifti_file_dialog import NiftiFileDialog
 
 
 class FileSelectorWidget(QWidget):
@@ -36,7 +36,8 @@ class FileSelectorWidget(QWidget):
 
         self.context = context
         # Connects external signal for when files are selected from a shared dialog
-        self.context["selected_files_signal"].connect(self.set_selected_files)
+        if self.context and "selected_files_signal" in self.context:
+            self.context["selected_files_signal"].connect(self.set_selected_files)
 
         self.label = label
         self.allow_multiple = allow_multiple

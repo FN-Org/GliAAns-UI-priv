@@ -6,9 +6,9 @@ from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtWidgets import QTreeView, QMessageBox, QMenu, QFileDialog
 from PyQt6.QtGui import QFileSystemModel, QDesktopServices, QAction
 
-from ..components.file_role_dialog import FileRoleDialog
-from ..logger import get_logger
-from ..threads.utils_threads import CopyDeleteThread
+from components.file_role_dialog import FileRoleDialog
+from logger import get_logger
+from threads.utils_threads import CopyDeleteThread
 
 log = get_logger()
 

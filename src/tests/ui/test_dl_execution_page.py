@@ -4,13 +4,13 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ui.ui_dl_execution_page import DlExecutionPage
+from main.ui.ui_dl_execution_page import DlExecutionPage
 
 
 @pytest.fixture
 def mock_dl_worker():
     """Mock per DlWorker."""
-    with patch("ui.ui_dl_execution_page.DlWorker") as mock:
+    with patch("main.ui.ui_dl_execution_page.DlWorker") as mock:
         worker_instance = Mock()
         worker_instance.progressbar_update = Mock()
         worker_instance.progressbar_update.connect = Mock()
@@ -315,7 +315,7 @@ class TestAddLogMessage:
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        with patch("ui.ui_dl_execution_page.log", mock_logger):
+        with patch("main.ui.ui_dl_execution_page.log", mock_logger):
             page.add_log_message("Test info message", 'i')
 
             log_content = page.log_text.toPlainText()
@@ -327,7 +327,7 @@ class TestAddLogMessage:
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        with patch("ui.ui_dl_execution_page.log", mock_logger):
+        with patch("main.ui.ui_dl_execution_page.log", mock_logger):
             page.add_log_message("Test error message", 'e')
 
             log_content = page.log_text.toPlainText()
@@ -339,7 +339,7 @@ class TestAddLogMessage:
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        with patch("ui.ui_dl_execution_page.log", mock_logger):
+        with patch("main.ui.ui_dl_execution_page.log", mock_logger):
             page.add_log_message("Test warning message", 'w')
 
             log_content = page.log_text.toPlainText()
@@ -351,7 +351,7 @@ class TestAddLogMessage:
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        with patch("ui.ui_dl_execution_page.log", mock_logger):
+        with patch("main.ui.ui_dl_execution_page.log", mock_logger):
             page.add_log_message("Test debug message", 'd')
 
             log_content = page.log_text.toPlainText()
@@ -1150,7 +1150,7 @@ class TestErrorHandling:
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        with patch("ui.ui_dl_execution_page.DlWorker") as mock_worker:
+        with patch("main.ui.ui_dl_execution_page.DlWorker") as mock_worker:
             mock_worker.side_effect = Exception("Worker creation failed")
 
             # Dovrebbe gestire l'errore gracefully

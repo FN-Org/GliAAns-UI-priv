@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt, QPointF, QRectF, QEvent
 from PyQt6.QtGui import QMouseEvent, QPainter, QColor
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsLineItem, QWidget
 
-from components.crosshair_graphic_view import CrosshairGraphicsView
+from main.components.crosshair_graphic_view import CrosshairGraphicsView
 
 
 @pytest.fixture

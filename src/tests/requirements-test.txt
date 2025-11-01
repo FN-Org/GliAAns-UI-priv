@@ -5,3 +5,7 @@ pytest-mock>=3.11.1
 PyQt6>=6.5.0
 pydicom
 torch
+numpy
+nibabel
+matplotlib
+numba

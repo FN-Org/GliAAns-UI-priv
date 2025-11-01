@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QActionGroup
 
-from ..threads.utils_threads import CopyDeleteThread
-from ..logger import get_logger, set_log_level
+from threads.utils_threads import CopyDeleteThread
+from logger import get_logger, set_log_level
 
 log = get_logger()
 

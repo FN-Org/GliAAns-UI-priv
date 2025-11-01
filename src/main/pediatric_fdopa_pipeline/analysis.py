@@ -6,7 +6,7 @@ import nibabel as nib
 import pandas as pd
 import os
 import statistics
-from main.pediatric_fdopa_pipeline.ref_tumor_seg import ref_seg, binary_mask
+from pediatric_fdopa_pipeline.ref_tumor_seg import ref_seg, binary_mask
 
 def get_stats_for_labels(vol, atlas, labels):
     total=0
@@ -147,7 +147,7 @@ def variable_def(subj):
     _, tumor_max, _, _ = get_stats_for_labels(pet_3d, tumor_atlas_vol, [tumor_labels])
     _, tumor_max_manuale, _, _ = get_stats_for_labels(pet_3d, tumor_MRI_vol, [1])
     subj.tumor_atlas, subj.tumor_label = control_ratio(tumor_MRI_vol,tumor_max,tumor_max_manuale, ref_max, roi_max, tumor_atlas_vol, tumor_labels)
-    nib.Nifti1Image(subj.tumor_atlas, nib.load(subj.atlas_space_pet).affine, dtype = np.int64).to_filename(subj.prefix+'original_tum_volume.nii.gz')
+    nib.Nifti1Image(subj.tumor_atlas, nib.load(subj.atlas_space_pet).affine, dtype = np.int64).to_filename(subj.ref_prefix+'original_tum_volume.nii.gz')
     
     if (subj.tumor_label != 1):
         ### elimination of controlateral striatum ####
@@ -176,8 +176,8 @@ def tumor_striatum_analysis(subject, roi_labels, ref_labels):
     print(f'\t\tRoi Labels:\t{roi_labels}')
     print(f'\t\tReference Labels:\t{ref_labels}')
     
-    subject.pet_suvr = subject.prefix+'suvr_max.nii.gz'
-    subject.suvr_csv = subject.prefix+'suvr_max.json'
+    subject.pet_suvr = subject.data_prefix+'suvr_max.nii.gz'
+    subject.suvr_csv = subject.data_prefix+'suvr_max.json'
 
     if not os.path.exists(subject.pet_suvr) or not os.path.exists(subject.suvr_csv) or subject.clobber :
         
@@ -196,7 +196,7 @@ def tumor_striatum_analysis(subject, roi_labels, ref_labels):
         tn_ratio = np.round(tumor_max / ref_max,3)
 
         nib.Nifti1Image(subject.suvr_m, nib.load(subject.pet).affine).to_filename(subject.pet_suvr)
-        nib.Nifti1Image(subject.tumor_atlas, atlas_hd.affine , header = atlas_hd.header).to_filename(subject.prefix+'tumor_atlas.nii.gz')
+        nib.Nifti1Image(subject.tumor_atlas, atlas_hd.affine , header = atlas_hd.header).to_filename(subject.data_prefix+'tumor_atlas.nii.gz')
         
         suvr_dict = {'sub':[subject.sub],'tumor_label':[subject.tumor_label],'tumor_max':[tumor_max],'tumor_avg':[tumor_avg], 'striatum_label':[subject.striatum_label], 'striatum_max':[roi_max], 'straitum_avg':[roi_avg], 'ts_ratio':[ts_ratio], 'reference_label':[ref_labels], 'reference_max':[ref_max], 'reference_avg':[ref_avg], 'tn_ratio': [tn_ratio]}
         subject.suvr_df = pd.DataFrame(suvr_dict)

@@ -6,8 +6,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication, QPushButton
 
-# Import dal tuo progetto
-from controller import Controller
+from main.controller import Controller
 
 
 class TestControllerInitialization:
@@ -16,11 +15,11 @@ class TestControllerInitialization:
     @pytest.fixture
     def mock_components(self):
         """Mock dei componenti UI"""
-        with patch('controller.ImportPage') as MockImportPage, \
-                patch('controller.MainWindow') as MockMainWindow, \
-                patch('controller.WorkspaceTreeView') as MockTreeView, \
-                patch('controller.NiftiViewer') as MockNiftiViewer, \
-                patch('controller.get_app_dir') as mock_get_app_dir:
+        with patch('main.controller.ImportPage') as MockImportPage, \
+                patch('main.controller.MainWindow') as MockMainWindow, \
+                patch('main.controller.WorkspaceTreeView') as MockTreeView, \
+                patch('main.controller.NiftiViewer') as MockNiftiViewer, \
+                patch('main.controller.get_app_dir') as mock_get_app_dir:
             # Setup mock return values
             temp_dir = tempfile.mkdtemp()
             mock_get_app_dir.return_value = MockPath(temp_dir)
@@ -111,11 +110,11 @@ class TestControllerNavigation:
     @pytest.fixture
     def controller(self, qtbot):
         """Crea controller per test"""
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -188,11 +187,11 @@ class TestControllerButtons:
 
     @pytest.fixture
     def controller(self, qtbot):
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -271,11 +270,11 @@ class TestControllerLanguage:
 
     @pytest.fixture
     def controller(self, qtbot):
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -323,11 +322,11 @@ class TestControllerNiftiViewer:
 
     @pytest.fixture
     def controller(self, qtbot):
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer') as MockViewer, \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer') as MockViewer, \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -356,11 +355,11 @@ class TestControllerStart:
 
     @pytest.fixture
     def controller(self, qtbot):
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow') as MockMainWindow, \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow') as MockMainWindow, \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -396,11 +395,11 @@ class TestControllerSettings:
         """Verifica caricamento lingua salvata"""
         clean_settings.setValue("language", "it")
 
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -413,11 +412,11 @@ class TestControllerSettings:
 
     def test_default_language_en(self, qtbot, clean_settings):
         """Verifica lingua di default inglese"""
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -428,17 +427,17 @@ class TestControllerSettings:
 
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-    @patch('logger.set_log_level')
+    @patch('main.controller.set_log_level')
     def test_debug_log_setting(self, mock_set_log_level, qtbot, clean_settings):
         """Verifica impostazione debug log"""
         import logging
         clean_settings.setValue("debug_log", True)
 
-        with patch('controller.ImportPage'), \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage'), \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 
@@ -455,11 +454,11 @@ class TestControllerIntegration:
 
     @pytest.fixture
     def controller(self, qtbot):
-        with patch('controller.ImportPage') as MockImport, \
-                patch('controller.MainWindow'), \
-                patch('controller.WorkspaceTreeView'), \
-                patch('controller.NiftiViewer'), \
-                patch('controller.get_app_dir') as mock_app_dir:
+        with patch('main.controller.ImportPage') as MockImport, \
+                patch('main.controller.MainWindow'), \
+                patch('main.controller.WorkspaceTreeView'), \
+                patch('main.controller.NiftiViewer'), \
+                patch('main.controller.get_app_dir') as mock_app_dir:
             temp_dir = tempfile.mkdtemp()
             mock_app_dir.return_value = MockPath(temp_dir)
 

@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt, QRectF, QSize
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QFont
 from PyQt6.QtWidgets import QWidget
 
-from components.circular_progress_bar import CircularProgress
+from main.components.circular_progress_bar import CircularProgress
 
 
 class TestCircularProgressInitialization:
@@ -286,7 +286,7 @@ class TestPaintEvent:
         widget.show()
 
         # Usa un mock non intrusivo che non rompe QPainter
-        with patch("components.circular_progress_bar.QPainter", autospec=True) as mock_painter_class:
+        with patch("main.components.circular_progress_bar.QPainter", autospec=True) as mock_painter_class:
             event = QPaintEvent(widget.rect())
             widget.paintEvent(event)
 

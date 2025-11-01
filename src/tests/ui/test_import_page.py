@@ -8,8 +8,7 @@ from PyQt6.QtCore import QSettings, pyqtSignal, QObject, QMimeData, QUrl, Qt
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog
 from PyQt6.QtGui import QDropEvent, QDragEnterEvent
 
-# Import dal tuo progetto
-from ui.ui_import_page import ImportPage
+from main.ui.ui_import_page import ImportPage
 
 
 @pytest.fixture
@@ -160,7 +159,7 @@ class TestImportPageDialogs:
         mock_dialog.exec.return_value = False
         mock_dialog.findChildren.return_value = []
 
-        with patch('ui.ui_import_page.QFileDialog', return_value=mock_dialog):
+        with patch('main.ui.ui_import_page.QFileDialog', return_value=mock_dialog):
             import_page.open_folder_dialog()
 
             # Verifica che il dialog sia configurato correttamente
@@ -182,8 +181,8 @@ class TestImportPageThreads:
 
     def test_handle_import_creates_thread(self, import_page, temp_source_folder):
         """Verifica che _handle_import crei un thread"""
-        with patch('ui.ui_import_page.ImportThread') as MockThread, \
-                patch('ui.ui_import_page.QProgressDialog'):
+        with patch('main.ui.ui_import_page.ImportThread') as MockThread, \
+                patch('main.ui.ui_import_page.QProgressDialog'):
             mock_thread_instance = Mock()
             mock_thread_instance.finished = Mock()
             mock_thread_instance.finished.connect = Mock()
@@ -200,8 +199,8 @@ class TestImportPageThreads:
 
     def test_handle_import_creates_progress_dialog(self, import_page, temp_source_folder):
         """Verifica che _handle_import crei un progress dialog"""
-        with patch('ui.ui_import_page.ImportThread'), \
-                patch('ui.ui_import_page.QProgressDialog') as MockDialog:
+        with patch('main.ui.ui_import_page.ImportThread'), \
+                patch('main.ui.ui_import_page.QProgressDialog') as MockDialog:
             mock_dialog_instance = Mock()
             mock_dialog_instance.canceled = Mock()
             mock_dialog_instance.canceled.connect = Mock()

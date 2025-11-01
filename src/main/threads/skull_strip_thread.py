@@ -4,8 +4,8 @@ import shutil
 import tempfile
 
 from PyQt6.QtCore import pyqtSignal, QThread, QProcess, QCoreApplication
-from ..logger import get_logger
-from ..utils import setup_fsl_env, get_bin_path
+from logger import get_logger
+from utils import setup_fsl_env, get_bin_path
 
 log = get_logger()
 

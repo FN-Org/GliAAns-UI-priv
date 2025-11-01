@@ -1,5 +1,6 @@
 import os
 from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QScrollArea, QFrame, QGridLayout, QHBoxLayout,
                              QMessageBox, QGroupBox, QListWidget, QProgressBar,
@@ -7,10 +8,10 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton,
                              QCheckBox)
 from PyQt6.QtCore import Qt, QThread, QCoreApplication
 
-from ..components.circular_progress_bar import CircularProgress
-from ..threads.dl_worker import DlWorker
-from ..page import Page
-from ..logger import get_logger
+from components.circular_progress_bar import CircularProgress
+from threads.dl_worker import DlWorker
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 
@@ -54,12 +55,7 @@ class DlExecutionPage(Page):
 
         # Header section
         self.header = QLabel("Deep Learning Segmentation")
-        self.header.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        """)
+        self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.header)
 

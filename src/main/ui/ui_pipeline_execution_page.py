@@ -2,6 +2,7 @@ import os
 import json
 import sys
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
     QTextEdit, QFrame, QHBoxLayout, QScrollArea, QGridLayout,
@@ -9,11 +10,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QProcess, QCoreApplication
 
-from ..components.circular_progress_bar import CircularProgress
-from ..components.folder_card import FolderCard
-from ..utils import get_bin_path
-from ..page import Page
-from ..logger import get_logger
+from components.circular_progress_bar import CircularProgress
+from components.folder_card import FolderCard
+from utils import get_bin_path
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 
@@ -126,12 +127,7 @@ class PipelineExecutionPage(Page):
 
         # Header
         self.header = QLabel("Pipeline Execution")
-        self.header.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        """)
+        self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.header)
 
@@ -169,6 +165,7 @@ class PipelineExecutionPage(Page):
         self.folder_cards = {}
         self.watch_dirs = self.get_sub_list(self.config_path)
         self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
+        self.dir_completed = 0
         for d in self.watch_dirs:
             card = FolderCard(self.context, d)
             card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
@@ -257,7 +254,6 @@ class PipelineExecutionPage(Page):
         self.stop_button.setEnabled(True)
         self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Starting pipeline execution..."))
 
-
         cmd = [
             self.pipeline_bin_path,
             "--config", self.config_path,
@@ -326,23 +322,22 @@ class PipelineExecutionPage(Page):
     # OUTPUT INTERPRETATION
     # ─────────────────────────────────────────────
     def _process_pipeline_output(self, line):
-        """Processa una riga di output dalla pipeline."""
+        """Process the pipeline output logs"""
         if line.startswith("LOG: "):
-            message = line[5:]  # Rimuove "LOG: "
+            message = line[5:]
             self._log_message(message)
             self._update_current_operation(message)
         elif line.startswith("ERROR: "):
-            error_msg = line[7:]  # Rimuove "ERROR: "
+            error_msg = line[7:]
             self._log_message(
                 QCoreApplication.translate("PipelineExecutionPage", "ERROR: {error}").format(error=error_msg))
         elif line.startswith("PROGRESS: "):
-            progress_info = line[10:]  # Rimuove "PROGRESS: "
+            progress_info = line[10:]
             self._update_progress(progress_info)
         elif line.startswith("FINISHED: "):
-            message = line[10:]  # Rimuove "FINISHED: "
-            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: "))
+            message = line[10:]
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: {message}").format(message=message))
         else:
-            # Output generico
             self._log_message(line)
 
     # ─────────────────────────────────────────────
@@ -360,6 +355,8 @@ class PipelineExecutionPage(Page):
             QCoreApplication.translate("PipelineExecutionPage", "Results saved in: {pipeline_output_dir}").format(
                 pipeline_output_dir=self.pipeline_output_dir))
         self.pipeline_process = None
+        for card in self.folder_cards.values():
+            card.set_finished_state()
         self.context["update_main_buttons"]()
 
     def _on_pipeline_error(self, error_message):
@@ -394,7 +391,17 @@ class PipelineExecutionPage(Page):
                 current, total = map(int, progress_info.split('/'))
                 percentage = int((current / total) * 100)
                 self.progress_bar.setValue(percentage)
+
                 self.check_new_files()  # Update folder views
+            elif "sub" in progress_info:
+                self.dir_completed += 1
+                if 0 <= self.dir_completed < len(self.watch_dirs):
+                    finished_dir = self.watch_dirs[self.dir_completed]
+                    finished_card = self.folder_cards.get(finished_dir)
+                    if finished_card:
+                        log.debug(f"Setting finished state for card: {finished_dir}")
+                        finished_card.set_finished_state()
+
         except ValueError:
             log.warning("Failed to parse progress info")
 
@@ -610,6 +617,8 @@ class PipelineExecutionPage(Page):
         self.pipeline_process = None
         self.pipeline_error = None
         self.pipeline_completed = False
+        for card in self.folder_cards.values():
+            card.reset_state()
 
     def __del__(self):
         """Ensure that any running pipeline process is terminated on destruction."""

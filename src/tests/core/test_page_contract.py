@@ -1,16 +1,17 @@
 import inspect
 import pytest
-from page import Page
-from ui.ui_dl_execution_page import DlExecutionPage
-from ui.ui_dl_selection_page import DlNiftiSelectionPage
-from ui.ui_import_page import ImportPage
-from ui.ui_mask_selection_page import MaskNiftiSelectionPage
-from ui.ui_patient_selection_page import PatientSelectionPage
-from ui.ui_pipeline_execution_page import PipelineExecutionPage
-from ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
-from ui.ui_pipeline_review_page import PipelineReviewPage
-from ui.ui_skull_stripping_page import SkullStrippingPage
-from ui.ui_tool_selection_page import ToolSelectionPage
+
+from main.page import Page
+from main.ui.ui_dl_execution_page import DlExecutionPage
+from main.ui.ui_dl_selection_page import DlNiftiSelectionPage
+from main.ui.ui_import_page import ImportPage
+from main.ui.ui_mask_selection_page import MaskNiftiSelectionPage
+from main.ui.ui_patient_selection_page import PatientSelectionPage
+from main.ui.ui_pipeline_execution_page import PipelineExecutionPage
+from main.ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
+from main.ui.ui_pipeline_review_page import PipelineReviewPage
+from main.ui.ui_skull_stripping_page import SkullStrippingPage
+from main.ui.ui_tool_selection_page import ToolSelectionPage
 
 # You can add other child classes here if there are more
 ALL_PAGE_SUBCLASSES = [

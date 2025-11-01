@@ -8,10 +8,10 @@ from PyQt6.QtCore import Qt, pyqtSignal, QCoreApplication
 import os
 import subprocess
 
-from ..components.file_selector_widget import FileSelectorWidget
-from ..threads.skull_strip_thread import SkullStripThread
-from ..page import Page
-from ..logger import get_logger
+from components.file_selector_widget import FileSelectorWidget
+from threads.skull_strip_thread import SkullStripThread
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 

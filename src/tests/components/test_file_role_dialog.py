@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QDialogButtonBox, QRadioButton, QComboBox, QListWidgetItem, QListWidget
 from PyQt6.QtCore import Qt
 
-from components.file_role_dialog import FileRoleDialog
+from main.components.file_role_dialog import FileRoleDialog
 
 
 @pytest.fixture

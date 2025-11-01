@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal, QProcess, QObject, QCoreApplication
 
-from ..logger import get_logger
+from logger import get_logger
 
 log = get_logger()
 

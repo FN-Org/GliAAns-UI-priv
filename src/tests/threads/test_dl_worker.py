@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QProcess
 
-from threads.dl_worker import DlWorker
+from main.threads.dl_worker import DlWorker
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def test_input_files(temp_workspace):
 @pytest.fixture
 def mock_qprocess():
     """Mock per QProcess."""
-    with patch("threads.dl_worker.QProcess") as mock:
+    with patch("main.threads.dl_worker.QProcess") as mock:
         process_instance = MagicMock()
         process_instance.finished = Mock()
         process_instance.finished.connect = Mock()

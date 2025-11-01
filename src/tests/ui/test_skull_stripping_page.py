@@ -6,9 +6,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 from PyQt6.QtWidgets import QMessageBox
 
-from tests.conftest import SignalEmitter
-# Import dal tuo progetto
-from ui.ui_skull_stripping_page import SkullStrippingPage
+from main.ui.ui_skull_stripping_page import SkullStrippingPage
 
 @pytest.fixture
 def skull_page(qtbot, mock_context, mock_file_selector):
@@ -157,7 +155,7 @@ class TestSkullStrippingPageProcessing:
         skull_page.run_bet()
         assert warning_shown
 
-    @patch('ui.ui_skull_stripping_page.SkullStripThread')
+    @patch('main.ui.ui_skull_stripping_page.SkullStripThread')
     def test_run_creates_worker_thread(self, MockThread, skull_page):
         """Verifica creazione worker thread"""
         skull_page.file_selector_widget.get_selected_files = Mock(
@@ -172,7 +170,7 @@ class TestSkullStrippingPageProcessing:
         MockThread.assert_called_once()
         mock_worker.start.assert_called_once()
 
-    @patch('ui.ui_skull_stripping_page.SkullStripThread')
+    @patch('main.ui.ui_skull_stripping_page.SkullStripThread')
     def test_run_shows_progress_bar(self, MockThread, skull_page, qtbot):
         """Verifica che run mostri progress bar"""
         skull_page.file_selector_widget.get_selected_files = Mock(
@@ -414,7 +412,7 @@ class TestSkullStrippingPageTranslation:
 class TestSkullStrippingPageIntegration:
     """Test di integrazione"""
 
-    @patch('ui.ui_skull_stripping_page.SkullStripThread')
+    @patch('main.ui.ui_skull_stripping_page.SkullStripThread')
     def test_full_processing_workflow(self, MockThread, skull_page, qtbot):
         """Test flusso completo di processing"""
         # Setup

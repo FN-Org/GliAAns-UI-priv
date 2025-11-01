@@ -9,11 +9,11 @@ from argparse import ArgumentParser
 from pathlib import Path
 from sys import argv
 from glob import glob
-from main.pediatric_fdopa_pipeline.utils import get_file, align, transform, get_tacs, get_dynamic_parameters
-from main.pediatric_fdopa_pipeline.analysis import variable_def
-from main.pediatric_fdopa_pipeline.roi_selection import region_selection
-from main.pediatric_fdopa_pipeline.qc import ImageParam
-from main.pediatric_fdopa_pipeline.utils import log_progress,log_message,log_error
+from pediatric_fdopa_pipeline.utils import get_file, align, transform, get_tacs, get_dynamic_parameters
+from pediatric_fdopa_pipeline.analysis import variable_def
+from pediatric_fdopa_pipeline.roi_selection import region_selection
+from pediatric_fdopa_pipeline.qc import ImageParam
+from pediatric_fdopa_pipeline.utils import log_progress,log_message,log_error
 
 class Subject():
 
@@ -31,28 +31,31 @@ class Subject():
         '''
 
         # Inputs :
-        self.data_dir = work_dir
+        self.work_dir = work_dir
         self.sub = sub
         self.clobber = clobber
 
-        self.pet = os.path.join(self.data_dir, pet_file)
+        self.pet = os.path.join(self.work_dir, pet_file)
 
         if pet4d_file:
-            self.pet4d = os.path.join(self.data_dir, pet4d_file)
+            self.pet4d = os.path.join(self.work_dir, pet4d_file)
 
-        self.mri = os.path.join(self.data_dir, mri_file)
-        self.mri_str = os.path.join(self.data_dir, mri_str_file)
+        self.mri = os.path.join(self.work_dir, mri_file)
+        self.mri_str = os.path.join(self.work_dir, mri_str_file)
         self.stx = stx_fn
         self.atlas_fn = atlas_fn
-        self.tumor_MRI = os.path.join(self.data_dir, flair_tumor)
+        self.tumor_MRI = os.path.join(self.work_dir, flair_tumor)
 
         # Outputs :
         self.sub_dir = out_dir + os.sep + 'sub-'+ sub
         self.qc_dir = self.sub_dir + os.sep + 'qc/'
+        self.coreg_dir = self.sub_dir + os.sep + 'coregistration/'
+        self.ref_dir = self.sub_dir + os.sep + 'refinement/'
+        self.data_dir = self.sub_dir + os.sep + 'data/'
 
         self.pet_json = pet_json_file
         if self.pet_json is not None:
-            self.pet_header = json.load(open(os.path.join(self.data_dir, self.pet_json), 'r'))
+            self.pet_header = json.load(open(os.path.join(self.work_dir, self.pet_json), 'r'))
 
         self.tacs_csv = self.sub_dir + '/' + f'sub-{sub}_TACs.csv'
         self.tacs_sub_regions_csv = self.sub_dir + '/' + f'sub-{sub}_TACs_sub_regions.csv'
@@ -66,6 +69,9 @@ class Subject():
 
         # Class variables
         self.prefix = self.sub_dir + '/' + 'sub-' + sub + '_'
+        self.coreg_prefix = self.coreg_dir + os.sep + 'sub-' + sub + '_'
+        self.ref_prefix = self.ref_dir + os.sep + 'sub-' + sub + '_'
+        self.data_prefix = self.data_dir + os.sep + 'sub-' + sub + '_'
 
         # following variables are defined during <process()>. 
         # not necessary to define these variables here, but helps keeps things clear
@@ -95,8 +101,11 @@ class Subject():
         # create output directories
         os.makedirs(self.sub_dir, exist_ok=True)
         os.makedirs(self.qc_dir, exist_ok=True)
+        os.makedirs(self.coreg_dir, exist_ok=True)
+        os.makedirs(self.ref_dir, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
 
-        if (Path(self.data_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
+        if (Path(self.work_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
             self.frame_duration, self.frame_time_start, self.frame_weight = self.set_frame_times()
 
     def process(self):
@@ -118,25 +127,25 @@ class Subject():
         self.stx2pet_tfm = [self.mri2pet_tfm,self.stx2mri_tfm ]
         
         # Apply stx2pet transformation to get a brain mask
-        self.brain = transform(self.prefix, self.pet, self.mri_str, self.mri2pet_tfm, qc_filename=f'{self.qc_dir}/pet_brain.gif', clobber=self.clobber )
+        self.brain = transform(self.coreg_prefix, self.pet, self.mri_str, self.mri2pet_tfm, qc_filename=f'{self.qc_dir}/pet_brain.gif', clobber=self.clobber )
 
         current_progress = current_progress + progress_per_process
         log_progress(current_progress)
 
         # Apply mri2pet transformation to get tumor volume in PET space
-        self.volume_MRI = transform(self.prefix, self.pet, self.tumor_MRI, self.mri2pet_tfm, interpolator='nearestNeighbor',qc_filename=f'{self.qc_dir}/volume_MRI.gif', clobber=self.clobber )
+        self.volume_MRI = transform(self.coreg_prefix, self.pet, self.tumor_MRI, self.mri2pet_tfm, interpolator='nearestNeighbor',qc_filename=f'{self.qc_dir}/volume_MRI.gif', clobber=self.clobber )
 
         current_progress = current_progress + progress_per_process
         log_progress(current_progress)
 
         # Apply stx2pet transformation to stereotaxic atlas
-        self.atlas_space_pet = transform(self.prefix, self.pet, self.atlas_fn, self.stx2pet_tfm, interpolator='nearestNeighbor', qc_filename=f'{self.qc_dir}/atlas_pet_space.gif', clobber=self.clobber )
+        self.atlas_space_pet = transform(self.coreg_prefix, self.pet, self.atlas_fn, self.stx2pet_tfm, interpolator='nearestNeighbor', qc_filename=f'{self.qc_dir}/atlas_pet_space.gif', clobber=self.clobber )
 
         current_progress = current_progress + progress_per_process
         log_progress(current_progress)
 
         # Apply stx2pet transformation to stereotaxic template
-        self.stx_space_pet = transform(self.prefix, self.pet, self.stx, self.stx2pet_tfm,  qc_filename=f'{self.qc_dir}/template_pet_space.gif', clobber=self.clobber)
+        self.stx_space_pet = transform(self.coreg_prefix, self.pet, self.stx, self.stx2pet_tfm,  qc_filename=f'{self.qc_dir}/template_pet_space.gif', clobber=self.clobber)
 
         current_progress = current_progress + progress_per_process
         log_progress(current_progress)
@@ -150,7 +159,7 @@ class Subject():
         # Defining attributes for static and dynamic analysis
         self.tumor_atlas, self.tumor_label, self.striatum_atlas, self.striatum_label, self.suvr_m = variable_def(self)
 
-        if (Path(self.data_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
+        if (Path(self.work_dir+'/sub-'+self.sub+'/ses-02').is_dir()):
             # Extract time-activity curves (TACs) from PET image using atlas in PET space 
             self.tacs = get_tacs(self, self.roi_labels, self.ref_labels ,  self.frame_time_start, self.tacs_csv, self.tacs_qc_plot, self.tacs_sub_regions_qc_plot)
             current_progress = current_progress + progress_per_process
@@ -177,10 +186,7 @@ class Subject():
 
     ### Co-Registration ###
     def mri2pet(self):
-        self.mri_space_pet, self.pet_space_mri, self.mri2pet_tfm, self.pet2mri_tfm = align(self.pet, self.mri, transform_method='Rigid', outprefix=f'{self.sub_dir}/sub-{self.sub}_mri2pet_Rigid_', qc_filename = self.mri2pet_qc_gif)
+        self.mri_space_pet, self.pet_space_mri, self.mri2pet_tfm, self.pet2mri_tfm = align(self.pet, self.mri, transform_method='Rigid', outprefix=f'{self.coreg_dir}/sub-{self.sub}_mri2pet_Rigid_', qc_filename = self.mri2pet_qc_gif)
 
     def stx2mri(self):
-        self.stx_space_mri, self.mri_space_stx, self.stx2mri_tfm, self.mri2stx_tfm = align(self.mri, self.stx, transform_method='SyNAggro', outprefix=f'{self.sub_dir}/sub-{self.sub}_stx2mri_SyN_', qc_filename = self.stx2mri_qc_gif)
- 
-
-
+        self.stx_space_mri, self.mri_space_stx, self.stx2mri_tfm, self.mri2stx_tfm = align(self.mri, self.stx, transform_method='SyNAggro', outprefix=f'{self.coreg_dir}/sub-{self.sub}_stx2mri_SyN_', qc_filename = self.stx2mri_qc_gif)

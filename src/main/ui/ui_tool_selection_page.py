@@ -22,12 +22,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ..components.info_label import InfoLabel
-from ..ui.ui_mask_selection_page import MaskNiftiSelectionPage
-from ..ui.ui_dl_selection_page import DlNiftiSelectionPage
-from ..ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
-from ..ui.ui_skull_stripping_page import SkullStrippingPage
-from ..page import Page
+from components.info_label import InfoLabel
+from ui.ui_mask_selection_page import MaskNiftiSelectionPage
+from ui.ui_dl_selection_page import DlNiftiSelectionPage
+from ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
+from ui.ui_skull_stripping_page import SkullStrippingPage
+from page import Page
 
 
 class ToolSelectionPage(Page):

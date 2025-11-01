@@ -17,7 +17,7 @@ import pytest
 import numpy as np
 import nibabel as nib
 
-from threads.nifti_utils_threads import SaveNiftiThread, ImageLoadThread
+from main.threads.nifti_utils_threads import SaveNiftiThread, ImageLoadThread
 
 
 class TestSaveNiftiThreadInitialization:

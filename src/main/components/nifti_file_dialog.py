@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QCoreApplication
 from PyQt6.QtGui import QBrush, QColor
 import os
-from ..logger import get_logger
+from logger import get_logger
 
 log = get_logger()
 

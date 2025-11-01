@@ -2,14 +2,15 @@ import json
 import os
 import glob
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ..components.collapsible_info_frame import CollapsibleInfoFrame
-from ..components.collapsible_patient_frame import CollapsiblePatientFrame
-from ..ui.ui_pipeline_execution_page import PipelineExecutionPage
-from ..page import Page
-from ..logger import get_logger
+from components.collapsible_info_frame import CollapsibleInfoFrame
+from components.collapsible_patient_frame import CollapsiblePatientFrame
+from ui.ui_pipeline_execution_page import PipelineExecutionPage
+from page import Page
+from logger import get_logger
 
 log = get_logger()
 
@@ -137,11 +138,7 @@ class PipelineReviewPage(Page):
         # ── Header ──────────────────────────────
         self.header = QLabel("Pipeline Configuration Review")
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.header.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            margin: 6px 0;
-        """)
+        self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         layout.addWidget(self.header)
 
         # ── Config file info ─────────────────────

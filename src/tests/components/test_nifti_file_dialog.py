@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QDialog, QMessageBox, QListWidgetItem
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
-from components.nifti_file_dialog import NiftiFileDialog
+from main.components.nifti_file_dialog import NiftiFileDialog
 
 
 @pytest.fixture
@@ -587,7 +587,7 @@ class TestGetFilesStaticMethod:
         dialog_instance.selected_files = ["/path/file1.nii", "/path/file2.nii"]
         dialog_instance.exec.return_value = QDialog.DialogCode.Accepted
 
-        with patch('components.nifti_file_dialog.NiftiFileDialog', return_value=dialog_instance):
+        with patch('main.components.nifti_file_dialog.NiftiFileDialog', return_value=dialog_instance):
             result = NiftiFileDialog.get_files(
                 mock_context_nifti,
                 allow_multiple=True,

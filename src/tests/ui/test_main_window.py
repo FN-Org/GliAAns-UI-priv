@@ -7,8 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMessageBox, QPushButton
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject
 
-# Import dal tuo progetto
-from ui.ui_main_window import MainWindow
+from main.ui.ui_main_window import MainWindow
 
 
 @pytest.fixture
@@ -216,7 +215,7 @@ class TestThreadManagement:
 class TestDebugLog:
     """Test per la funzionalità di debug log"""
 
-    @patch('ui.ui_main_window.set_log_level')
+    @patch('main.ui.ui_main_window.set_log_level')
     def test_toggle_debug_log_enables(self, mock_set_log_level, main_window):
         """Verifica che il debug log possa essere abilitato"""
         import logging
@@ -225,7 +224,7 @@ class TestDebugLog:
         assert main_window.settings.value("debug_log", type=bool) == True
         mock_set_log_level.assert_called_with(logging.DEBUG)
 
-    @patch('ui.ui_main_window.set_log_level')
+    @patch('main.ui.ui_main_window.set_log_level')
     def test_toggle_debug_log_disables(self, mock_set_log_level, main_window):
         """Verifica che il debug log possa essere disabilitato"""
         import logging

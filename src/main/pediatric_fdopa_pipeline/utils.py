@@ -13,8 +13,8 @@ import skimage.transform as skTrans
 import csv
 from skimage.morphology import dilation, erosion
 from scipy.stats import linregress
-from main.pediatric_fdopa_pipeline.qc import ImageParam
-from main.pediatric_fdopa_pipeline.analysis import get_stats_for_labels,get_H_Uptake_lab, get_M_Uptake_lab, get_L_Uptake_lab
+from pediatric_fdopa_pipeline.qc import ImageParam
+from pediatric_fdopa_pipeline.analysis import get_stats_for_labels,get_H_Uptake_lab, get_M_Uptake_lab, get_L_Uptake_lab
 from argparse import ArgumentParser
 from pathlib import Path
 from sys import argv
