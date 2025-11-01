@@ -41,14 +41,13 @@ class SaveNiftiThread(QThread):
     - `str`: Description of the error or failure reason.  
     """
 
-    def __init__(self, data, affine, path, json_path, relative_path, radius, difference):
+    def __init__(self, data, affine, path, json_path, relative_path,source_dict):
         super().__init__()
         self.data = data
         self.affine = affine
         self.path = path
         self.relative_path = relative_path
-        self.radius = radius
-        self.difference = difference
+        self.source_dict = source_dict
         self.json_path = json_path
 
     def run(self):
@@ -66,23 +65,12 @@ class SaveNiftiThread(QThread):
         try:
             # Save the NIfTI file
             nib.save(nib.Nifti1Image(self.data.astype(np.uint8), self.affine), self.path)
-            if self.radius == 0 and self.difference == 0:
-                json_dict= {
-                    "Type": "ROI",
-                    "Sources": [f"bids:{self.relative_path}"],
-                    "Description": "ROI obtained overlapping ROIs",
-                }
-            else:
-                # Build a BIDS-like JSON descriptor
-                json_dict = {
-                    "Type": "ROI",
-                    "Sources": [f"bids:{self.relative_path}"],
-                    "Description": "Automatic ROI using intensity threshold-based region growing.",
-                    "AutomaticRoiParameters": {
-                        "radius": self.radius,
-                        "difference": self.difference
-                    }
-                }
+            json_dict = {
+                "Type": "ROI",
+                "Sources": [f"bids:{self.relative_path}"],
+                "Description": "ROI mask",
+                "Origin": self.source_dict
+            }
 
             # Write the JSON metadata
             with open(self.json_path, "w") as json_file:

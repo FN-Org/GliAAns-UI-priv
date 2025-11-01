@@ -252,6 +252,7 @@ class NiftiViewer(QMainWindow):
         self.incrementalROI_enabled = False
         self.addOrigin_btn = None
         self.cancelROI_btn = None
+        self.incrementalROI_origins = []
 
         # === Initialize and connect the UI ===
         self.init_ui()
@@ -564,18 +565,20 @@ class NiftiViewer(QMainWindow):
         automaticROIbtns_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_layout.addWidget(automaticROIbtns_group)
 
-        # Overlay enable/disable checkbox
-        self.automaticROI_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Show automatic ROI"))
-        self.automaticROI_checkbox.setEnabled(False)
-        self.automaticROI_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        automaticROI_layout.addWidget(self.automaticROI_checkbox)
-
         # Incremental ROI checkbox
-        self.incrementalROI_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Show incremental ROI"))
+        self.incrementalROI_checkbox = QCheckBox(
+            QtCore.QCoreApplication.translate("NIfTIViewer", "Show incremental ROI"))
         self.incrementalROI_checkbox.setEnabled(False)
+        self.incrementalROI_checkbox.setVisible(False)
         self.incrementalROI_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         automaticROI_layout.addWidget(self.incrementalROI_checkbox)
 
+        # Overlay enable/disable checkbox
+        self.automaticROI_checkbox = QCheckBox(QtCore.QCoreApplication.translate("NIfTIViewer", "Show automatic ROI"))
+        self.automaticROI_checkbox.setEnabled(False)
+        self.automaticROI_checkbox.setVisible(False)
+        self.automaticROI_checkbox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        automaticROI_layout.addWidget(self.automaticROI_checkbox)
 
         self.automaticROI_sliders_group = QFrame()
         automaticROI_sliders_layout = QVBoxLayout(self.automaticROI_sliders_group)
@@ -1305,6 +1308,8 @@ class NiftiViewer(QMainWindow):
             # Initialize visual display of loaded data
             self.initialize_display()
 
+            self.resetROI()
+
     def on_load_error(self, error_message):
         """
         Handle errors during NIfTI file loading.
@@ -1440,9 +1445,7 @@ class NiftiViewer(QMainWindow):
             refreshes the display only if the overlay is active and data is loaded.
         """
         self.overlay_alpha = value / 100.0
-        if (self.overlay_enabled and
-                hasattr(self, 'overlay_data') and
-                self.overlay_data is not None):
+        if self.overlay_enabled or self.automaticROI_overlay or self.incrementalROI_enabled:
             self.update_all_displays()
 
     def update_overlay_threshold(self, value):
@@ -1457,9 +1460,7 @@ class NiftiViewer(QMainWindow):
             when overlay is active and data is present.
         """
         self.overlay_threshold = value / 100.0
-        if (self.overlay_enabled and
-                hasattr(self, 'overlay_data') and
-                self.overlay_data is not None):
+        if self.overlay_enabled or self.automaticROI_overlay or self.incrementalROI_enabled:
             self.update_all_displays()
 
     def update_overlay_settings(self):
@@ -2062,7 +2063,7 @@ class NiftiViewer(QMainWindow):
         # Generate initial automatic ROI mask
         self.automaticROI_drawing()
 
-        self.automaticROI_checkbox.setChecked(True)
+        self.automaticROI_checkbox.setVisible(True)
         self.automaticROI_checkbox.setEnabled(True)
         # Ensure overlay display is active
         self.toggle_automaticROI(True)
@@ -2167,77 +2168,62 @@ class NiftiViewer(QMainWindow):
         filename = os.path.basename(original_path)
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
 
-        if self.automaticROI_data is not None and self.automaticROI_overlay and not self.overlay_enabled:
-            radius = self.automaticROI_radius_slider.value()
-            difference = self.automaticROI_diff_slider.value() / 10
+        # Prepare filenames and output paths
+        new_base = f"{base_name}_ROI_mask"
+        new_name = f"{new_base}.nii.gz"
 
-            # Prepare filenames and output paths
-            new_base = f"{base_name}_r{radius:02d}_d{int(difference)}_mask"
-            new_name = f"{new_base}.nii.gz"
+        # Show confirmation dialog before saving
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("Confirm Save")
+        msg.setText("Do you want to save the automatic ROI?")
+        msg.setInformativeText(
+            f"File will be saved as:\n\n{new_name}\n\n"
+            f"Location:\n{save_dir}\n\n"
+        )
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
 
-            # Show confirmation dialog before saving
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Question)
-            msg.setWindowTitle("Confirm Save")
-            msg.setText("Do you want to save the automatic ROI?")
-            msg.setInformativeText(
-                f"File will be saved as:\n\n{new_name}\n\n"
-                f"Location:\n{save_dir}\n\n"
-                f"Radius: {radius} mm\nDifference: {difference}%"
-            )
-            msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        # Wait for user response
+        response = msg.exec()
+        if response != QMessageBox.StandardButton.Yes:
+            return  # User canceled
 
-            # Wait for user response
-            response = msg.exec()
-            if response != QMessageBox.StandardButton.Yes:
-                return  # User canceled
-
-            # Ensure save directory exists
-
-        elif self.overlay_data is not None and self.overlay_enabled:
-            radius = 0
-            difference = 0
-            # Prepare filenames and output paths
-            new_base = f"{base_name}_ROI_mask"
-            new_name = f"{new_base}.nii.gz"
-
-            # Show confirmation dialog before saving
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Question)
-            msg.setWindowTitle("Confirm Save")
-            msg.setText("Do you want to save the automatic ROI?")
-            msg.setInformativeText(
-                f"File will be saved as:\n\n{new_name}\n\n"
-                f"Location:\n{save_dir}\n\n"
-            )
-            msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-
-            # Wait for user response
-            response = msg.exec()
-            if response != QMessageBox.StandardButton.Yes:
-                return  # User canceled
 
         os.makedirs(save_dir, exist_ok=True)
         full_save_path = os.path.join(save_dir, new_name)
         json_save_path = os.path.join(save_dir, f"{new_base}.json")
 
+        origin_dict = {}
+
         total_ROI = np.zeros(self.dims)
         if self.overlay_data is not None and self.overlay_enabled:
             total_ROI = np.logical_or(self.overlay_data, total_ROI).astype(np.uint8)
-        if self.automaticROI_data is not None and self.automaticROI_overlay:
-            total_ROI = np.logical_or(self.automaticROI_data, total_ROI).astype(np.uint8)
+            origin_dict["Oiriginal overlay"] = self.overlay_file_path
+
         if self.incrementalROI_data is not None and self.incrementalROI_enabled:
             total_ROI = np.logical_or(self.incrementalROI_data,total_ROI).astype(np.uint8)
+            origin_dict["Automatic drawing parameters"] = self.incrementalROI_origins
+
+        if self.automaticROI_data is not None and self.automaticROI_overlay:
+            total_ROI = np.logical_or(self.automaticROI_data, total_ROI).astype(np.uint8)
+            new_params = {
+                "Seed": list(self.automaticROI_seed_coordinates),  # assicurati che sia JSON-safe
+                "Radius": self.automaticROI_radius_slider.value(),
+                "Difference": self.automaticROI_diff_slider.value(),
+            }
+            if "Automatic drawing parameters" in origin_dict:
+                origin_dict["Automatic drawing parameters"].append(new_params)
+            else:
+                origin_dict["Automatic drawing parameters"] = [new_params]
 
 
         # Start threaded save operation
         self.threads.append(SaveNiftiThread(total_ROI, self.affine,
                                             full_save_path, json_save_path,
-                                            relative_path, radius, difference))
+                                            relative_path, origin_dict))
         self.threads[-1].success.connect(self._on_ROI_saved)
-        self.threads[-1].error.connect(self._on_automaticROI_error)
+        self.threads[-1].error.connect(self._on_ROI_saving_error)
         self.threads[-1].start()
 
     def _on_ROI_saved(self, path, json_path):
@@ -2247,7 +2233,7 @@ class NiftiViewer(QMainWindow):
                                 f"ROI saved in:{path} and metadata saved in:{json_path} successfully!")
         log.info(f"ROI saved in:{path} and metadata saved in:{json_path} successfully!")
 
-    def _on_automaticROI_error(self, error):
+    def _on_ROI_saving_error(self, error):
         """Callback executed when ROI saving fails"""
         QMessageBox.critical(
             self,
@@ -2264,9 +2250,18 @@ class NiftiViewer(QMainWindow):
 
         #if self.overlay_enabled and self.overlay_data is not None:
         #    self.incrementalROI_data = np.logical_or(self.incrementalROI_data, self.overlay_data).astype(np.uint8)
-
+        self.incrementalROI_checkbox.setVisible(True)
         self.incrementalROI_checkbox.setEnabled(True)
         self.toggle_incrementalROI(True)
+
+        new_params = {
+            "Seed": list(self.automaticROI_seed_coordinates),
+            "Radius": self.automaticROI_radius_slider.value(),
+            "Difference": self.automaticROI_diff_slider.value(),
+        }
+
+        # Mantieni lista incrementale
+        self.incrementalROI_origins.append(new_params)
 
     def toggle_incrementalROI(self,enabled):
 
@@ -2340,9 +2335,11 @@ class NiftiViewer(QMainWindow):
 
         self.toggle_incrementalROI(False)
         self.incrementalROI_checkbox.setEnabled(False)
+        self.incrementalROI_checkbox.setVisible(False)
 
         self.toggle_automaticROI(False)
         self.automaticROI_checkbox.setEnabled(False)
+        self.automaticROI_checkbox.setVisible(False)
 
         self.incrementalROI_data = None
         self.automaticROI_data = None
@@ -2353,6 +2350,8 @@ class NiftiViewer(QMainWindow):
         self.automaticROIbtn.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "Automatic ROI"))
 
         self.automaticROIbtn.setEnabled(True)
+
+        self.incrementalROI_origins = []
 
 
 
