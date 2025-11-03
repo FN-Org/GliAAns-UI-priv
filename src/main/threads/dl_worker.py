@@ -42,6 +42,8 @@ class DlWorker(QObject):
         self.current_input_file_basename = None
         self.current_synthstrip_file = None
         self.atlas_file = get_script_path("deep_learning/atlas/T1.nii.gz")
+        self.brats_file = get_script_path("deep_learning/atlas/BraTS-GLI-01-001.nii")
+        self.synthstrip_model = get_script_path("deep_learning/synthstrip.1.pt")
 
         # All processes for all phases
         self.synthstrip_process = None
@@ -180,7 +182,7 @@ class DlWorker(QObject):
                 "-i", self.current_input_file,
                 "-o", self.current_synthstrip_file,
                 "-g",
-                "--model", "synthstrip.1.pt"
+                "--model", self.synthstrip_model
             ]
 
         self.synthstrip_process.start(cmd[0], cmd[1:])
@@ -280,6 +282,7 @@ class DlWorker(QObject):
             get_script_path("deep_learning/reorientation.py"),
             "--input", brain_in_atlas_file,
             "--output", self.output_dir + "/reoriented",
+            "--brats", self.brats_file,
             "--basename", self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         ]
 
@@ -371,7 +374,7 @@ class DlWorker(QObject):
             '--save_preds',
             '--exec_mode', 'predict',
             '--data', f'{self.output_dir}/preprocess/val_3d/test',
-            '--ckpt_path', 'deep_learning/checkpoints/fold3/epoch=146-dice=88.05.ckpt',
+            '--ckpt_path', get_script_path('deep_learning/checkpoints/fold3/epoch=146-dice=88.05.ckpt'),
             '--tta',
             '--results', f'{self.output_dir}/dl_results'
         ]
@@ -414,6 +417,8 @@ class DlWorker(QObject):
             '-i', f'{self.output_dir}/dl_results/predictions_epoch=146-dice=88_05_task=train_fold=0_tta',
             '-o', f'{self.output_dir}/dl_postprocess',
             '--w', f'{self.workspace_path}',
+            '--atlas', self.atlas_file,
+            "--brats", self.brats_file,
             '--mri', f'{self.current_input_file}'
         ]
 
