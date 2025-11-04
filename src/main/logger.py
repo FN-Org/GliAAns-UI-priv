@@ -218,11 +218,3 @@ def set_log_level(level, logger_name="GliAAns-UI"):
         Name of the logger (default: "GliAAns-UI").
     """
     logging.getLogger(logger_name).setLevel(level)
-
-
-if __name__ == "__main__":
-    # Example usage for testing rotation and compression
-    log = setup_logger(console=True, level=logging.INFO)
-
-    for i in range(2000):
-        log.info(f"Test log message number {i}")

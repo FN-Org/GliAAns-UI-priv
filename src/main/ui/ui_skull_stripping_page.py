@@ -119,13 +119,14 @@ class SkullStrippingPage(Page):
 
             if self.has_synthstrip:
                 self.info_label.setText(
-                    'Using tool: <a href="https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/">SynthStrip</a> <br>'
+                    QCoreApplication.translate("SkullStrippingPage", 'Using tool: <a href="https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/">SynthStrip</a> <br>')
                 )
             else:
                 self.info_label.setText(
-                    'Using tool: <a href="https://github.com/MIC-DKFZ/HD-BET">hd-bet</a> <br>'
-                    'To use BET from FSL toolkit, install it following the instructions at: '
-                    '<a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index">FSL installation</a>'
+                    QCoreApplication.translate("SkullStrippingPage",
+                        'Using tool: <a href="https://github.com/MIC-DKFZ/HD-BET">hd-bet</a> <br>'
+                        'To use BET from FSL toolkit, install it following the instructions at: '
+                        '<a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index">FSL installation</a>')
                 )
             self.info_label.setOpenExternalLinks(True)
             self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
@@ -518,9 +519,7 @@ class SkullStrippingPage(Page):
             self.threshold_label.setText(QCoreApplication.translate("SkullStrippingPage", "Threshold gradient; positive values give larger brain outline at bottom, smaller at top"))
             self.coords_label.setText(QCoreApplication.translate("SkullStrippingPage", "Coordinates (voxels) for centre of initial brain surface sphere"))
         else:
-            self.info_label.setText(QCoreApplication.translate("SkullStrippingPage", "Using tool: <a href='https://github.com/MIC-DKFZ/HD-BET'>hd-bet</a> <br>"
-                "To use BET from FSL toolkit, install it following the instructions at: <a href='https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index'>FSL installation</a>"))
-        self.info_label.setToolTip(QCoreApplication.translate("SkullStrippingPage", "Open link"))
+            self.info_label.setToolTip(QCoreApplication.translate("SkullStrippingPage", "Open link"))
 
         self.run_button.setText(QCoreApplication.translate("SkullStrippingPage", "Run Skull Stripping"))
         self.cancel_button.setText(QCoreApplication.translate("SkullStrippingPage", "Cancel"))
