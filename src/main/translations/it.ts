@@ -335,89 +335,89 @@
 <context>
     <name>DlExecutionPage</name>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="369"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="196"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="365"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="192"/>
         <source>📄 {filename} - Waiting...</source>
         <translation>📄 {filename} - In attesa...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="307"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="208"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="202"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="303"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="204"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="198"/>
         <source>Error</source>
         <translation>Errore</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="209"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="203"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="205"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="199"/>
         <source>No files selected for processing.</source>
         <translation>Nessun file selezionato per l&apos;elaborazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="237"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="233"/>
         <source>Deep learning processing started for {0} file</source>
         <translation>Elaborazione con deep learning avviata per il file {0}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="274"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="270"/>
         <source>Cancellation requested...</source>
         <translation>Annullamento richiesto...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="287"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="283"/>
         <source>✓ Processing completed!</source>
         <translation>✓ Processo completato!</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="294"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="290"/>
         <source>Final: {message}</source>
         <translation>Finale: {message}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="305"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="301"/>
         <source>Completed</source>
         <translation>Completato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="362"/>
-        <location filename="../ui/ui_dl_execution_page.py" line="313"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="358"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="309"/>
         <source>Start deep learning</source>
         <translation>Avvio deep learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="327"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="323"/>
         <source>Processing in progress</source>
         <translation>Elaborazione in corso</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="328"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="324"/>
         <source>Processing is in progress. Do you really want to go back?
 Processing will be interrupted.</source>
         <translation>L&apos;elaborazione è in corso. Vuoi davvero tornare indietro?
 L&apos;elaborazione verrà interrotta.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="358"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="354"/>
         <source>Deep Learning Segmentation</source>
         <translation>Segmentazione tramite Deep Learning</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="359"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="355"/>
         <source>Ready to start</source>
         <translation>Pronto per iniziare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="360"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="356"/>
         <source>Files to process</source>
         <translation>File da processare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="361"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="357"/>
         <source>Execution Log:</source>
         <translation>Registro dell&apos;Esecuzione:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_dl_execution_page.py" line="363"/>
+        <location filename="../ui/ui_dl_execution_page.py" line="359"/>
         <source>Stop processing</source>
         <translation>Stop elaborazione</translation>
     </message>
@@ -823,319 +823,364 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>NIfTIViewer</name>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2235"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="151"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2432"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="165"/>
         <source>NIfTI Image Viewer</source>
         <translation>Visualizzatore di immagini NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2242"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="284"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2439"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="308"/>
         <source>Coordinates: (-, -, -)</source>
         <translation>Coordinate: (-, -, -)</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2243"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="285"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2440"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="309"/>
         <source>Value: -</source>
         <translation>Valore: -</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2244"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="286"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2441"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="310"/>
         <source>Slice: -/-</source>
         <translation>Slice: -/-</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2239"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="290"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2436"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="314"/>
         <source>Ready - Open a NIfTI file to begin</source>
         <translation>Pronto - Apri un file NIfTI per iniziare</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="334"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="358"/>
         <source>📁 Open NIfTI</source>
         <translation>📁 Apri NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="338"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="362"/>
         <source>Open NIfTI File</source>
         <translation>Apri file NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2322"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="2250"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="342"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2519"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2447"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="366"/>
         <source>No file loaded</source>
         <translation>Nessun file caricato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="359"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="383"/>
         <source>Slice Navigation:</source>
         <translation>Navigazione slice:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2254"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="366"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2451"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="390"/>
         <source>Axial (Z)</source>
         <translation>Assiale (Z)</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2255"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="367"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2452"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="391"/>
         <source>Coronal (Y)</source>
         <translation>Coronale (Y)</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2256"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="368"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2453"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="392"/>
         <source>Sagittal (X)</source>
         <translation>Sagittale (X)</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2262"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="432"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2459"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="456"/>
         <source>Enable 4D Time Navigation</source>
         <translation>Abilita la navigazione temporale 4D</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2263"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="461"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2460"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="485"/>
         <source>Time Point:</source>
         <translation>Punto temporale:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2266"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="479"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2463"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="503"/>
         <source>Display Options:</source>
         <translation>Opzioni di visualizzazione:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2274"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="491"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2471"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="515"/>
         <source>Colormap:</source>
         <translation>Mappa dei colori:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="522"/>
-        <source>Auto ROI</source>
+        <location filename="../ui/ui_nifti_viewer.py" line="541"/>
+        <source>Automatic ROI:</source>
+        <translation>ROI automatico:</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="2351"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1302"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="551"/>
+        <source>Automatic ROI</source>
         <translation>ROI Automatico</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1987"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="526"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="555"/>
         <source>Automatic ROI Drawing</source>
         <translation>Automatic ROI Drawing</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="529"/>
-        <source>Save ROI</source>
-        <translation>Salva ROI</translation>
+        <location filename="../ui/ui_nifti_viewer.py" line="558"/>
+        <source>Fix ROI and add new Origin</source>
+        <translation>Fissaggio ROI e aggiunta nuova origine</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="533"/>
-        <source>Save ROI Drawing</source>
-        <translation>Salva disegno ROI</translation>
+        <location filename="../ui/ui_nifti_viewer.py" line="562"/>
+        <source>Increment the current incremental ROI with the current ROI drawing</source>
+        <translation>Incrementa l&apos;attuale ROI incrementale con il disegno ROI corrente</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="543"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="570"/>
+        <source>Show incremental ROI</source>
+        <translation>Mostra ROI incrementale</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="577"/>
+        <source>Show automatic ROI</source>
+        <translation>Mostra ROI automatico</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="587"/>
         <source>Radius:</source>
         <translation>Raggio:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="574"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="618"/>
         <source>Difference:</source>
         <translation>Differenza:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2275"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="616"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="659"/>
+        <source>Save ROI</source>
+        <translation>Salva ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="671"/>
+        <source>Save ROI Drawing</source>
+        <translation>Salva disegno ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="675"/>
+        <source>Cancel ROI</source>
+        <translation>Annulla ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="687"/>
+        <source>Cancel ROI Drawing</source>
+        <translation>Annulla disegno ROI</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="2472"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="699"/>
         <source>Overlay Controls:</source>
         <translation>Controlli overlay:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="623"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="706"/>
         <source>Load Overlay</source>
         <translation>Carica overlay</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2278"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="628"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2475"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="711"/>
         <source>Load NIfTI Overlay</source>
         <translation>Carica overlay NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2279"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="632"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2476"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="715"/>
         <source>Show Overlay</source>
         <translation>Mostra overlay</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2280"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="638"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2477"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="721"/>
         <source>Overlay Transparency:</source>
         <translation>Trasparenza overlay:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2281"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="671"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2478"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="754"/>
         <source>Overlay Threshold:</source>
         <translation>Soglia overlay:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2282"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="704"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2479"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="787"/>
         <source>No overlay loaded</source>
         <translation>Nessun overlay caricato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2286"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="823"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2483"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="906"/>
         <source>Axial</source>
         <translation>Assiale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2287"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="824"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2484"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="907"/>
         <source>Coronal</source>
         <translation>Coronale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2288"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="825"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2485"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="908"/>
         <source>Sagittal</source>
         <translation>Sagittale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1780"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="878"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1860"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="961"/>
         <source>Image Information</source>
         <translation>Informazioni sull&apos;immagine</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2323"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="2295"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="888"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2520"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2492"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="971"/>
         <source>No image loaded</source>
         <translation>Nessuna immagine caricata</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1054"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1140"/>
         <source>Warning</source>
         <translation>Avvertimento</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1055"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1141"/>
         <source>Please load a base image first!</source>
         <translation>Per favore, carica prima un&apos;immagine di base!</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1074"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1160"/>
         <source>Loading NIfTI file...</source>
         <translation>Caricamento del file NIfTI...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1075"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1161"/>
         <source>Cancel</source>
         <translation>Annulla</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2312"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="2305"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="2159"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1197"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1185"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1148"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2509"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2502"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2328"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1283"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1271"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1234"/>
         <source>Dimensions</source>
         <translation>Dimensioni</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1163"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1249"/>
         <source>Overlay loaded</source>
         <translation>Overlay caricato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2311"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="2304"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1196"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1184"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2508"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2501"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1282"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1270"/>
         <source>File</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2307"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1187"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2504"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1273"/>
         <source>4D Time Series</source>
         <translation>Serie temporale 4D</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2314"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1199"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2511"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1285"/>
         <source>3D Volume</source>
         <translation>Volume 3D</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1243"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1333"/>
         <source>Error Loading File</source>
         <translation>Errore durante il caricamento del file</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1244"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1334"/>
         <source>Failed to load NIfTI file</source>
         <translation>Impossibile caricare il file NIfTI</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1618"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1592"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1699"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1673"/>
         <source>Coordinates</source>
         <translation>Coordinate</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1630"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1627"/>
-        <location filename="../ui/ui_nifti_viewer.py" line="1594"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1711"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1708"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1675"/>
         <source>Value</source>
         <translation>Valore</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1765"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1845"/>
         <source>Tracer Concentration Curve</source>
         <translation>Curva di concentrazione del tracciante</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1822"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1902"/>
         <source>Concentration</source>
         <translation>Concentrazione</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1832"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1912"/>
         <source>Current Time</source>
         <translation>Ora corrente</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1836"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1916"/>
         <source>Time Point</source>
         <translation>Punto temporale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1838"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1918"/>
         <source>Signal Intensity</source>
         <translation>Intensità del segnale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1889"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1969"/>
         <source>Slices</source>
         <translation>Slices</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="1895"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="1975"/>
         <source>Time</source>
         <translation>Tempo</translation>
     </message>
     <message>
-        <location filename="../ui/ui_nifti_viewer.py" line="2247"/>
+        <location filename="../ui/ui_nifti_viewer.py" line="2058"/>
+        <source>Reset Origin</source>
+        <translation>Reimposta origine</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_nifti_viewer.py" line="2444"/>
         <source>📁 Open NIfTI File</source>
         <translation>📁 Apri file NIfTI</translation>
+    </message>
+    <message>
+        <source>Auto ROI</source>
+        <translation type="vanished">ROI Automatico</translation>
     </message>
     <message>
         <source>gray</source>
@@ -1240,165 +1285,169 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>PipelineExecutionPage</name>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="140"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="136"/>
         <source>Preparing to start...</source>
         <translation>Inizializzazione in corso...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="259"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="255"/>
         <source>Starting pipeline execution...</source>
         <translation>Inizio esecuzione pipeline...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="274"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="269"/>
         <source>ERROR: Failed to start pipeline process</source>
         <translation>ERRORE: inizio esecuzione pipeline fallito</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="276"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="271"/>
         <source>Failed to start pipeline process</source>
         <translation>Inizio esecuzione pipeline fallito</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="286"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="281"/>
         <source>Process exited with code {exit_code}</source>
         <translation>Processo terminato con codice {exit_code}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="291"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="286"/>
         <source>Failed to start process</source>
         <translation>Inizio esecuzione fallita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="293"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="288"/>
         <source>Process crashed</source>
         <translation>Processo bloccato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="294"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="289"/>
         <source>Process timed out</source>
         <translation>Processo scaduto</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="295"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="290"/>
         <source>Write error</source>
         <translation>Errore di scrittura</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="296"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="291"/>
         <source>Read error</source>
         <translation>Errore di lettura</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="297"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="292"/>
         <source>Unknown error</source>
         <translation>Errore sconosciuto</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="299"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="294"/>
         <source>Process error: {error}</source>
         <translation>Errore di processo: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="338"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="333"/>
         <source>ERROR: {error}</source>
         <translation>ERRORE: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="344"/>
-        <source>FINISHED: </source>
-        <translation>FINITO: </translation>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="339"/>
+        <source>FINISHED: {message}</source>
+        <translation>FINITO: {messaggio}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="355"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="349"/>
         <source>All patients processed successfully.</source>
         <translation>Tutti i pazienti elaborati con successo.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="359"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="353"/>
         <source>Pipeline execution completed successfully!</source>
         <translation>Esecuzione della pipeline completata con successo!</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="361"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="355"/>
         <source>Results saved in: {pipeline_output_dir}</source>
         <translation>Risultati salvati in: {pipeline_output_dir}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="372"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="366"/>
         <source>An error occurred during execution.</source>
         <translation>Si è verificato un errore durante l&apos;esecuzione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="379"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="373"/>
         <source>ERROR: {error_message}</source>
         <translation>ERRORE: {error_message}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="423"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="417"/>
         <source>Initializing pipeline...</source>
         <translation>Inizializzazione pipeline...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="429"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="423"/>
         <source>Processing patient: {patient_id}</source>
         <translation>Elaborando paziente: {patient_id}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="436"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="430"/>
         <source>Processing patient data...</source>
         <translation>Elaborazione dei dati del paziente...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="440"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="434"/>
         <source>Performing statistical analysis...</source>
         <translation>Esecuzione di analisi statistiche...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="444"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="438"/>
         <source>Saving results...</source>
         <translation>Salvando i risultati...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="495"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="489"/>
         <source>Stopping pipeline...</source>
         <translation>Arresto della pipeline...</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="505"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="499"/>
         <source>Pipeline stopped by user.</source>
         <translation>Pipeline interrotta dall&apos;utente.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="508"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="502"/>
         <source>Execution was interrupted by user.</source>
         <translation>L&apos;esecuzione è stata interrota dall&apos;utente.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="566"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="560"/>
         <source>Confirm</source>
         <translation>Conferma</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="567"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="561"/>
         <source>You want to return to the import page?</source>
         <translation>Vuoi tornare alla pagina di importazione?</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="637"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="631"/>
         <source>Pipeline Execution</source>
         <translation>Esecuzione della Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="638"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="632"/>
         <source>Stop Pipeline</source>
         <translation>Arresto Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="640"/>
-        <location filename="../ui/ui_pipeline_execution_page.py" line="639"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="634"/>
+        <location filename="../ui/ui_pipeline_execution_page.py" line="633"/>
         <source>Execution Log:</source>
         <translation>Registro dell&apos;Esecuzione:</translation>
+    </message>
+    <message>
+        <source>FINISHED: </source>
+        <translation type="vanished">FINITO: </translation>
     </message>
     <message>
         <source>ERROR: </source>
@@ -1412,94 +1461,94 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>PipelinePatientSelectionPage</name>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1011"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="141"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1012"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="142"/>
         <source>Pipeline Requirements Summary</source>
         <translation>Riassunto requisiti per Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1014"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="152"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1015"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="153"/>
         <source>Total Patients</source>
         <translation>Pazienti totali</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1015"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="154"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1016"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="155"/>
         <source>Eligible</source>
         <translation>Idoneo</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1017"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="460"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="156"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1018"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="461"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="157"/>
         <source>Not Eligible</source>
         <translation>Non idoneo</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="230"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="231"/>
         <source>FLAIR image (anat/*_flair.nii[.gz])</source>
         <translation>Immagine FLAIR (anat/*_flair.nii[.gz])</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="247"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="248"/>
         <source>Skull stripped image (derivatives/skullstrips/.../anat/*_brain.nii[.gz])</source>
         <translation>Immagine skull stripped (derivatives/skullstrips/.../anat/*_brain.nii[.gz])</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="274"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="275"/>
         <source>Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</source>
         <translation>Segmentazione (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="379"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="380"/>
         <source>✓ Ready for Pipeline</source>
         <translation>✓ Pronto per la Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="382"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="383"/>
         <source>✗ Missing Requirements</source>
         <translation>✗ Requisiti mancanti</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="401"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="402"/>
         <source>Segmentation</source>
         <translation>Segmentazione</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="548"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="506"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="453"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="423"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="549"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="507"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="454"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="424"/>
         <source>Select</source>
         <translation>Seleziona</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="611"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="545"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="537"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="495"/>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="452"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="612"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="546"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="538"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="496"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="453"/>
         <source>Selected</source>
         <translation>Selezionato</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1005"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1006"/>
         <source>Select Patients for Pipeline Analysis</source>
         <translation>Selezione pazienti per analisi con Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1007"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1008"/>
         <source>Select All Eligible</source>
         <translation>Seleziona tutti gli idonei</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1008"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1009"/>
         <source>Deselect All</source>
         <translation>Deseleziona tutti</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1009"/>
+        <location filename="../ui/ui_pipeline_patient_selection_page.py" line="1010"/>
         <source>Refresh Status</source>
         <translation>Aggiorna stato</translation>
     </message>
@@ -1507,32 +1556,32 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>PipelineReviewPage</name>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="288"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="285"/>
         <source>Configuration Incomplete</source>
         <translation>Configurazione incompleta</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="289"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="286"/>
         <source>Some patients still require configuration review.</source>
         <translation>Alcuni pazienti richiedono revisione alla configurazione.</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="291"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="288"/>
         <source>Please review and save configuration for: {patients}</source>
         <translation>Per favore revisiona e salva la configurazione per: {patients}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="340"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="337"/>
         <source>Pipeline Configuration Review</source>
         <translation>Revisione configurazioni per Pipeline</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="342"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="339"/>
         <source>Reviewing: {0}</source>
         <translation>Revisione: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_pipeline_review_page.py" line="345"/>
+        <location filename="../ui/ui_pipeline_review_page.py" line="342"/>
         <source>&lt;strong&gt;Click&lt;/strong&gt; a frame to review file selections. &lt;strong&gt;Save&lt;/strong&gt; yellow frames after selection.</source>
         <translation>&lt;strong&gt;Fai clic&lt;/strong&gt; su un frame per rivedere le selezioni dei file. &lt;strong&gt;Salva&lt;/strong&gt; i frame gialli dopo la selezione.</translation>
     </message>
@@ -1643,94 +1692,103 @@ L&apos;elaborazione verrà interrotta.</translation>
 <context>
     <name>SkullStrippingPage</name>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="418"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="122"/>
+        <source>Using tool: &lt;a href=&quot;https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/&quot;&gt;SynthStrip&lt;/a&gt; &lt;br&gt;</source>
+        <translation>Utilizzo dello strumento: &lt;a href=&quot;https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/&quot;&gt;SynthStrip&lt;/a&gt; &lt;br&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_page.py" line="126"/>
+        <source>Using tool: &lt;a href=&quot;https://github.com/MIC-DKFZ/HD-BET&quot;&gt;hd-bet&lt;/a&gt; &lt;br&gt;To use BET from FSL toolkit, install it following the instructions at: &lt;a href=&quot;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&quot;&gt;FSL installation&lt;/a&gt;</source>
+        <translation>Utilizzo dello strumento: &lt;a href=&quot;https://github.com/MIC-DKFZ/HD-BET&quot;&gt;hd-bet&lt;/a&gt; &lt;br&gt;Per utilizzare BET dal toolkit FSL, installalo seguendo le istruzioni su: &lt;a href=&quot;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&quot;&gt;Installazione FSL&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ui/ui_skull_stripping_page.py" line="419"/>
         <source>Skull Stripping completed successfully for {0} file(s)</source>
         <translation>Skull Strip completato con successo per {0} file</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="422"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="423"/>
         <source>{count} file(s) failed: {files}</source>
         <translation>{count} file falliti: {files}</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="435"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="436"/>
         <source>All {0} file(s) failed to process</source>
         <translation>Elaborazione di tutti i {0} file fallita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="506"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="507"/>
         <source>Select a NIfTI file for Skull Stripping</source>
         <translation>Selezionare un NIfTI file per procedere con lo skull stripping</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="508"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="509"/>
         <source>Fractional intensity threshold, smaller values give larger brain outline estimates</source>
         <translation>Soglia di intensità frazionaria, valori più piccoli forniscono stime più ampie del contorno del cervello</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="509"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="510"/>
         <source>Show Advanced Options</source>
         <translation>Mostra opzioni avanzate</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="510"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="511"/>
         <source>Advanced options:</source>
         <translation>Opzioni avanzate:</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="511"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="512"/>
         <source>Output brain-extracted image</source>
         <translation>Immagine estratta dal cervello in uscita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="512"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="513"/>
         <source>Output binary brain mask image</source>
         <translation>Immagine della maschera cerebrale binaria in uscita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="513"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="514"/>
         <source>Apply thresholding to brain and mask image</source>
         <translation>Applicare la soglia al cervello e mascherare l&apos;immagine</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="514"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="515"/>
         <source>Output exterior skull surface image</source>
         <translation>Immagine della superficie esterna del cranio in uscita</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="515"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="516"/>
         <source>Output brain surface overlaid onto original image</source>
         <translation>Superficie cerebrale di output sovrapposta all&apos;immagine originale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="516"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="517"/>
         <source>Threshold gradient; positive values give larger brain outline at bottom, smaller at top</source>
         <translation>Gradiente di soglia; i valori positivi danno un contorno del cervello più grande in basso, più piccolo in alto</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="517"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="518"/>
         <source>Coordinates (voxels) for centre of initial brain surface sphere</source>
         <translation>Coordinate (voxel) per il centro della sfera iniziale della superficie cerebrale</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="519"/>
-        <source>Using tool: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;To use BET from FSL toolkit, install it following the instructions at: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;FSL installation&lt;/a&gt;</source>
-        <translation>Utilizzo dello strumento: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;Per utilizzare BET dal toolkit FSL, installalo seguendo le istruzioni su: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;Installazione FSL&lt;/a&gt;</translation>
-    </message>
-    <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="521"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="520"/>
         <source>Open link</source>
         <translation>Apri link</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="523"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="522"/>
         <source>Run Skull Stripping</source>
         <translation>Eseguire lo skull stripping</translation>
     </message>
     <message>
-        <location filename="../ui/ui_skull_stripping_page.py" line="524"/>
+        <location filename="../ui/ui_skull_stripping_page.py" line="523"/>
         <source>Cancel</source>
         <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Using tool: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;To use BET from FSL toolkit, install it following the instructions at: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;FSL installation&lt;/a&gt;</source>
+        <translation type="vanished">Utilizzo dello strumento: &lt;a href=&apos;https://github.com/MIC-DKFZ/HD-BET&apos;&gt;hd-bet&lt;/a&gt; &lt;br&gt;Per utilizzare BET dal toolkit FSL, installalo seguendo le istruzioni su: &lt;a href=&apos;https://fsl.fmrib.ox.ac.uk/fsl/docs/#/install/index&apos;&gt;Installazione FSL&lt;/a&gt;</translation>
     </message>
     <message>
         <source>No files</source>
@@ -1778,7 +1836,7 @@ L&apos;elaborazione verrà interrotta.</translation>
         <translation>Impossibile convertire DICOM: {0}</translation>
     </message>
     <message>
-        <location filename="../threads/nifti_utils_threads.py" line="164"/>
+        <location filename="../threads/nifti_utils_threads.py" line="158"/>
         <source>Not a valid NIfTI file</source>
         <translation>Non è un file NIfTI valido</translation>
     </message>
