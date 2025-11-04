@@ -207,7 +207,7 @@ tests:
 	    /bin/bash /Users/niky/Documents/1_projects/GliAAns-UI/src/tests/run_all_tests.sh
 
 .PHONY: tests-coverage
-tests:
+tests-coverage:
 	env PATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
 	    PYTHONPATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/main \
 	    VIRTUAL_ENV=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv \
