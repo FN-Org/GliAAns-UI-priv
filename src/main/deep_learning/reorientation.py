@@ -21,7 +21,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--brats", type=str, required=False,
-    default=os.path.join("pediatric_fdopa_pipeline", "atlas", "BraTS-GLI-01-001.nii"),
+    default=os.path.join("deep_learning", "atlas", "BraTS-GLI-01-001.nii"),
     help="File BraTS di riferimento (default: BraTS-GLI-01-001.nii nel repo)"
 )
 

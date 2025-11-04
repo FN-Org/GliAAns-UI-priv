@@ -3,11 +3,11 @@ import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 
+from utils.coreg import align, transform
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-from main.pediatric_fdopa_pipeline.utils import align, transform
 
 
 # retrieve args from command line

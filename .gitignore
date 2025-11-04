@@ -22,6 +22,14 @@ nuitka-crash-report.xml
 /pediatric_fdopa_pipeline/.venv
 /ui/__pycache__
 /test/.venv
+/.venv-wsl
+/src/main/.venv
+/src/main/build
+/src/main/dist
+/src/main/pediatric_fdopa_pipeline/.venv
+/src/main/pipeline_runner
+/src/tests/.venv
+/docs
 .coverage
 /src/.venv
 /src/main/pediatric_fdopa_pipeline/.venv

@@ -168,3 +168,21 @@ def setup_fsl_env():
 
     fsldir, fsloutputtype = lines[0], lines[1]
     return fsldir, fsloutputtype
+
+def get_dl_python_executable():
+    """Restituisce il path del Python nel venv deep learning."""
+    base_dir = Path(sys.executable).parent  # Cartella dell'exe (GliAAnsUI)
+
+    # Determina il percorso del Python nel venv
+    python_path = base_dir / ".venv-dl" / "bin" / "python"
+
+    if not python_path.exists():
+        raise FileNotFoundError(f"Python DL environment not found: {python_path}")
+
+    return str(python_path)
+
+def get_script_path(script_relative_path):
+    """Restituisce il percorso assoluto di uno script deep learning"""
+    base_dir = Path(sys.executable).parent
+    script_path = base_dir / script_relative_path
+    return str(script_path)

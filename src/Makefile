@@ -24,6 +24,8 @@ ifeq ($(OS),Windows_NT)
     PIPELINE_RUNNER    = $(PIPELINE_DIR)\pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)\$(REQUIREMENTS)
     PIPELINE_EXE 	   = pipeline_runner.exe
+    DL_VENV_DIR		   = .venv-dl
+    DL_PIP			   = dist/GliAAns-UI/$(DL_VENV_DIR)/Scripts/pip
     TESTS_VENV_DIR	   = tests\$(VENV_DIR)
     TESTS_PIP 		   = $(TESTS_VENV_DIR)\Scripts\pip
     TESTS_PYTHON       = $(TESTS_VENV_DIR)\Scripts\python
@@ -33,6 +35,7 @@ ifeq ($(OS),Windows_NT)
     ATLAS              = $(PIPELINE_DIR)\atlas
     HD_BET             = $(VENV_DIR)\Scripts\hd-bet.exe
     DCM2NIIX           = $(VENV_DIR)\Scripts\dcm2niix.exe
+    NIPREPS_SYNTHSTRIP = $(VENV_DIR)/Scripts/nipreps-synthstrip
 else
     # ---- Linux / macOS ----
     UNAME_S := $(shell uname -s)
@@ -55,6 +58,9 @@ else
     PIPELINE_RUNNER    = $(PIPELINE_DIR)/pipeline_runner.py
     PIPELINE_REQUIREMENTS = $(PIPELINE_DIR)/requirements.txt
     PIPELINE_EXE 	   = pipeline_runner
+    DL_VENV_DIR		   = .venv-dl
+    DL_PIP			   = dist/GliAAns-UI/$(DL_VENV_DIR)/bin/pip
+    DL_REQUIREMENTS	   = deep_learning/requirements.txt
     TESTS_VENV_DIR	   = tests/$(VENV_DIR)
     TESTS_PIP 		   = $(TESTS_VENV_DIR)/bin/pip
     TESTS_PYTHON       = $(TESTS_VENV_DIR)/bin/python
@@ -62,6 +68,7 @@ else
     ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
+    NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
 endif
 
 # -------------------------
@@ -72,6 +79,9 @@ $(APP_VENV_DIR):
 
 $(PIPELINE_VENV_DIR):
 	cd main && $(PYTHON) -m venv $(PIPELINE_VENV_DIR)
+
+$(DL_VENV_DIR):
+	cd main/dist/GliAAns-UI && $(PYTHON) -m venv $(DL_VENV_DIR)
 
 $(TESTS_VENV_DIR):
 	$(PYTHON) -m venv $(TESTS_VENV_DIR)
@@ -86,6 +96,10 @@ main_python-setup: $(APP_VENV_DIR)
 .PHONY: pipeline_python-setup
 pipeline_python-setup: $(PIPELINE_VENV_DIR)
 	cd main && $(PIPELINE_PIP) install -r $(PIPELINE_REQUIREMENTS)
+
+.PHONY: dl_python-setup
+dl_python-setup: $(DL_VENV_DIR)
+	cd main && $(DL_PIP) install -r $(DL_REQUIREMENTS)
 
 .PHONY: tests_python-setup
 tests_python-setup: $(TESTS_VENV_DIR)
@@ -114,7 +128,6 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	    --show-progress \
 	    --show-modules
 
-
 $(PIPELINE_NO_DIST):$(PIPELINE_DIST)
 ifeq ($(OS),Windows_NT)
 	cmd /C move $(PIPELINE_DIST) $(PIPELINE_NO_DIST)
@@ -140,6 +153,7 @@ compile-app: $(APP_VENV_DIR)
 	    --add-data "pipeline_runner$(SEP)pipeline_runner" \
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
+	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
@@ -152,6 +166,10 @@ all: setup-all app
 
 .PHONY: app
 app: compile-pipeline compile-app
+
+.PHONY: app-dl
+app-dl: compile-app dl_python-setup
+	cd main && cp -r deep_learning/ dist/GliAAns-UI
 
 # -------------------------
 # Cleaning

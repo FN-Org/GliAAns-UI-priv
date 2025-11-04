@@ -10,11 +10,11 @@ import os
 from glob import glob
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
+from utils.coreg import align, transform
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-from main.pediatric_fdopa_pipeline.utils import align, transform
 
 
 # inspired by the NVIDIA nnU-Net GitHub repository available at:
@@ -38,7 +38,7 @@ def back_to_original_labels(pred):
     return bin_pred
 
 
-def prepare_predictions(preds, output_dir):
+def prepare_predictions(preds, brats, output_dir):
     saved_files = []
     for pred in preds:
         fname = os.path.basename(pred).split(".")[0]
@@ -49,7 +49,7 @@ def prepare_predictions(preds, output_dir):
         p = back_to_original_labels(pred_mean)
 
         # save as NIfTI
-        img = nib.load("pediatric_fdopa_pipeline/atlas/BraTS-GLI-01-001.nii")
+        img = nib.load(brats)
         out_path = os.path.join(output_dir, f"{fname}-seg.nii.gz")
         nib.save(
             nib.Nifti1Image(p, img.affine, header=img.header),
@@ -96,6 +96,15 @@ parser.add_argument(
     help="Workspace path"
 )
 parser.add_argument(
+    "--atlas", type=str, required=True,
+    help="T1 atlas"
+)
+parser.add_argument(
+    "--brats", type=str, required=False,
+    default=os.path.join("deep_learning", "atlas", "BraTS-GLI-01-001.nii"),
+    help="File BraTS di riferimento (default: BraTS-GLI-01-001.nii nel repo)"
+)
+parser.add_argument(
     "--mri", type=str, required=True,
     help="Original FLAIR mri"
 )
@@ -114,12 +123,13 @@ if __name__ == "__main__":
     print(f"Preparing final predictions from {len(preds)} files...")
 
     # === FASE 1: FROM NPY TO NIFTI ===
-    save_preds = prepare_predictions(preds, output_dir=args.output)
+    brats_reference_path = args.brats
+    save_preds = prepare_predictions(preds, brats_reference_path, output_dir=args.output)
 
     # === FASE 2: FROM BRATS TO MRI ===
     mri = args.mri # Flair originale
     mrib = save_preds[0]
-    atlas_brats = "pediatric_fdopa_pipeline/atlas/T1.nii.gz"
+    atlas_brats = args.atlas
 
     # Estrai subject ID dal path della MRI
     subject_id = extract_subject_id(mri)

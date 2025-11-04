@@ -1,0 +1,27 @@
+scipy==1.13.1
+pandas
+matplotlib
+seaborn
+
+# --- Machine Learning & Deep Learning ---
+scikit-learn==1.6.1
+scikit-image==0.25.0
+torch==2.6.0
+torchvision==0.21.0
+torchtext==0.18.0
+torchinfo==1.7.0
+pytorch-lightning==2.5.0.post0
+monai==0.9.1
+joblib==1.4.2
+
+
+nibabel
+antspyx
+
+
+rich==12.2.0
+
+# --- NVIDIA & logging ---
+--extra-index-url https://developer.download.nvidia.com/compute/redist/nightly
+git+https://github.com/NVIDIA/dllogger
+nvidia-dali-nightly-cuda120

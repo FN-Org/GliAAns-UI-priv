@@ -481,6 +481,8 @@ class SkullStrippingPage(Page):
 
         self.file_selector_widget.clear_selected_files()
         self.run_button.setEnabled(False)
+
+        # Reset advanced options
         self.f_spinbox.setValue(0.50)
         self.advanced_btn.setChecked(False)
         self.advanced_box.setVisible(False)
