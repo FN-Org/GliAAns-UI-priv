@@ -406,8 +406,6 @@ class FolderCard(QWidget):
                 all_files.add(relative_path)
         return all_files
 
-    # Aggiungi questo nuovo metodo a FolderCard
-
     def set_finished_state(self):
         """
         Sets the card to a visual "Completed" state.

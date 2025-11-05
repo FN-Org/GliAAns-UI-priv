@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import sys
 
 from PyQt6.QtGui import QFont
@@ -76,6 +77,8 @@ class PipelineExecutionPage(Page):
             raise RuntimeError("Pipeline runner executable missing.")
 
         log.debug(f"Pipeline binary path: {self.pipeline_bin_path}")
+
+        self.folder_cards = {}
 
         # Build UI
         self._setup_ui()
@@ -157,20 +160,9 @@ class PipelineExecutionPage(Page):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
+        self.scroll_layout = QVBoxLayout(scroll_content)
         scroll_area.setWidget(scroll_content)
         content_layout.addWidget(scroll_area, 0, 1)
-
-        # Load folder cards dynamically from configuration
-        self.folder_cards = {}
-        self.watch_dirs = self.get_sub_list(self.config_path)
-        self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
-        self.dir_completed = 0
-        for d in self.watch_dirs:
-            card = FolderCard(self.context, d)
-            card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
-            scroll_layout.addWidget(card)
-            self.folder_cards[d] = card
 
         # Grid layout proportions
         content_layout.setColumnStretch(0, 1)
@@ -235,6 +227,17 @@ class PipelineExecutionPage(Page):
         button_layout.addStretch()
 
         main_layout.addWidget(button_frame)
+
+    def _setup_folder_cards(self):
+        # Load folder cards dynamically from configuration
+        self.watch_dirs = self.get_sub_list(self.config_path)
+        self.watch_dirs = [os.path.join(self.pipeline_output_dir, d) for d in self.watch_dirs]
+        self.dir_completed = 0
+        for d in self.watch_dirs:
+            card = FolderCard(self.context, d)
+            card.open_folder_requested.connect(self.context["tree_view"]._open_in_explorer)
+            self.scroll_layout.addWidget(card)
+            self.folder_cards[d] = card
 
     # ─────────────────────────────────────────────
     # PIPELINE PROCESS HANDLING
@@ -334,9 +337,14 @@ class PipelineExecutionPage(Page):
         elif line.startswith("PROGRESS: "):
             progress_info = line[10:]
             self._update_progress(progress_info)
+        elif line.startswith("PATIENT: "):
+            patient_info = line[9:]
+            self._log_message(
+                QCoreApplication.translate("PipelineExecutionPage", "Pipeline finished for patient: {message}").format(message=patient_info))
+            self._update_progress(patient_info)
         elif line.startswith("FINISHED: "):
             message = line[10:]
-            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED: {message}").format(message=message))
+            self._log_message(QCoreApplication.translate("PipelineExecutionPage", "FINISHED for: {message}").format(message=message))
         else:
             self._log_message(line)
 
@@ -394,16 +402,24 @@ class PipelineExecutionPage(Page):
 
                 self.check_new_files()  # Update folder views
             elif "sub" in progress_info:
-                self.dir_completed += 1
-                if 0 <= self.dir_completed < len(self.watch_dirs):
-                    finished_dir = self.watch_dirs[self.dir_completed]
-                    finished_card = self.folder_cards.get(finished_dir)
-                    if finished_card:
-                        log.debug(f"Setting finished state for card: {finished_dir}")
-                        finished_card.set_finished_state()
+                match = re.search(r"(sub-[a-zA-Z0-9_]+)", progress_info)
+                if match:
+                    sub_id = match.group(1)
+                    log.debug(f"Detected progress completion for: {sub_id}")
+
+                    for folder_path, card in self.folder_cards.items():
+                        folder_name = os.path.basename(folder_path)
+                        if sub_id in folder_name:
+                            log.debug(f"Setting finished state for card: {folder_name}")
+                            card.set_finished_state()
+                            break
+                    else:
+                        log.warning(f"No matching FolderCard found for {sub_id}")
+                else:
+                    log.warning(f"Could not extract sub-id from progress info: {progress_info}")
 
         except ValueError:
-            log.warning("Failed to parse progress info")
+                log.warning("Failed to parse progress info")
 
     def _update_current_operation(self, message):
         """
@@ -528,8 +544,32 @@ class PipelineExecutionPage(Page):
 
         Starts the pipeline automatically after the UI is fully rendered.
         """
+        # Load the most recent pipeline configuration file
+        self.config_path = self._find_latest_config()
+
+        # Extract pipeline ID and output directory
+        config_filename = os.path.basename(self.config_path)
+        try:
+            config_id = config_filename.split('_')[0]
+            self.pipeline_output_dir = os.path.join(
+                self.workspace_path, "pipeline", f"{config_id}_output"
+            )
+            os.makedirs(self.pipeline_output_dir, exist_ok=True)
+        except (IndexError, ValueError):
+            log.debug("Failed to create pipeline_output_dir")
+            self.pipeline_output_dir = os.path.join(self.workspace_path, "pipeline")
+
+        # Resolve path to pipeline executable
+        try:
+            self.pipeline_bin_path = get_bin_path("pipeline_runner")
+        except FileNotFoundError:
+            log.error("Pipeline runner binary not found")
+            raise RuntimeError("Pipeline runner executable missing.")
+
         if not self.pipeline_completed and self.pipeline_process is None:
             QTimer.singleShot(500, self._start_pipeline)
+
+        self._setup_folder_cards()
 
     def back(self):
         """
@@ -565,6 +605,7 @@ class PipelineExecutionPage(Page):
         result = msg_box.exec()
 
         if result == QMessageBox.StandardButton.Ok:
+            self.reset_page()
             self._return_to_import()
             return self.context["return_to_import"]()
         return None
@@ -604,6 +645,15 @@ class PipelineExecutionPage(Page):
 
         Clears logs, progress, and error flags.
         """
+        if hasattr(self, "scroll_layout"):
+            while self.scroll_layout.count():
+                item = self.scroll_layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
+                    widget.deleteLater()
+        self.folder_cards = {}
+
         self.progress_bar.setValue(0)
         self.progress_bar.setColor("#3498DB")
         self.stop_button.setEnabled(False)
@@ -617,8 +667,6 @@ class PipelineExecutionPage(Page):
         self.pipeline_process = None
         self.pipeline_error = None
         self.pipeline_completed = False
-        for card in self.folder_cards.values():
-            card.reset_state()
 
     def __del__(self):
         """Ensure that any running pipeline process is terminated on destruction."""

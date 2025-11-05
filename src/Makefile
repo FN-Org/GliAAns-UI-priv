@@ -106,7 +106,7 @@ tests_python-setup: $(TESTS_VENV_DIR)
 	$(TESTS_PIP) install -r $(TESTS_REQUIREMENTS)
 
 .PHONY: setup-all
-setup-all: main_python-setup pipeline_python-setup tests_python-setup
+setup-all: main_python-setup pipeline_python-setup
 
 # -------------------------
 # Pipeline compilation with Nuitka
