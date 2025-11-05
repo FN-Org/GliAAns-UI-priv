@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtCore import QProcess
 
 from main.threads.dl_worker import DlWorker
+import main.threads.dl_worker
 
 
 @pytest.fixture
@@ -19,31 +20,51 @@ def test_input_files(temp_workspace):
     return files
 
 
-@pytest.fixture
-def mock_qprocess():
-    """Mock per QProcess."""
-    with patch("main.threads.dl_worker.QProcess") as mock:
-        process_instance = MagicMock()
-        process_instance.finished = Mock()
-        process_instance.finished.connect = Mock()
-        process_instance.errorOccurred = Mock()
-        process_instance.errorOccurred.connect = Mock()
-        process_instance.readyReadStandardOutput = Mock()
-        process_instance.readyReadStandardOutput.connect = Mock()
-        process_instance.readyReadStandardError = Mock()
-        process_instance.readyReadStandardError.connect = Mock()
-        process_instance.start = Mock()
-        process_instance.state = Mock(return_value=QProcess.ProcessState.NotRunning)
-        process_instance.waitForFinished = Mock(return_value=True)
-        process_instance.terminate = Mock()
-        process_instance.kill = Mock()
+@pytest.fixture(autouse=True)
+def mock_external_dependencies(mocker):
+    """
+    Questa fixture viene eseguita automaticamente per ogni test (autouse=True).
+    Simula (mocka) le funzioni in utils.py che cercano dipendenze esterne
+    durante l'__init__ di DlWorker.
+    """
 
-        mock.return_value = process_instance
-        mock.ProcessState = QProcess.ProcessState
-        mock.ExitStatus = QProcess.ExitStatus
-        mock.ProcessError = QProcess.ProcessError
+    # 1. Mocka get_dl_python_executable
+    mocker.patch(
+        "main.threads.dl_worker.get_dl_python_executable",
+        return_value=sys.executable
+    )
 
-        yield mock
+    # 2. Mocka get_bin_path
+    mocker.patch(
+        "main.threads.dl_worker.get_bin_path",
+        return_value="/fake/path/to/binary"
+    )
+
+    # 3. Mocka QProcess in modo completo (SOSTITUZIONE)
+    mock_qprocess_class = mocker.patch("main.threads.dl_worker.QProcess")
+
+    # Configura l'istanza mock che verrà restituita
+    process_instance = MagicMock()
+    # Usiamo MagicMock per i segnali, specificando 'connect' per evitare errori
+    process_instance.finished = MagicMock(spec_set=['connect'])
+    process_instance.errorOccurred = MagicMock(spec_set=['connect'])
+    process_instance.readyReadStandardOutput = MagicMock(spec_set=['connect'])
+    process_instance.readyReadStandardError = MagicMock(spec_set=['connect'])
+    process_instance.start = Mock()
+    process_instance.state = Mock(return_value=QProcess.ProcessState.NotRunning)
+    process_instance.waitForFinished = Mock(return_value=True)
+    process_instance.terminate = Mock()
+    process_instance.kill = Mock()
+
+    # Fai in modo che QProcess() restituisca la nostra istanza configurata
+    mock_qprocess_class.return_value = process_instance
+
+    # === LA CORREZIONE CHIAVE ===
+    # Esponi gli enum REALI sulla classe mockata.
+    # Ora QProcess.ExitStatus nel codice punterà a quello reale.
+    mock_qprocess_class.ProcessState = QProcess.ProcessState
+    mock_qprocess_class.ExitStatus = QProcess.ExitStatus
+    mock_qprocess_class.ProcessError = QProcess.ProcessError
 
 
 class TestDlWorkerInitialization:
@@ -51,12 +72,12 @@ class TestDlWorkerInitialization:
 
     def test_initialization_basic(self, qtbot, test_input_files, temp_workspace):
         """Test inizializzazione base."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         assert worker.input_files == test_input_files
         assert worker.workspace_path == temp_workspace
-        assert worker.total_files is len(test_input_files) if test_input_files else 0
+        assert worker.total_files is None
         assert worker.processed_files is None
         assert worker.failed_files is None
         assert worker.is_cancelled is False
@@ -66,7 +87,7 @@ class TestDlWorkerInitialization:
 
     def test_initialization_signals_exist(self, qtbot, test_input_files, temp_workspace):
         """Test che tutti i signal esistano."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         assert hasattr(worker, 'progressbar_update')
@@ -77,7 +98,7 @@ class TestDlWorkerInitialization:
 
     def test_initialization_process_instances_none(self, qtbot, test_input_files, temp_workspace):
         """Test che le istanze process siano None inizialmente."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         assert worker.synthstrip_process is None
@@ -93,7 +114,7 @@ class TestUpdateProgress:
 
     def test_update_progress_basic(self, qtbot, test_input_files, temp_workspace):
         """Test aggiornamento progresso base."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 3
@@ -109,7 +130,7 @@ class TestUpdateProgress:
 
     def test_update_progress_zero_files(self, qtbot, test_input_files, temp_workspace):
         """Test con zero file."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
 
         worker.total_files = 0
 
@@ -120,7 +141,7 @@ class TestUpdateProgress:
 
     def test_update_progress_calculation(self, qtbot, test_input_files, temp_workspace):
         """Test calcolo progresso."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 2
@@ -137,7 +158,7 @@ class TestUpdateProgress:
 
     def test_update_progress_max_100(self, qtbot, test_input_files, temp_workspace):
         """Test che il progresso non superi 100."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 1
@@ -155,7 +176,7 @@ class TestStart:
 
     def test_start_initializes_counters(self, qtbot, test_input_files, temp_workspace):
         """Test che start inizializzi i contatori."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with patch.object(worker, 'process_single_file'):
@@ -169,7 +190,7 @@ class TestStart:
 
     def test_start_calls_process_single_file(self, qtbot, test_input_files, temp_workspace):
         """Test che start chiami process_single_file."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with patch.object(worker, 'process_single_file') as mock_process:
@@ -179,7 +200,7 @@ class TestStart:
 
     def test_start_emits_initial_progress(self, qtbot, test_input_files, temp_workspace):
         """Test che start emetta progresso iniziale."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with patch.object(worker, 'process_single_file'):
@@ -192,7 +213,7 @@ class TestProcessSingleFile:
 
     def test_process_single_file_creates_temp_dir(self, qtbot, test_input_files, temp_workspace):
         """Test che crei directory temporanea."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = len(test_input_files)
@@ -205,7 +226,7 @@ class TestProcessSingleFile:
 
     def test_process_single_file_sets_current_file(self, qtbot, test_input_files, temp_workspace):
         """Test che imposti il file corrente."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = len(test_input_files)
@@ -219,7 +240,7 @@ class TestProcessSingleFile:
 
     def test_process_single_file_calls_run_synthstrip(self, qtbot, test_input_files, temp_workspace):
         """Test che chiami run_synthstrip."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = len(test_input_files)
@@ -231,7 +252,7 @@ class TestProcessSingleFile:
 
     def test_process_single_file_emits_log(self, qtbot, test_input_files, temp_workspace):
         """Test che emetta log."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = len(test_input_files)
@@ -244,9 +265,9 @@ class TestProcessSingleFile:
 class TestRunSynthstrip:
     """Test per il metodo run_synthstrip."""
 
-    def test_run_synthstrip_creates_process(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_run_synthstrip_creates_process(self, qtbot, test_input_files, temp_workspace):
         """Test che crei il processo."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.current_input_file = test_input_files[0]
@@ -257,9 +278,9 @@ class TestRunSynthstrip:
 
         assert worker.synthstrip_process is not None
 
-    def test_run_synthstrip_connects_signals(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_run_synthstrip_connects_signals(self, qtbot, test_input_files, temp_workspace):
         """Test che connetta i signal."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.current_input_file = test_input_files[0]
@@ -271,9 +292,9 @@ class TestRunSynthstrip:
         assert worker.synthstrip_process.finished.connect.called
         assert worker.synthstrip_process.errorOccurred.connect.called
 
-    def test_run_synthstrip_starts_process(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_run_synthstrip_starts_process(self, qtbot, test_input_files, temp_workspace):
         """Test che avvii il processo."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.current_input_file = test_input_files[0]
@@ -284,9 +305,9 @@ class TestRunSynthstrip:
 
         worker.synthstrip_process.start.assert_called_once()
 
-    def test_run_synthstrip_emits_signals(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_run_synthstrip_emits_signals(self, qtbot, test_input_files, temp_workspace):
         """Test che emetta signal."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.current_input_file = test_input_files[0]
@@ -302,8 +323,10 @@ class TestOnSynthstripFinished:
 
     def test_on_synthstrip_finished_success(self, qtbot, test_input_files, temp_workspace):
         """Test completamento con successo."""
-        worker = DlWorker(test_input_files, temp_workspace)
-        
+        worker = DlWorker(test_input_files, temp_workspace, False)
+
+        worker.total_files = len(test_input_files)
+        worker.current_file_index = 0
 
         worker.current_input_file_basename = "test.nii.gz"
 
@@ -315,7 +338,7 @@ class TestOnSynthstripFinished:
 
     def test_on_synthstrip_finished_failure(self, qtbot, test_input_files, temp_workspace):
         """Test completamento con fallimento."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 2
@@ -329,7 +352,7 @@ class TestOnSynthstripFinished:
 
     def test_on_synthstrip_finished_cancelled(self, qtbot, test_input_files, temp_workspace):
         """Test quando cancellato."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.is_cancelled = True
@@ -345,42 +368,44 @@ class TestCancel:
 
     def test_cancel_sets_flag(self, qtbot, test_input_files, temp_workspace):
         """Test che imposti il flag."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.cancel()
 
         assert worker.is_cancelled is True
 
-    def test_cancel_terminates_running_processes(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_cancel_terminates_running_processes(self, qtbot, test_input_files, temp_workspace):
         """Test che termini i processi in esecuzione."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         # Simula processo in esecuzione
-        worker.synthstrip_process = mock_qprocess.return_value
-        worker.synthstrip_process.state = Mock(return_value=QProcess.ProcessState.Running)
+        mock_process = main.threads.dl_worker.QProcess()
+        worker.synthstrip_process = mock_process
+        mock_process.state = Mock(return_value=QProcess.ProcessState.Running)
 
         worker.cancel()
 
         worker.synthstrip_process.terminate.assert_called_once()
 
-    def test_cancel_kills_if_not_terminated(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_cancel_kills_if_not_terminated(self, qtbot, test_input_files, temp_workspace):
         """Test che uccida il processo se non si termina."""
-        worker = DlWorker(test_input_files, temp_workspace)
-        
+        worker = DlWorker(test_input_files, temp_workspace, False)
 
-        worker.synthstrip_process = mock_qprocess.return_value
-        worker.synthstrip_process.state = Mock(return_value=QProcess.ProcessState.Running)
-        worker.synthstrip_process.waitForFinished = Mock(return_value=False)
+        mock_process = main.threads.dl_worker.QProcess()
+
+        worker.synthstrip_process = mock_process
+        mock_process.state = Mock(return_value=QProcess.ProcessState.Running)
+        mock_process.waitForFinished = Mock(return_value=False)
 
         worker.cancel()
 
-        worker.synthstrip_process.kill.assert_called_once()
+        mock_process.kill.assert_called_once()
 
     def test_cancel_emits_finished_signal(self, qtbot, test_input_files, temp_workspace):
         """Test che emetta finished signal."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with qtbot.waitSignal(worker.finished) as blocker:
@@ -394,7 +419,7 @@ class TestOnStdout:
 
     def test_on_stdout_basic(self, qtbot, test_input_files, temp_workspace):
         """Test gestione stdout base."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         mock_data = Mock()
@@ -405,7 +430,7 @@ class TestOnStdout:
 
     def test_on_stdout_multiline(self, qtbot, test_input_files, temp_workspace):
         """Test con output multilinea."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         mock_data = Mock()
@@ -425,7 +450,7 @@ class TestOnStderr:
 
     def test_on_stderr_basic(self, qtbot, test_input_files, temp_workspace):
         """Test gestione stderr base."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         mock_data = Mock()
@@ -440,7 +465,7 @@ class TestOnError:
 
     def test_on_error_failed_to_start(self, qtbot, test_input_files, temp_workspace):
         """Test errore FailedToStart."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with qtbot.waitSignal(worker.log_update):
@@ -448,7 +473,7 @@ class TestOnError:
 
     def test_on_error_crashed(self, qtbot, test_input_files, temp_workspace):
         """Test errore Crashed."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         with qtbot.waitSignal(worker.log_update):
@@ -460,8 +485,10 @@ class TestPhaseTransitions:
 
     def test_synthstrip_to_coregistration(self, qtbot, test_input_files, temp_workspace):
         """Test transizione synthstrip -> coregistration."""
-        worker = DlWorker(test_input_files, temp_workspace)
-        
+        worker = DlWorker(test_input_files, temp_workspace, False)
+
+        worker.total_files = len(test_input_files)
+        worker.current_file_index = 0
 
         worker.current_input_file_basename = "test.nii.gz"
 
@@ -473,8 +500,10 @@ class TestPhaseTransitions:
 
     def test_coregistration_to_reorientation(self, qtbot, test_input_files, temp_workspace):
         """Test transizione coregistration -> reorientation."""
-        worker = DlWorker(test_input_files, temp_workspace)
-        
+        worker = DlWorker(test_input_files, temp_workspace, False)
+
+        worker.total_files = len(test_input_files)
+        worker.current_file_index = 0
 
         worker.current_input_file_basename = "test.nii.gz"
 
@@ -490,7 +519,7 @@ class TestMultipleFiles:
 
     def test_process_multiple_files_sequentially(self, qtbot, test_input_files, temp_workspace):
         """Test elaborazione sequenziale file."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 3
@@ -505,7 +534,7 @@ class TestMultipleFiles:
 
     def test_finish_when_all_files_processed(self, qtbot, test_input_files, temp_workspace):
         """Test finish quando tutti i file sono processati."""
-        worker = DlWorker(test_input_files, temp_workspace)
+        worker = DlWorker(test_input_files, temp_workspace, False)
         
 
         worker.total_files = 3
@@ -523,7 +552,7 @@ class TestEdgeCases:
 
     def test_empty_file_list(self, qtbot, temp_workspace):
         """Test con lista file vuota."""
-        worker = DlWorker([], temp_workspace)
+        worker = DlWorker([], temp_workspace, False)
         
 
         with patch.object(worker, 'process_single_file') as mock_process:
@@ -537,7 +566,7 @@ class TestEdgeCases:
         with open(unicode_file, "w") as f:
             f.write("data")
 
-        worker = DlWorker([unicode_file], temp_workspace)
+        worker = DlWorker([unicode_file], temp_workspace, False)
         
 
         with patch.object(worker, 'run_synthstrip'):
@@ -549,9 +578,9 @@ class TestEdgeCases:
 class TestIntegration:
     """Test di integrazione."""
 
-    def test_full_workflow_single_file(self, qtbot, test_input_files, temp_workspace, mock_qprocess):
+    def test_full_workflow_single_file(self, qtbot, test_input_files, temp_workspace):
         """Test workflow completo file singolo."""
-        worker = DlWorker([test_input_files[0]], temp_workspace)
+        worker = DlWorker([test_input_files[0]], temp_workspace, False)
         
 
         # Avvia
@@ -569,7 +598,7 @@ class TestMemoryAndPerformance:
         """Test con molti file."""
         many_files = [os.path.join(temp_workspace, f"file{i}.nii") for i in range(100)]
 
-        worker = DlWorker(many_files, temp_workspace)
+        worker = DlWorker(many_files, temp_workspace, False)
         
 
         assert worker.input_files == many_files
@@ -580,8 +609,8 @@ class TestAccessibility:
 
     def test_signals_have_docstrings(self, qtbot, test_input_files, temp_workspace):
         """Test che i signal abbiano docstring."""
-        worker = DlWorker(test_input_files, temp_workspace)
-        
+        worker = DlWorker(test_input_files, temp_workspace, False)
+
 
         # Verifica che gli oggetti signal esistano
         assert hasattr(worker, 'progressbar_update')

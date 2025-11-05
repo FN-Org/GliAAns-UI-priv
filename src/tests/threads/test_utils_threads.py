@@ -747,10 +747,9 @@ class TestSignalEmissions:
 
         thread.run()
 
-        # Dovrebbe emettere 2 signal: uno per copy, uno per delete
         assert len(finished_msgs) == 2
-        assert any("copied" in msg.lower() for msg in finished_msgs)
-        assert any("deleted" in msg.lower() for msg in finished_msgs)
+        assert any("copied" in msg.lower() or "copiato" in msg.lower() for msg in finished_msgs)
+        assert any("deleted" in msg.lower() or "eliminato" in msg.lower() for msg in finished_msgs)
 
 
 class TestConcurrency:

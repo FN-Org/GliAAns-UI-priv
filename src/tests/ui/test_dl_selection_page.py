@@ -1,6 +1,8 @@
 import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QCoreApplication, Qt
 
@@ -900,10 +902,10 @@ class TestUIInteraction:
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        style = page.title.styleSheet()
+        font = page.title.font()
 
-        assert "font-size" in style
-        assert "font-weight: bold" in style
+        assert font.pointSize() == 18
+        assert font.weight() == QFont.Weight.Bold
 
     def test_status_label_alignment(self, qtbot, mock_context, mock_file_selector_dl):
         """Test che lo status label sia centrato."""

@@ -1868,7 +1868,7 @@ L&apos;elaborazione verrà interrotta.</translation>
     <message>
         <location filename="../threads/utils_threads.py" line="91"/>
         <source>Successfully copied {0} to {1}</source>
-        <translation></translation>
+        <translation>Copiato con successo {0} in {1}</translation>
     </message>
     <message>
         <location filename="../threads/utils_threads.py" line="100"/>

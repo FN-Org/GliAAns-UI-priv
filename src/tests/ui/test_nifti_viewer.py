@@ -201,9 +201,9 @@ class TestNiftiViewer(unittest.TestCase):
 
         self.viewer.automaticROI_drawing()
 
-        self.assertIsNotNone(self.viewer.overlay_data, "Overlay data not generated")
-        self.assertEqual(self.viewer.overlay_data.dtype, np.uint8, "Overlay data type incorrect")
-        self.assertGreater(np.sum(self.viewer.overlay_data), 0, "Overlay mask should be non-empty")
+        self.assertIsNotNone(self.viewer.automaticROI_data, "Overlay data not generated")
+        self.assertEqual(self.viewer.automaticROI_data.dtype, np.uint8, "Overlay data type incorrect")
+        self.assertGreater(np.sum(self.viewer.automaticROI_data), 0, "Overlay mask should be non-empty")
 
     # Additional tests to improve coverage
 
@@ -262,7 +262,7 @@ class TestNiftiViewer(unittest.TestCase):
         QTest.qWait(500)
 
         self.assertTrue(self.viewer.automaticROI_overlay, "Automatic ROI overlay should be enabled")
-        self.assertIsNotNone(self.viewer.overlay_data, "Overlay data should be generated after ROI click")
+        self.assertIsNotNone(self.viewer.automaticROI_data, "Automatic ROI data should be generated after ROI click")
 
     @patch('PyQt6.QtWidgets.QMessageBox.exec')
     @patch('os.makedirs')
@@ -283,8 +283,8 @@ class TestNiftiViewer(unittest.TestCase):
         mock_msgbox_exec.return_value = QMessageBox.StandardButton.Yes
 
         # Simulate save button click
-        self.viewer.automaticROI_save_btn.setEnabled(True)
-        QTest.mouseClick(self.viewer.automaticROI_save_btn, Qt.MouseButton.LeftButton)
+        self.viewer.ROI_save_btn.setEnabled(True)
+        QTest.mouseClick(self.viewer.ROI_save_btn, Qt.MouseButton.LeftButton)
         QTest.qWait(500)
 
         self.assertTrue(mock_makedirs.called, "Save directory should be created")

@@ -32,6 +32,7 @@ class TestSaveNiftiThreadInitialization:
         relative_path = "sub-01/anat/T1w.nii.gz"
         radius = 5.0
         difference = 0.3
+        source_dict = {"radius": radius, "difference": difference}
 
         thread = SaveNiftiThread(
             data=data,
@@ -39,8 +40,7 @@ class TestSaveNiftiThreadInitialization:
             path=path,
             json_path=json_path,
             relative_path=relative_path,
-            radius=radius,
-            difference=difference
+            source_dict=source_dict
         )
 
         assert thread.data is data
@@ -48,15 +48,16 @@ class TestSaveNiftiThreadInitialization:
         assert thread.path == path
         assert thread.json_path == json_path
         assert thread.relative_path == relative_path
-        assert thread.radius == radius
-        assert thread.difference == difference
+        assert thread.source_dict["radius"] == radius
+        assert thread.source_dict["difference"] == difference
 
     def test_signals_exist(self, temp_workspace):
         """Verifica che i signal siano definiti correttamente"""
         data = np.zeros((5, 5, 5))
         affine = np.eye(4)
+        source_dict = {"radius": 1.0, "difference": 0.1}
         thread = SaveNiftiThread(
-            data, affine, "path.nii", "path.json", "rel/path.nii", 1.0, 0.1
+            data, affine, "path.nii", "path.json", "rel/path.nii", source_dict
         )
 
         assert hasattr(thread, 'success')
@@ -77,14 +78,17 @@ class TestSaveNiftiThreadExecution:
         json_path = os.path.join(temp_workspace, "mask.json")
         relative_path = "sub-01/anat/T1w.nii.gz"
 
+        radius = 3.5
+        difference = 0.25
+        source_dict = {"radius": radius, "difference": difference}
+
         thread = SaveNiftiThread(
             data=data,
             affine=affine,
             path=nifti_path,
             json_path=json_path,
             relative_path=relative_path,
-            radius=3.5,
-            difference=0.25
+            source_dict=source_dict
         )
 
         # Connetti signal
@@ -123,9 +127,10 @@ class TestSaveNiftiThreadExecution:
         relative_path = "sub-02/anat/brain.nii.gz"
         radius = 4.2
         difference = 0.15
+        source_dict = {"radius": radius, "difference": difference}
 
         thread = SaveNiftiThread(
-            data, affine, nifti_path, json_path, relative_path, radius, difference
+            data, affine, nifti_path, json_path, relative_path, source_dict
         )
         thread.run()
 
@@ -145,10 +150,10 @@ class TestSaveNiftiThreadExecution:
         assert metadata["Sources"][0] == f"bids:{relative_path}"
 
         assert "Description" in metadata
-        assert "region growing" in metadata["Description"].lower()
+        assert "roi mask" in metadata["Description"].lower()
 
-        assert "AutomaticRoiParameters" in metadata
-        params = metadata["AutomaticRoiParameters"]
+        assert "Origin" in metadata
+        params = metadata["Origin"]
         assert params["radius"] == radius
         assert params["difference"] == difference
 
@@ -160,8 +165,12 @@ class TestSaveNiftiThreadExecution:
         nifti_path = os.path.join(temp_workspace, "test.nii")
         json_path = os.path.join(temp_workspace, "test.json")
 
+        radius = 1.0
+        difference = 0.1
+        source_dict = {"radius": radius, "difference": difference}
+
         thread = SaveNiftiThread(
-            data, affine, nifti_path, json_path, "path.nii", 1.0, 0.1
+            data, affine, nifti_path, json_path, "path.nii", source_dict
         )
         thread.run()
 
@@ -181,8 +190,10 @@ class TestSaveNiftiThreadExecution:
         nifti_path = os.path.join(temp_workspace, "converted.nii.gz")
         json_path = os.path.join(temp_workspace, "converted.json")
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
-            data, affine, nifti_path, json_path, "rel.nii", 1.0, 0.1
+            data, affine, nifti_path, json_path, "rel.nii", source_dict
         )
         thread.run()
 
@@ -205,8 +216,10 @@ class TestSaveNiftiThreadExecution:
         invalid_path = os.path.join(temp_workspace, "nonexistent", "dir", "file.nii")
         json_path = os.path.join(temp_workspace, "nonexistent", "dir", "file.json")
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
-            data, affine, invalid_path, json_path, "rel.nii", 1.0, 0.1
+            data, affine, invalid_path, json_path, "rel.nii", source_dict
         )
 
         error_msgs = []
@@ -229,8 +242,10 @@ class TestSaveNiftiThreadExecution:
         nifti_path = os.path.join(temp_workspace, "fail.nii")
         json_path = os.path.join(temp_workspace, "fail.json")
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
-            data, affine, nifti_path, json_path, "rel.nii", 1.0, 0.1
+            data, affine, nifti_path, json_path, "rel.nii", source_dict
         )
 
         error_msgs = []
@@ -252,8 +267,10 @@ class TestSaveNiftiThreadExecution:
         nifti_path = os.path.join(temp_workspace, "custom_affine.nii")
         json_path = os.path.join(temp_workspace, "custom_affine.json")
 
+        source_dict = {"radius": 2.0, "difference": 0.2}
+
         thread = SaveNiftiThread(
-            data, affine, nifti_path, json_path, "path.nii", 2.0, 0.2
+            data, affine, nifti_path, json_path, "path.nii", source_dict
         )
         thread.run()
 
@@ -485,14 +502,17 @@ class TestSaveLoadThreadsIntegration:
         nifti_path = os.path.join(temp_workspace, "cycle_test.nii.gz")
         json_path = os.path.join(temp_workspace, "cycle_test.json")
 
+        radius = 2.5
+        difference = 0.2
+        source_dict = {"radius": radius, "difference": difference}
+
         save_thread = SaveNiftiThread(
             data=original_data,
             affine=affine,
             path=nifti_path,
             json_path=json_path,
             relative_path="sub-01/anat/T1w.nii.gz",
-            radius=2.5,
-            difference=0.2
+            source_dict=source_dict
         )
 
         save_success = []
@@ -529,7 +549,7 @@ class TestSaveLoadThreadsIntegration:
         with open(json_path, 'r') as f:
             metadata = json.load(f)
         assert metadata["Type"] == "ROI"
-        assert metadata["AutomaticRoiParameters"]["radius"] == 2.5
+        assert metadata["Origin"]["radius"] == 2.5
 
     def test_save_load_multiple_files(self, temp_workspace):
         """Test salvataggio e caricamento di più file"""
@@ -541,9 +561,11 @@ class TestSaveLoadThreadsIntegration:
             nifti_path = os.path.join(temp_workspace, f"multi_{i}.nii")
             json_path = os.path.join(temp_workspace, f"multi_{i}.json")
 
+            source_dict = {"radius": float(i), "difference": float(i) * 0.1}
+
             save_thread = SaveNiftiThread(
                 data, np.eye(4), nifti_path, json_path,
-                f"path_{i}.nii", float(i), float(i) * 0.1
+                f"path_{i}.nii", source_dict
             )
             save_thread.run()
             saved_paths.append(nifti_path)
@@ -570,10 +592,12 @@ class TestSaveLoadThreadsIntegration:
         nifti_path = os.path.join(temp_workspace, "test_4d_cycle.nii.gz")
         json_path = os.path.join(temp_workspace, "test_4d_cycle.json")
 
+        source_dict = {"radius": 3.0, "difference": 0.15}
+
         # SaveNiftiThread dovrebbe gestire anche 4D
         save_thread = SaveNiftiThread(
             data_4d, affine, nifti_path, json_path,
-            "rel_4d.nii", 3.0, 0.15
+            "rel_4d.nii", source_dict
         )
 
         save_success = []
@@ -614,9 +638,11 @@ class TestConcurrencyAndThreadSafety:
             nifti_path = os.path.join(temp_workspace, f"concurrent_save_{i}.nii")
             json_path = os.path.join(temp_workspace, f"concurrent_save_{i}.json")
 
+            source_dict = {"radius": 1.0, "difference": 0.1}
+
             thread = SaveNiftiThread(
                 data, np.eye(4), nifti_path, json_path,
-                f"path_{i}.nii", 1.0, 0.1
+                f"path_{i}.nii", source_dict
             )
             thread.success.connect(on_success)
             threads.append(thread)
@@ -673,9 +699,11 @@ class TestSpecialCases:
         nifti_path = os.path.join(temp_workspace, "all_zeros.nii")
         json_path = os.path.join(temp_workspace, "all_zeros.json")
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
             data, np.eye(4), nifti_path, json_path,
-            "zeros.nii", 1.0, 0.1
+            "zeros.nii", source_dict
         )
 
         success = []
@@ -716,9 +744,11 @@ class TestSpecialCases:
         nifti_path = os.path.join(temp_workspace, "binary_mask.nii.gz")
         json_path = os.path.join(temp_workspace, "binary_mask.json")
 
+        source_dict = {"radius": 0.0, "difference": 0.0}
+
         thread = SaveNiftiThread(
             mask, np.eye(4), nifti_path, json_path,
-            "mask.nii", 0.0, 0.0
+            "mask.nii", source_dict
         )
 
         success = []
@@ -783,9 +813,11 @@ class TestSpecialCases:
         nifti_path = os.path.join(temp_workspace, "test file (copy) #1.nii")
         json_path = os.path.join(temp_workspace, "test file (copy) #1.json")
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
             data, np.eye(4), nifti_path, json_path,
-            "relative/path.nii", 1.0, 0.1
+            "relative/path.nii", source_dict
         )
 
         success = []
@@ -809,9 +841,12 @@ class TestParameterValidation:
             nifti_path = os.path.join(temp_workspace, f"radius_{radius}.nii")
             json_path = os.path.join(temp_workspace, f"radius_{radius}.json")
 
+            difference = 0.1
+            source_dict = {"radius": radius, "difference": difference}
+
             thread = SaveNiftiThread(
                 data, np.eye(4), nifti_path, json_path,
-                "path.nii", radius, 0.1
+                "path.nii", source_dict
             )
 
             success = []
@@ -824,7 +859,7 @@ class TestParameterValidation:
             # Verifica JSON contiene il valore
             with open(json_path, 'r') as f:
                 metadata = json.load(f)
-            assert metadata["AutomaticRoiParameters"]["radius"] == radius
+            assert metadata["Origin"]["radius"] == radius
 
     def test_save_with_extreme_difference_values(self, temp_workspace):
         """Test con valori estremi per difference"""
@@ -836,9 +871,11 @@ class TestParameterValidation:
             nifti_path = os.path.join(temp_workspace, f"diff_{diff}.nii")
             json_path = os.path.join(temp_workspace, f"diff_{diff}.json")
 
+            source_dict = {"radius": 1.0, "difference": diff}
+
             thread = SaveNiftiThread(
                 data, np.eye(4), nifti_path, json_path,
-                "path.nii", 1.0, diff
+                "path.nii", source_dict
             )
 
             success = []
@@ -849,7 +886,7 @@ class TestParameterValidation:
 
             with open(json_path, 'r') as f:
                 metadata = json.load(f)
-            assert metadata["AutomaticRoiParameters"]["difference"] == diff
+            assert metadata["Origin"]["difference"] == diff
 
 
 class TestPerformanceAndScalability:
@@ -924,9 +961,11 @@ class TestNiftiThreadParameterized:
         nifti_path = os.path.join(temp_workspace, f"shape_{'x'.join(map(str, shape))}.nii")
         json_path = nifti_path.replace('.nii', '.json')
 
+        source_dict = {"radius": 1.0, "difference": 0.1}
+
         thread = SaveNiftiThread(
             data, np.eye(4), nifti_path, json_path,
-            "path.nii", 1.0, 0.1
+            "path.nii", source_dict
         )
 
         success = []
@@ -1357,14 +1396,17 @@ class TestEdgeCasesAndIntegration:
         nifti_path = os.path.join(temp_workspace, "roi.nii.gz")
         json_path = os.path.join(temp_workspace, "roi.json")
 
+        radius = 2.0
+        difference = 0.5
+        source_dict = {"radius": radius, "difference": difference}
+
         thread = SaveNiftiThread(
             data=data,
             affine=affine,
             path=nifti_path,
             json_path=json_path,
             relative_path="sub-01/anat/T1w.nii.gz",
-            radius=2.0,
-            difference=0.5
+            source_dict=source_dict
         )
 
         results = []
@@ -1386,13 +1428,17 @@ class TestEdgeCasesAndIntegration:
         with open(json_path) as f:
             meta = json.load(f)
 
-        assert "AutomaticRoiParameters" in meta
-        assert meta["AutomaticRoiParameters"]["radius"] == 2.0
+        assert "Origin" in meta
+        assert meta["Origin"]["radius"] == 2.0
 
     def test_save_nifti_thread_error(self, tmp_path):
         """Test di errore: percorso non scrivibile"""
         bad_path = "/invalid/path/roi.nii.gz"
         json_path = os.path.join(tmp_path, "roi.json")
+
+        radius = 1.0
+        difference = 0.2
+        source_dict = {"radius": radius, "difference": difference}
 
         thread = SaveNiftiThread(
             data=np.ones((2, 2, 2)),
@@ -1400,8 +1446,7 @@ class TestEdgeCasesAndIntegration:
             path=bad_path,
             json_path=json_path,
             relative_path="sub-01/anat/T1w.nii.gz",
-            radius=1.0,
-            difference=0.2
+            source_dict=source_dict
         )
 
         errors = []

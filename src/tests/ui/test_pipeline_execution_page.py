@@ -114,7 +114,8 @@ class TestPipelineExecutionPageInitialization:
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Dovrebbero esserci 2 folder cards (sub-01, sub-02)
+        page.on_enter()
+
         assert len(page.folder_cards) == 2
 
     def test_get_bin_path_called(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
@@ -862,7 +863,8 @@ class TestFolderCards:
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # I path dovrebbero essere nella directory di output
+        page.on_enter()
+
         for watch_dir in page.watch_dirs:
             assert page.pipeline_output_dir in watch_dir
             assert watch_dir in page.folder_cards

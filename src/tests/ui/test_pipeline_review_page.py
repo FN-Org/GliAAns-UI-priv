@@ -3,6 +3,7 @@ import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QApplication, QMessageBox
+from unittest.mock import patch
 
 from main.ui.ui_pipeline_review_page import PipelineReviewPage
 
@@ -351,14 +352,17 @@ class TestOnEnter:
 class TestNextNavigation:
     """Test per la navigazione alla pagina successiva."""
 
-    def test_next_all_saved(self, qtbot, mock_context, pipeline_config_basic):
+    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    def test_next_all_saved(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test next quando tutti i pazienti sono salvati."""
+        mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
+
         page = PipelineReviewPage(mock_context)
         qtbot.addWidget(page)
 
         result = page.next(mock_context)
 
-        assert result != page  # Deve andare alla pagina successiva
+        assert result != page
         assert page.next_page is not None
         assert "PipelineExecutionPage" in str(type(page.next_page))
 
@@ -374,8 +378,11 @@ class TestNextNavigation:
             assert result == page  # Deve rimanere sulla pagina corrente
             assert page.next_page is None
 
-    def test_next_existing_next_page(self, qtbot, mock_context, pipeline_config_basic):
+    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    def test_next_existing_next_page(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test next quando next_page già esiste."""
+        mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
+
         page = PipelineReviewPage(mock_context)
         qtbot.addWidget(page)
 
@@ -392,8 +399,11 @@ class TestNextNavigation:
         # Deve riutilizzare la stessa next_page
         assert page.next_page == first_next_page
 
-    def test_next_updates_history(self, qtbot, mock_context, pipeline_config_basic):
+    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    def test_next_updates_history(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test che next aggiunga alla history."""
+        mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
+
         page = PipelineReviewPage(mock_context)
         qtbot.addWidget(page)
 
