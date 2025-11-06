@@ -5,7 +5,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout,
-    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox,
+    QSplitter, QMenuBar, QHBoxLayout, QSizePolicy, QMessageBox, QApplication,
 )
 from PyQt6.QtGui import QAction, QActionGroup
 
@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
             context (dict): Application context containing shared data and signals.
         """
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
 
         self.context = context
         self.context["language_changed"].connect(self._translate_ui)
@@ -58,6 +59,9 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_menus()
         self._translate_ui()
+
+        # Closing the app when this window is closed
+        self.destroyed.connect(QApplication.instance().quit)
 
     # --------------------------
     # UI SETUP
