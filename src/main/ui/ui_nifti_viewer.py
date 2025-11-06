@@ -1834,7 +1834,7 @@ class NiftiViewer(QMainWindow):
 
         # Initialize matplotlib figure for time series
         self.time_plot_figure = Figure(figsize=(3, 3), facecolor='black')
-        self.time_plot_figure.set_tight_layout(True)
+        self.time_plot_figure.set_layout_engine('tight')
 
         # Embed matplotlib canvas inside PyQt interface
         self.time_plot_canvas = FigureCanvas(self.time_plot_figure)
@@ -2518,4 +2518,3 @@ class NiftiViewer(QMainWindow):
             # Fallback text shown when no NIfTI file is loaded
             self.file_info_label.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No file loaded"))
             self.info_text.setText(QtCore.QCoreApplication.translate("NIfTIViewer", "No image loaded"))
-

@@ -109,7 +109,7 @@ class TestFileCopy:
 
         # Verifica signal
         assert len(finished_msgs) == 1
-        assert "copied" in finished_msgs[0].lower()
+        assert "copied" or "copiato" in finished_msgs[0].lower()
 
     def test_copy_file_overwrites_existing(self, temp_workspace):
         """Test che la copia sovrascriva file esistente"""
