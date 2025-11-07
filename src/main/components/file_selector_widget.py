@@ -181,5 +181,8 @@ class FileSelectorWidget(QWidget):
     # -------------------------------------------------------------------------
     def _translate_ui(self):
         """Apply dynamic UI translations (for multi-language support)."""
-        self.file_button.setText(QCoreApplication.translate("Components", "Choose NIfTI File(s)"))
+        if self.allow_multiple:
+            self.file_button.setText(QCoreApplication.translate("Components", "Choose NIfTI File(s)"))
+        else:
+            self.file_button.setText(QCoreApplication.translate("Components", "Choose NIfTI File"))
         self.clear_button.setText(QCoreApplication.translate("Components", "Clear Selection"))
