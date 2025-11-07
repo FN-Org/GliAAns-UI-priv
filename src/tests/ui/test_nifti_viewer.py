@@ -9,7 +9,7 @@ from PyQt6.QtTest import QTest
 from PyQt6.QtCore import Qt, QEventLoop, QTimer
 from unittest.mock import patch, MagicMock
 
-from main.ui.ui_nifti_viewer import NiftiViewer, compute_mask_numba_mm, apply_overlay_numba
+from main.ui.nifti_viewer import NiftiViewer, compute_mask_numba_mm, apply_overlay_numba
 
 app = QApplication(sys.argv)
 

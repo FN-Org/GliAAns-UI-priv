@@ -5,7 +5,7 @@ import tempfile
 import shutil
 from unittest.mock import Mock, patch, MagicMock
 
-from main.ui.ui_pipeline_patient_selection_page import PipelinePatientSelectionPage
+from main.ui.pipeline_patient_selection_page import PipelinePatientSelectionPage
 
 class TestPipelinePatientSelectionPageSetup:
     """Test per l'inizializzazione"""
@@ -358,7 +358,7 @@ class TestPipelinePatientNavigation:
         assert result == pipeline_page.previous_page
         pipeline_page.previous_page.on_enter.assert_called_once()
 
-    @patch('main.ui.ui_pipeline_patient_selection_page.PipelineReviewPage')
+    @patch('main.ui.pipeline_patient_selection_page.PipelineReviewPage')
     def test_next_creates_review_page(self, MockPage, pipeline_page):
         """Verifica creazione pagina review"""
         mock_page = Mock()

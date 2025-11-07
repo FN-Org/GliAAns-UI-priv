@@ -307,16 +307,31 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """
         Override close event to safely terminate all running threads.
-
         Args:
             event (QCloseEvent): The close event.
         """
         if hasattr(self, "threads"):
-            for thread in self.threads:
-                thread.finished.disconnect()
-                thread.error.disconnect()
-                thread.wait()
-                self.threads.remove(thread)
+            log.debug(f"Close event triggered. Waiting for {len(self.threads)} active threads...")
+
+            while self.threads:
+                thread = self.threads.pop(0)
+
+                log.debug(f"Waiting for thread {thread} to finish...")
+
+                try:
+                    thread.finished.disconnect()
+                except TypeError:
+                    pass
+
+                try:
+                    thread.error.disconnect()
+                except TypeError:
+                    pass
+
+                thread.wait(5000)
+
+            log.debug("All threads stopped. Accepting close event.")
+
         event.accept()
 
     def export_file_info(self):

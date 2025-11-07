@@ -7,10 +7,10 @@ from PyQt6.QtCore import pyqtSignal, QObject, QTranslator, QSettings
 from PyQt6.QtWidgets import QApplication, QPushButton
 
 from logger import set_log_level
-from ui.ui_workspace_tree_view import WorkspaceTreeView
-from ui.ui_import_page import ImportPage
-from ui.ui_main_window import MainWindow
-from ui.ui_nifti_viewer import NiftiViewer
+from ui.workspace_tree_view import WorkspaceTreeView
+from ui.import_page import ImportPage
+from ui.main_window import MainWindow
+from ui.nifti_viewer import NiftiViewer
 from utils import resource_path, get_app_dir
 
 
