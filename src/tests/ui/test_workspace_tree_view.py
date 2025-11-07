@@ -8,7 +8,7 @@ from PyQt6.QtCore import QSettings, pyqtSignal, QObject, Qt, QModelIndex
 from PyQt6.QtWidgets import QMessageBox, QFileDialog, QMenu
 from PyQt6.QtGui import QFileSystemModel
 
-from main.ui.ui_workspace_tree_view import WorkspaceTreeView
+from main.ui.workspace_tree_view import WorkspaceTreeView
 
 @pytest.fixture
 def tree_view(qtbot, mock_context):
@@ -28,7 +28,7 @@ class TestWorkspaceTreeViewSetup:
         # Export dovrebbe richiedere dialog
         nifti_file = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
 
-        with patch('main.ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getSaveFileName.return_value = ("", "")
             tree_view.export_files([nifti_file], is_dir=False)
             MockDialog.getSaveFileName.assert_called_once()
@@ -230,7 +230,7 @@ class TestWorkspaceTreeViewFileOperations:
 
     def test_add_file_to_workspace_opens_dialog(self, tree_view):
         """Verifica che add_file_to_workspace apra dialog"""
-        with patch('main.ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.QFileDialog') as MockDialog:
             mock_dialog = Mock()
             mock_dialog.exec.return_value = False
             MockDialog.return_value = mock_dialog
@@ -265,7 +265,7 @@ class TestWorkspaceTreeViewFileOperations:
         """Verifica export di singolo file"""
         test_file = os.path.join(temp_workspace, "test.txt")
 
-        with patch('main.ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getSaveFileName.return_value = ("", "")
 
             tree_view.export_files([test_file], is_dir=False)
@@ -276,7 +276,7 @@ class TestWorkspaceTreeViewFileOperations:
         """Verifica export di cartella"""
         folder = os.path.join(temp_workspace, "sub-01")
 
-        with patch('main.ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getExistingDirectory.return_value = ""
 
             tree_view.export_files([folder], is_dir=True)
@@ -290,7 +290,7 @@ class TestWorkspaceTreeViewFileOperations:
         with open(file2, "w") as f:
             f.write("test2")
 
-        with patch('main.ui.ui_workspace_tree_view.QFileDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.QFileDialog') as MockDialog:
             MockDialog.getExistingDirectory.return_value = ""
 
             tree_view.export_files([file1, file2], is_dir=False)
@@ -367,7 +367,7 @@ class TestWorkspaceTreeViewExplorer:
         """Verifica apertura in explorer con successo"""
         test_file = os.path.join(temp_workspace, "test.txt")
 
-        with patch('main.ui.ui_workspace_tree_view.QDesktopServices') as MockServices:
+        with patch('main.ui.workspace_tree_view.QDesktopServices') as MockServices:
             MockServices.openUrl.return_value = True
 
             tree_view._open_in_explorer(test_file)
@@ -378,7 +378,7 @@ class TestWorkspaceTreeViewExplorer:
         """Verifica warning se nessuna app predefinita"""
         test_file = os.path.join(temp_workspace, "test.txt")
 
-        with patch('main.ui.ui_workspace_tree_view.QDesktopServices') as MockServices:
+        with patch('main.ui.workspace_tree_view.QDesktopServices') as MockServices:
             MockServices.openUrl.return_value = False
 
             warning_shown = False
@@ -397,7 +397,7 @@ class TestWorkspaceTreeViewExplorer:
         """Verifica gestione eccezione"""
         test_file = os.path.join(temp_workspace, "test.txt")
 
-        with patch('main.ui.ui_workspace_tree_view.QDesktopServices') as MockServices:
+        with patch('main.ui.workspace_tree_view.QDesktopServices') as MockServices:
             MockServices.openUrl.side_effect = Exception("Error")
 
             error_shown = False
@@ -417,7 +417,7 @@ class TestWorkspaceTreeViewRoleDialog:
 
     def test_open_role_dialog_creates_dialog(self, tree_view, temp_workspace):
         """Verifica creazione dialog ruolo"""
-        with patch('main.ui.ui_workspace_tree_view.FileRoleDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.FileRoleDialog') as MockDialog:
             mock_dialog_instance = Mock()
             mock_dialog_instance.exec.return_value = False
             MockDialog.return_value = mock_dialog_instance
@@ -432,7 +432,7 @@ class TestWorkspaceTreeViewRoleDialog:
 
     def test_open_role_dialog_on_accept_emits_thread(self, tree_view, temp_workspace, qtbot):
         """Verifica che su accept venga emesso thread"""
-        with patch('main.ui.ui_workspace_tree_view.FileRoleDialog') as MockDialog:
+        with patch('main.ui.workspace_tree_view.FileRoleDialog') as MockDialog:
             mock_dialog_instance = Mock()
             mock_dialog_instance.exec.return_value = True
             mock_dialog_instance.get_relative_path.return_value = "anat"

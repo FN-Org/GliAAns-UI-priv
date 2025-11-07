@@ -6,13 +6,13 @@ from unittest.mock import Mock, patch, MagicMock, call
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QProcess, QTimer, QCoreApplication
 
-from main.ui.ui_pipeline_execution_page import PipelineExecutionPage
+from main.ui.pipeline_execution_page import PipelineExecutionPage
 
 
 @pytest.fixture
 def mock_get_bin_path():
     """Mock per get_bin_path."""
-    with patch("main.ui.ui_pipeline_execution_page.get_bin_path") as mock:
+    with patch("main.ui.pipeline_execution_page.get_bin_path") as mock:
         mock.return_value = "/fake/path/pipeline_runner"
         yield mock
 
@@ -128,7 +128,7 @@ class TestPipelineExecutionPageInitialization:
 
     def test_get_bin_path_error(self, qtbot, mock_context_exec, pipeline_config_exec):
         """Test gestione errore quando get_bin_path fallisce."""
-        with patch("main.ui.ui_pipeline_execution_page.get_bin_path") as mock:
+        with patch("main.ui.pipeline_execution_page.get_bin_path") as mock:
             mock.side_effect = FileNotFoundError("Binary not found")
 
             with pytest.raises(RuntimeError):
@@ -391,7 +391,7 @@ class TestProgressUpdates:
 
         initial_value = page.progress_bar.value
 
-        with patch("main.ui.ui_pipeline_execution_page.log", mock_logger):
+        with patch("main.ui.pipeline_execution_page.log", mock_logger):
             page._update_progress("invalid")
             # Il valore non dovrebbe cambiare
             assert page.progress_bar.value == initial_value
@@ -896,7 +896,7 @@ class TestEdgeCases:
         with open(config_path, "w") as f:
             json.dump({"sub-01": {"mri": "path.nii"}}, f)
 
-        with (patch("main.ui.ui_pipeline_execution_page.log", mock_logger),
+        with (patch("main.ui.pipeline_execution_page.log", mock_logger),
               patch.object(PipelineExecutionPage, "get_sub_list", return_value=[])):
             page = PipelineExecutionPage(mock_context_exec)
             qtbot.addWidget(page)

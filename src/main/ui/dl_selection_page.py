@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QCoreApplication
 import os
 
 from components.file_selector_widget import FileSelectorWidget
-from ui.ui_dl_execution_page import DlExecutionPage
+from ui.dl_execution_page import DlExecutionPage
 from page import Page
 from logger import get_logger
 

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from unittest.mock import patch
 
-from main.ui.ui_pipeline_review_page import PipelineReviewPage
+from main.ui.pipeline_review_page import PipelineReviewPage
 
 
 @pytest.fixture
@@ -221,7 +221,7 @@ class TestConfigLoading:
         with open(config_path, "w") as f:
             f.write("{invalid json")
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             page = PipelineReviewPage(mock_context)
             qtbot.addWidget(page)
 
@@ -230,7 +230,7 @@ class TestConfigLoading:
 
     def test_load_config_file_not_found(self, qtbot, mock_context, temp_workspace, mock_logger):
         """Test quando il file config non esiste."""
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             page = PipelineReviewPage(mock_context)
             qtbot.addWidget(page)
 
@@ -295,7 +295,7 @@ class TestOnEnter:
         initial_config_path = page.config_path
         initial_config = page.pipeline_config.copy()
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             page.on_enter()
 
             assert page.config_path == initial_config_path
@@ -319,7 +319,7 @@ class TestOnEnter:
         with open(new_config_path, "w", encoding="utf-8") as f:
             json.dump(new_config, f)
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             page.on_enter()
 
             assert page.config_path == new_config_path
@@ -342,7 +342,7 @@ class TestOnEnter:
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(modified_config, f)
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             page.on_enter()
 
             assert page.pipeline_config == modified_config
@@ -352,7 +352,7 @@ class TestOnEnter:
 class TestNextNavigation:
     """Test per la navigazione alla pagina successiva."""
 
-    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    @patch('ui.pipeline_execution_page.get_bin_path')
     def test_next_all_saved(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test next quando tutti i pazienti sono salvati."""
         mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
@@ -378,7 +378,7 @@ class TestNextNavigation:
             assert result == page  # Deve rimanere sulla pagina corrente
             assert page.next_page is None
 
-    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    @patch('ui.pipeline_execution_page.get_bin_path')
     def test_next_existing_next_page(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test next quando next_page già esiste."""
         mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
@@ -399,7 +399,7 @@ class TestNextNavigation:
         # Deve riutilizzare la stessa next_page
         assert page.next_page == first_next_page
 
-    @patch('ui.ui_pipeline_execution_page.get_bin_path')
+    @patch('ui.pipeline_execution_page.get_bin_path')
     def test_next_updates_history(self, mock_get_bin, qtbot, mock_context, pipeline_config_basic):
         """Test che next aggiunga alla history."""
         mock_get_bin.return_value = "/fake/path/to/pipeline_runner"
@@ -431,7 +431,7 @@ class TestBackNavigation:
         previous = Mock()
         page.previous_page = previous
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             result = page.back()
 
             assert result == previous
@@ -447,7 +447,7 @@ class TestBackNavigation:
         previous = Mock()
         page.previous_page = previous
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             result = page.back()
 
             assert result == previous
@@ -486,7 +486,7 @@ class TestBackNavigation:
         previous = Mock()
         page.previous_page = previous
 
-        with patch("main.ui.ui_pipeline_review_page.log", mock_logger):
+        with patch("main.ui.pipeline_review_page.log", mock_logger):
             result = page.back()
 
             assert result == previous
@@ -521,7 +521,7 @@ class TestTranslation:
         assert page.info_label.text() is not None
 
     def test_language_changed_signal(self, mock_context):
-        from main.ui.ui_pipeline_review_page import PipelineReviewPage
+        from main.ui.pipeline_review_page import PipelineReviewPage
         page = PipelineReviewPage(mock_context)
 
         # Sostituisci la funzione ma riconnetti il segnale

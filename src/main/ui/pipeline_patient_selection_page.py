@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QPushButton, QScrollA
                              QFrame, QGridLayout, QHBoxLayout, QSizePolicy)
 from PyQt6.QtCore import Qt, QCoreApplication
 
-from ui.ui_pipeline_review_page import PipelineReviewPage
+from ui.pipeline_review_page import PipelineReviewPage
 from utils import resource_path
 from page import Page
 from logger import get_logger
