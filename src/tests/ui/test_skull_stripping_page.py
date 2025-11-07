@@ -18,42 +18,42 @@ def skull_page(qtbot, mock_context, mock_file_selector):
         return page
 
 class TestSkullStrippingPageSetup:
-    """Test per l'inizializzazione di SkullStrippingPage"""
+    """Tests for SkullStrippingPage initialization"""
 
     def test_page_initialization(self, skull_page):
-        """Verifica inizializzazione corretta"""
+        """Test correct initialization"""
         assert skull_page.context is not None
         assert skull_page.previous_page is not None
         assert skull_page.worker is None
         assert skull_page.canceled == False
 
     def test_title_created(self, skull_page):
-        """Verifica creazione titolo"""
+        """Test title creation"""
         assert skull_page.title is not None
         assert skull_page.title.text() != ""
 
     def test_file_selector_created(self, skull_page):
-        """Verifica creazione file selector"""
+        """Test file selector creation"""
         assert skull_page.file_selector_widget is not None
 
     def test_run_button_created(self, skull_page):
-        """Verifica creazione pulsante run"""
+        """Test run button creation"""
         assert skull_page.run_button is not None
-        assert not skull_page.run_button.isEnabled()  # Disabilitato inizialmente
+        assert not skull_page.run_button.isEnabled()  # Disabled initially
 
     def test_cancel_button_created(self, skull_page):
-        """Verifica creazione pulsante cancel"""
+        """Test cancel button creation"""
         assert skull_page.cancel_button is not None
-        assert not skull_page.cancel_button.isVisible()  # Nascosto inizialmente
+        assert not skull_page.cancel_button.isVisible()  # Hidden initially
 
     def test_progress_bar_created(self, skull_page):
-        """Verifica creazione progress bar"""
+        """Test progress bar creation"""
         assert skull_page.progress_bar is not None
-        assert not skull_page.progress_bar.isVisible()  # Nascosta inizialmente
+        assert not skull_page.progress_bar.isVisible()  # Hidden initially
 
     @patch('subprocess.run', return_value=Mock(returncode=0))
     def test_bet_detected_when_available(self, mock_run, qtbot, mock_context, mock_file_selector):
-        """Verifica rilevamento BET quando disponibile"""
+        """Test BET detection when available"""
         page = SkullStrippingPage(mock_context, Mock())
         qtbot.addWidget(page)
 
@@ -61,7 +61,7 @@ class TestSkullStrippingPageSetup:
 
     @patch('subprocess.run', side_effect=FileNotFoundError())
     def test_bet_not_detected_when_unavailable(self, mock_run, qtbot, mock_context, mock_file_selector):
-        """Verifica che BET non sia rilevato quando non disponibile"""
+        """Test that BET is not detected when unavailable"""
         page = SkullStrippingPage(mock_context, Mock())
         qtbot.addWidget(page)
 
@@ -69,33 +69,33 @@ class TestSkullStrippingPageSetup:
 
 
 class TestSkullStrippingPageBETParameters:
-    """Test per parametri BET"""
+    """Tests for BET parameters"""
 
     def test_f_parameter_default(self, skull_page):
-        """Verifica valore default parametro f"""
+        """Test default value for f parameter"""
         assert skull_page.f_spinbox.value() == 0.50
 
     def test_f_parameter_range(self, skull_page):
-        """Verifica range parametro f"""
+        """Test range for f parameter"""
         assert skull_page.f_spinbox.minimum() == 0.0
         assert skull_page.f_spinbox.maximum() == 1.0
 
     def test_g_parameter_default(self, skull_page):
-        """Verifica valore default parametro g"""
+        """Test default value for g parameter"""
         assert skull_page.g_spinbox.value() == 0.0
 
     def test_coordinate_parameters_default(self, skull_page):
-        """Verifica valori default coordinate"""
+        """Test default coordinate values"""
         assert skull_page.c_x_spinbox.value() == 0
         assert skull_page.c_y_spinbox.value() == 0
         assert skull_page.c_z_spinbox.value() == 0
 
     def test_brain_extracted_checkbox_default(self, skull_page):
-        """Verifica che brain extracted sia checked di default"""
+        """Test that brain extracted is checked by default"""
         assert skull_page.opt_brain_extracted.isChecked()
 
     def test_other_checkboxes_default(self, skull_page):
-        """Verifica che altri checkbox siano unchecked di default"""
+        """Test that other checkboxes are unchecked by default"""
         assert not skull_page.opt_m.isChecked()
         assert not skull_page.opt_t.isChecked()
         assert not skull_page.opt_s.isChecked()
@@ -103,32 +103,32 @@ class TestSkullStrippingPageBETParameters:
 
 
 class TestSkullStrippingPageAdvancedOptions:
-    """Test per opzioni avanzate"""
+    """Tests for advanced options"""
 
     def test_advanced_options_hidden_initially(self, skull_page):
-        """Verifica che opzioni avanzate siano nascoste inizialmente"""
+        """Test that advanced options are hidden initially"""
         assert not skull_page.advanced_box.isVisible()
 
     def test_toggle_advanced_shows_options(self, skull_page):
-        """Verifica che toggle mostri opzioni avanzate"""
+        """Test that toggle shows advanced options"""
         skull_page.advanced_btn.setChecked(True)
-        skull_page.toggle_advanced()  # chiama direttamente la funzione
+        skull_page.toggle_advanced()  # call the function directly
         assert skull_page.advanced_box.isVisible()
 
     def test_toggle_advanced_hides_options(self, skull_page, qtbot):
-        """Verifica che toggle nasconda opzioni avanzate"""
-        # Prima mostra
+        """Test that toggle hides advanced options"""
+        # First show
         skull_page.advanced_btn.setChecked(True)
         skull_page.toggle_advanced()
         assert skull_page.advanced_box.isVisible()
 
-        # Poi nascondi
+        # Then hide
         skull_page.advanced_btn.setChecked(False)
         skull_page.toggle_advanced()
         assert not skull_page.advanced_box.isVisible()
 
     def test_toggle_updates_button_text(self, skull_page):
-        """Verifica che toggle aggiorni il testo del pulsante"""
+        """Test that toggle updates the button text"""
         initial_text = skull_page.advanced_btn.text()
 
         skull_page.advanced_btn.setChecked(True)
@@ -138,10 +138,10 @@ class TestSkullStrippingPageAdvancedOptions:
 
 
 class TestSkullStrippingPageProcessing:
-    """Test per processing"""
+    """Tests for processing"""
 
     def test_run_without_files_shows_warning(self, skull_page, monkeypatch):
-        """Verifica warning quando non ci sono file"""
+        """Test warning when no files are present"""
         skull_page.file_selector_widget.get_selected_files = Mock(return_value=[])
 
         warning_shown = False
@@ -157,7 +157,7 @@ class TestSkullStrippingPageProcessing:
 
     @patch('main.ui.skull_stripping_page.SkullStripThread')
     def test_run_creates_worker_thread(self, MockThread, skull_page):
-        """Verifica creazione worker thread"""
+        """Test worker thread creation"""
         skull_page.file_selector_widget.get_selected_files = Mock(
             return_value=['/path/to/file.nii']
         )
@@ -172,7 +172,7 @@ class TestSkullStrippingPageProcessing:
 
     @patch('main.ui.skull_stripping_page.SkullStripThread')
     def test_run_shows_progress_bar(self, MockThread, skull_page, qtbot):
-        """Verifica che run mostri progress bar"""
+        """Test that run shows the progress bar"""
         skull_page.file_selector_widget.get_selected_files = Mock(
             return_value=['/path/to/file.nii']
         )
@@ -186,14 +186,14 @@ class TestSkullStrippingPageProcessing:
         assert skull_page.progress_bar.isVisible()
 
     def test_set_processing_mode_true(self, skull_page):
-        """Verifica set_processing_mode(True)"""
+        """Test set_processing_mode(True)"""
         skull_page.set_processing_mode(True)
 
         assert not skull_page.run_button.isVisible()
         assert skull_page.cancel_button.isVisible()
 
     def test_cancel_processing(self, skull_page):
-        """Verifica cancellazione processing"""
+        """Test processing cancellation"""
         mock_worker = Mock()
         mock_worker.isRunning.return_value = True
         skull_page.worker = mock_worker
@@ -205,39 +205,39 @@ class TestSkullStrippingPageProcessing:
 
 
 class TestSkullStrippingPageProgressCallbacks:
-    """Test per callback di progresso"""
+    """Tests for progress callbacks"""
 
     def test_on_progress_updated(self, skull_page):
-        """Verifica aggiornamento messaggio progresso"""
+        """Test progress message update"""
         test_message = "Processing file 1 of 3"
         skull_page.on_progress_updated(test_message)
 
         assert skull_page.status_label.text() == test_message
 
     def test_on_progress_value_updated(self, skull_page):
-        """Verifica aggiornamento valore progress bar"""
+        """Test progress bar value update"""
         skull_page.on_progress_value_updated(50)
 
         assert skull_page.progress_bar.value() == 50
 
     def test_on_all_completed_success(self, skull_page):
-        """Verifica callback completamento con successo"""
+        """Test completion callback on success"""
         skull_page.on_all_completed(3, [])
 
         assert not skull_page.progress_bar.isVisible()
         assert "3" in skull_page.status_label.text()
 
     def test_on_all_completed_with_failures(self, skull_page):
-        """Verifica callback completamento con fallimenti"""
+        """Test completion callback with failures"""
         failed_files = ['/path/file1.nii', '/path/file2.nii']
         skull_page.on_all_completed(1, failed_files)
 
         assert not skull_page.progress_bar.isVisible()
         status_text = skull_page.status_label.text()
-        assert "1" in status_text  # Successi
+        assert "1" in status_text  # Successes
 
     def test_on_all_completed_all_failed(self, skull_page):
-        """Verifica callback quando tutti falliscono"""
+        """Test callback when all fail"""
         failed_files = ['/path/file1.nii', '/path/file2.nii']
         skull_page.on_all_completed(0, failed_files)
 
@@ -245,7 +245,7 @@ class TestSkullStrippingPageProgressCallbacks:
         assert "failed" in skull_page.status_label.text().lower()
 
     def test_on_worker_finished(self, skull_page, qtbot):
-        """Verifica callback fine worker"""
+        """Test worker finished callback"""
         mock_worker = Mock()
         skull_page.worker = mock_worker
 
@@ -256,11 +256,11 @@ class TestSkullStrippingPageProgressCallbacks:
 
 
 class TestSkullStrippingPageExistingCheck:
-    """Test per controllo skull strip esistente"""
+    """Tests for existing skull strip check"""
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
-        # Crea struttura con skull strip esistente
+        # Create structure with existing skull strip
         subject_dir = os.path.join(temp_dir, "derivatives", "skullstrips", "sub-01", "anat")
         os.makedirs(subject_dir)
         with open(os.path.join(subject_dir, "brain.nii.gz"), "w") as f:
@@ -269,7 +269,7 @@ class TestSkullStrippingPageExistingCheck:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_has_existing_skull_strip_true(self, skull_page, temp_workspace):
-        """Verifica rilevamento skull strip esistente"""
+        """Test detection of existing skull strip"""
         nifti_path = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
 
         result = skull_page.has_existing_skull_strip(nifti_path, temp_workspace)
@@ -277,7 +277,7 @@ class TestSkullStrippingPageExistingCheck:
         assert result == True
 
     def test_has_existing_skull_strip_false(self, skull_page, temp_workspace):
-        """Verifica quando skull strip non esiste"""
+        """Test when skull strip does not exist"""
         nifti_path = os.path.join(temp_workspace, "sub-02", "anat", "T1w.nii")
 
         result = skull_page.has_existing_skull_strip(nifti_path, temp_workspace)
@@ -285,7 +285,7 @@ class TestSkullStrippingPageExistingCheck:
         assert result == False
 
     def test_has_existing_skull_strip_no_subject_id(self, skull_page, temp_workspace):
-        """Verifica comportamento senza subject ID"""
+        """Test behavior without subject ID"""
         nifti_path = os.path.join(temp_workspace, "invalid", "T1w.nii")
 
         result = skull_page.has_existing_skull_strip(nifti_path, temp_workspace)
@@ -294,16 +294,16 @@ class TestSkullStrippingPageExistingCheck:
 
 
 class TestSkullStrippingPageNavigation:
-    """Test per navigazione"""
+    """Tests for navigation"""
 
     def test_back_returns_previous_page(self, skull_page):
-        """Verifica ritorno a pagina precedente"""
+        """Test return to previous page"""
         result = skull_page.back()
         assert result == skull_page.previous_page
         skull_page.previous_page.on_enter.assert_called_once()
 
     def test_back_blocked_during_processing(self, skull_page, monkeypatch):
-        """Verifica che back sia bloccato durante processing"""
+        """Test that back is blocked during processing"""
         mock_worker = Mock()
         mock_worker.isRunning.return_value = True
         skull_page.worker = mock_worker
@@ -322,15 +322,15 @@ class TestSkullStrippingPageNavigation:
         assert warning_shown
 
     def test_is_ready_to_advance_false(self, skull_page):
-        """Verifica che non si possa avanzare"""
+        """Test that advancing is not ready"""
         assert not skull_page.is_ready_to_advance()
 
     def test_is_ready_to_go_back_true_when_idle(self, skull_page):
-        """Verifica che si possa tornare indietro quando idle"""
+        """Test that going back is ready when idle"""
         assert skull_page.is_ready_to_go_back()
 
     def test_is_ready_to_go_back_false_during_processing(self, skull_page):
-        """Verifica che non si possa tornare durante processing"""
+        """Test that going back is not ready during processing"""
         mock_worker = Mock()
         mock_worker.isRunning.return_value = True
         skull_page.worker = mock_worker
@@ -339,42 +339,42 @@ class TestSkullStrippingPageNavigation:
 
 
 class TestSkullStrippingPageReset:
-    """Test per reset pagina"""
+    """Tests for page reset"""
 
     def test_reset_clears_files(self, skull_page):
-        """Verifica che reset pulisca i file"""
+        """Test that reset clears files"""
         skull_page.reset_page()
         skull_page.file_selector_widget.clear_selected_files.assert_called_once()
 
     def test_reset_parameters(self, skull_page):
-        """Verifica che reset ripristini i parametri"""
-        # Modifica parametri
+        """Test that reset restores parameters"""
+        # Modify parameters
         skull_page.f_spinbox.setValue(0.7)
         skull_page.g_spinbox.setValue(0.5)
 
         # Reset
         skull_page.reset_page()
 
-        # Verifica valori default
+        # Verify default values
         assert skull_page.f_spinbox.value() == 0.50
         assert skull_page.g_spinbox.value() == 0.0
 
     def test_reset_checkboxes(self, skull_page):
-        """Verifica che reset ripristini checkbox"""
-        # Modifica checkbox
+        """Test that reset restores checkboxes"""
+        # Modify checkboxes
         skull_page.opt_m.setChecked(True)
         skull_page.opt_t.setChecked(True)
 
         # Reset
         skull_page.reset_page()
 
-        # Verifica valori default
+        # Verify default values
         assert skull_page.opt_brain_extracted.isChecked()
         assert not skull_page.opt_m.isChecked()
         assert not skull_page.opt_t.isChecked()
 
     def test_reset_hides_progress_bar(self, skull_page):
-        """Verifica che reset nasconda progress bar"""
+        """Test that reset hides progress bar"""
         skull_page.progress_bar.setVisible(True)
 
         skull_page.reset_page()
@@ -382,7 +382,7 @@ class TestSkullStrippingPageReset:
         assert not skull_page.progress_bar.isVisible()
 
     def test_reset_cancels_running_worker(self, skull_page):
-        """Verifica che reset cancelli worker in esecuzione"""
+        """Test that reset cancels a running worker"""
         mock_worker = Mock()
         mock_worker.isRunning.return_value = True
         skull_page.worker = mock_worker
@@ -394,27 +394,27 @@ class TestSkullStrippingPageReset:
 
 
 class TestSkullStrippingPageTranslation:
-    """Test per traduzioni"""
+    """Tests for translations"""
 
     def test_translate_ui_updates_title(self, skull_page):
-        """Verifica aggiornamento titolo"""
+        """Test title update"""
         skull_page._translate_ui()
         assert skull_page.title.text() != ""
 
     def test_translate_ui_updates_buttons(self, skull_page):
-        """Verifica aggiornamento pulsanti"""
+        """Test buttons update"""
         skull_page._translate_ui()
         assert skull_page.run_button.text() != ""
         assert skull_page.cancel_button.text() != ""
 
 
-# Test di integrazione
+# Integration tests
 class TestSkullStrippingPageIntegration:
-    """Test di integrazione"""
+    """Integration tests"""
 
     @patch('main.ui.skull_stripping_page.SkullStripThread')
     def test_full_processing_workflow(self, MockThread, skull_page, qtbot):
-        """Test flusso completo di processing"""
+        """Test full processing workflow"""
         # Setup
         skull_page.file_selector_widget.get_selected_files = Mock(
             return_value=['/path/file.nii']
@@ -427,16 +427,16 @@ class TestSkullStrippingPageIntegration:
         with qtbot.waitSignal(skull_page.processing, timeout=1000):
             skull_page.run_bet()
 
-        # Verifica stato processing
+        # Verify processing state
         assert skull_page.progress_bar.isVisible()
         assert skull_page.cancel_button.isVisible()
         assert not skull_page.run_button.isVisible()
 
-        # Simula completamento
+        # Simulate completion
         with qtbot.waitSignal(skull_page.processing, timeout=1000):
             skull_page.on_worker_finished()
 
-        # Verifica stato finale
+        # Verify final state
         assert not skull_page.cancel_button.isVisible()
 
 
