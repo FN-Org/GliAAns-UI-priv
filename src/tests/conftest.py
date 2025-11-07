@@ -9,11 +9,11 @@ from PyQt6.QtCore import QSettings, QObject, pyqtSignal
 from PyQt6.QtWidgets import QPushButton, QWidget
 
 
-# Aggiungi il percorso del progetto al PYTHONPATH
+# Add the project path to PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class SignalEmitter(QObject):
-    """Classe helper per signal mockati"""
+    """Helper class for mocked signals"""
     selected_files = pyqtSignal(list)
     language_changed = pyqtSignal(str)
 
@@ -23,7 +23,7 @@ def signal_emitter():
 
 @pytest.fixture
 def temp_workspace():
-    """Crea una directory temporanea per il workspace"""
+    """Create a temporary directory for the workspace"""
     temp_dir = tempfile.mkdtemp()
     os.makedirs(os.path.join(temp_dir, "pipeline"), exist_ok=True)
     with open(os.path.join(temp_dir, "pipeline", "output.txt"), "w") as f:
@@ -47,7 +47,7 @@ def temp_workspace():
         f.write("nifti data")
     with open(os.path.join(temp_dir, "brain.json"), "w") as f:
         f.write("{}")
-    # File NIfTI.gz con JSON
+    # NIfTI.gz file with JSON
     with open(os.path.join(temp_dir, "scan.nii.gz"), "w") as f:
         f.write("compressed")
     with open(os.path.join(temp_dir, "scan.json"), "w") as f:
@@ -58,9 +58,9 @@ def temp_workspace():
 
 @pytest.fixture
 def mock_context(temp_workspace, signal_emitter):
-    """Crea un context mock con tutti i componenti necessari"""
+    """Create a mock context with all necessary components"""
     def create_buttons():
-        # Ritorna QPushButton reali invece di Mock
+        # Return real QPushButtons instead of Mock
         return QPushButton("Next"), QPushButton("Back")
 
     context = {
@@ -81,7 +81,7 @@ def mock_context(temp_workspace, signal_emitter):
 
 @pytest.fixture(autouse=True)
 def clean_settings():
-    """Pulisce le impostazioni prima e dopo ogni test"""
+    """Clean settings before and after each test"""
     settings = QSettings("TestOrg", "TestApp")
     settings.clear()
     yield
@@ -89,7 +89,7 @@ def clean_settings():
 
 @pytest.fixture
 def mock_logger():
-    """Mock per il logger"""
+    """Mock for the logger"""
     from unittest.mock import Mock
     logger = Mock()
     logger.info = Mock()
@@ -103,12 +103,12 @@ class DummySignal:
         pass
 
 class DummyFileSelectorWidget(QWidget):
-    """Mock del FileSelectorWidget usato nei test."""
+    """Mock of FileSelectorWidget used in tests."""
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.has_file = DummySignal()
         self._selected_files = []
-        # Mock per verifiche nei test
+        # Mock for verification in tests
         self.clear_selected_files = Mock()
 
     def get_selected_files(self):
@@ -122,7 +122,7 @@ class DummyFileSelectorWidget(QWidget):
 
 @pytest.fixture
 def mock_file_selector():
-    """Patcha FileSelectorWidget con un mock compatibile."""
+    """Patch FileSelectorWidget with a compatible mock."""
     with patch(
         "main.ui.skull_stripping_page.FileSelectorWidget",
         return_value=DummyFileSelectorWidget()
@@ -131,7 +131,7 @@ def mock_file_selector():
 
 @pytest.fixture
 def mock_file_selector_mask():
-    """Patcha FileSelectorWidget nel modulo ui_mask_selection_page con un widget valido."""
+    """Patch FileSelectorWidget in ui_mask_selection_page module with a valid widget."""
     with patch(
         "main.ui.nifti_mask_selection_page.FileSelectorWidget",
         return_value=DummyFileSelectorWidget()
@@ -140,16 +140,16 @@ def mock_file_selector_mask():
 
 @pytest.fixture
 def mock_file_selector_dl():
-    """Patcha FileSelectorWidget nel modulo ui_dl_selection_page."""
+    """Patch FileSelectorWidget in the ui_dl_selection_page module."""
     with patch(
             "main.ui.dl_selection_page.FileSelectorWidget",
             return_value=DummyFileSelectorWidget()
     ) as mock:
         yield mock
 
-# Configurazione pytest
+# Pytest configuration
 def pytest_configure(config):
-    """Configurazione globale di pytest"""
+    """Global pytest configuration"""
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )

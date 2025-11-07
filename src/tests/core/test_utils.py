@@ -12,16 +12,16 @@ from main import utils
 
 
 class TestGetBinPath:
-    """Test per get_bin_path function"""
+    """Tests for get_bin_path function"""
 
     @pytest.fixture
     def temp_bin_dir(self):
-        """Crea directory temporanea con binari"""
+        """Create a temporary directory with binaries"""
         temp_dir = tempfile.mkdtemp()
         bin_dir = os.path.join(temp_dir, "test_tool")
         os.makedirs(bin_dir)
 
-        # Crea file eseguibile fittizio
+        # Create a mock executable file
         exe_name = "test_tool.exe" if os.name == "nt" else "test_tool"
         exe_path = os.path.join(bin_dir, exe_name)
         with open(exe_path, "w") as f:
@@ -34,22 +34,22 @@ class TestGetBinPath:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_get_bin_path_pyinstaller(self, temp_bin_dir):
-        """Verifica ricerca in sys._MEIPASS (PyInstaller)"""
+        """Verify search in sys._MEIPASS (PyInstaller)"""
         temp_dir, bin_dir, exe_path = temp_bin_dir
 
-        # Simula PyInstaller
+        # Simulate PyInstaller
         with patch.object(sys, '_MEIPASS', temp_dir, create=True):
             result = utils.get_bin_path("test_tool")
             assert result == exe_path
 
     def test_get_bin_path_local(self, temp_bin_dir, monkeypatch):
-        """Verifica ricerca in directory locale"""
+        """Verify search in local directory"""
         temp_dir, bin_dir, exe_path = temp_bin_dir
 
-        # Simula __file__ nella directory giusta
+        # Simulate __file__ in the correct directory
         monkeypatch.setattr(utils, '__file__', os.path.join(temp_dir, 'utils.py'))
 
-        # Rimuovi _MEIPASS se esiste
+        # Remove _MEIPASS if it exists
         if hasattr(sys, '_MEIPASS'):
             delattr(sys, '_MEIPASS')
 
@@ -57,11 +57,11 @@ class TestGetBinPath:
         assert result == exe_path
 
     def test_get_bin_path_system_path(self, temp_bin_dir):
-        """Verifica ricerca nel PATH di sistema"""
+        """Verify search in system PATH"""
         _, _, exe_path = temp_bin_dir
 
         with patch('shutil.which', return_value=exe_path):
-            # Rimuovi _MEIPASS se esiste
+            # Remove _MEIPASS if it exists
             if hasattr(sys, '_MEIPASS'):
                 delattr(sys, '_MEIPASS')
 
@@ -69,8 +69,8 @@ class TestGetBinPath:
             assert result == exe_path
 
     def test_get_bin_path_not_found(self):
-        """Verifica eccezione quando binario non trovato"""
-        # Rimuovi _MEIPASS
+        """Verify exception when binary is not found"""
+        # Remove _MEIPASS
         if hasattr(sys, '_MEIPASS'):
             delattr(sys, '_MEIPASS')
 
@@ -83,10 +83,10 @@ class TestGetBinPath:
 
     @patch('platform.system', return_value='Windows')
     def test_get_bin_path_windows(self, mock_system, temp_bin_dir):
-        """Verifica che su Windows cerchi .exe"""
+        """Verify that it searches for .exe on Windows"""
         temp_dir, bin_dir, _ = temp_bin_dir
 
-        # Crea .exe su Windows
+        # Create .exe on Windows
         exe_path = os.path.join(bin_dir, "test_tool.exe")
         with open(exe_path, "w") as f:
             f.write("test")
@@ -97,10 +97,10 @@ class TestGetBinPath:
 
 
 class TestGetAppDir:
-    """Test per get_app_dir function"""
+    """Tests for get_app_dir function"""
 
     def test_get_app_dir_creates_directory(self):
-        """Verifica che crei la directory se non esiste"""
+        """Verify that it creates the directory if it doesn't exist"""
         with patch('utils.QStandardPaths.writableLocation') as mock_location:
             temp_home = tempfile.mkdtemp()
             mock_location.return_value = temp_home
@@ -115,7 +115,7 @@ class TestGetAppDir:
                 shutil.rmtree(temp_home, ignore_errors=True)
 
     def test_get_app_dir_returns_path_object(self):
-        """Verifica che ritorni un oggetto Path"""
+        """Verify that it returns a Path object"""
         with patch('utils.QStandardPaths.writableLocation') as mock_location:
             temp_home = tempfile.mkdtemp()
             mock_location.return_value = temp_home
@@ -127,7 +127,7 @@ class TestGetAppDir:
                 shutil.rmtree(temp_home, ignore_errors=True)
 
     def test_get_app_dir_idempotent(self):
-        """Verifica che chiamate multiple ritornino lo stesso path"""
+        """Verify that multiple calls return the same path"""
         with patch('utils.QStandardPaths.writableLocation') as mock_location:
             temp_home = tempfile.mkdtemp()
             mock_location.return_value = temp_home
@@ -142,10 +142,10 @@ class TestGetAppDir:
 
 
 class TestResourcePath:
-    """Test per resource_path function"""
+    """Tests for resource_path function"""
 
     def test_resource_path_pyinstaller(self):
-        """Verifica path con PyInstaller"""
+        """Verify path with PyInstaller"""
         with patch.object(sys, '_MEIPASS', '/path/to/meipass', create=True):
             result = utils.resource_path("resources/icon.png")
 
@@ -153,8 +153,8 @@ class TestResourcePath:
             assert result.endswith('resources/icon.png')
 
     def test_resource_path_development(self, monkeypatch):
-        """Verifica path in modalità sviluppo"""
-        # Rimuovi _MEIPASS
+        """Verify path in development mode"""
+        # Remove _MEIPASS
         if hasattr(sys, '_MEIPASS'):
             delattr(sys, '_MEIPASS')
 
@@ -167,19 +167,19 @@ class TestResourcePath:
         assert "resources/icon.png" in result
 
     def test_resource_path_absolute(self):
-        """Verifica che ritorni path assoluto"""
+        """Verify that it returns an absolute path"""
         result = utils.resource_path("test.txt")
 
         assert os.path.isabs(result)
 
 
 class TestGetShellPath:
-    """Test per get_shell_path function"""
+    """Tests for get_shell_path function"""
 
     @patch('platform.system', return_value='Darwin')
     @patch('subprocess.run')
     def test_get_shell_path_macos(self, mock_run, mock_system):
-        """Verifica recupero PATH su macOS"""
+        """Verify PATH retrieval on macOS"""
         mock_run.return_value = Mock(
             stdout="/usr/local/bin:/usr/bin:/bin\n",
             returncode=0
@@ -189,13 +189,13 @@ class TestGetShellPath:
 
         assert result == "/usr/local/bin:/usr/bin:/bin"
         mock_run.assert_called_once()
-        # Verifica che usi zsh
+        # Verify that it uses zsh
         assert "/bin/zsh" in str(mock_run.call_args)
 
     @patch('platform.system', return_value='Linux')
     @patch('subprocess.run')
     def test_get_shell_path_linux(self, mock_run, mock_system):
-        """Verifica recupero PATH su Linux"""
+        """Verify PATH retrieval on Linux"""
         mock_run.return_value = Mock(
             stdout="/usr/local/bin:/usr/bin:/bin\n",
             returncode=0
@@ -206,24 +206,24 @@ class TestGetShellPath:
 
             assert result == "/usr/local/bin:/usr/bin:/bin"
             mock_run.assert_called_once()
-            # Verifica che usi la shell dell'utente
+            # Verify that it uses the user's shell
             assert "/bin/bash" in str(mock_run.call_args)
 
     @patch('platform.system', return_value='Linux')
     def test_get_shell_path_linux_default_shell(self, mock_system):
-        """Verifica fallback a bash se SHELL non è definita"""
+        """Verify fallback to bash if SHELL is not defined"""
         with patch('subprocess.run') as mock_run, \
                 patch.dict(os.environ, {}, clear=True):
             mock_run.return_value = Mock(stdout="/usr/bin:/bin\n", returncode=0)
 
             result = utils.get_shell_path()
 
-            # Dovrebbe usare /bin/bash come fallback
+            # Should use /bin/bash as fallback
             assert "/bin/bash" in str(mock_run.call_args)
 
     @patch('platform.system', return_value='Windows')
     def test_get_shell_path_windows(self, mock_system):
-        """Verifica recupero PATH su Windows"""
+        """Verify PATH retrieval on Windows"""
         test_path = "C:\\Windows\\System32;C:\\Program Files"
 
         with patch.dict(os.environ, {'PATH': test_path}):
@@ -234,18 +234,18 @@ class TestGetShellPath:
     @patch('platform.system', return_value='Darwin')
     @patch('subprocess.run', side_effect=Exception("Command failed"))
     def test_get_shell_path_error_fallback(self, mock_run, mock_system):
-        """Verifica fallback su errore"""
+        """Verify fallback on error"""
         test_path = "/fallback/path"
 
         with patch.dict(os.environ, {'PATH': test_path}):
             result = utils.get_shell_path()
 
-            # Dovrebbe ritornare PATH dall'ambiente
+            # Should return PATH from the environment
             assert result == test_path
 
     @patch('platform.system', return_value='Unknown')
     def test_get_shell_path_unknown_system(self, mock_system):
-        """Verifica comportamento su sistema sconosciuto"""
+        """Verify behavior on unknown system"""
         test_path = "/generic/path"
 
         with patch.dict(os.environ, {'PATH': test_path}):
@@ -255,11 +255,11 @@ class TestGetShellPath:
 
 
 class TestSetupFSLEnv:
-    """Test per setup_fsl_env function"""
+    """Tests for setup_fsl_env function"""
 
     @patch('subprocess.run')
     def test_setup_fsl_env_success(self, mock_run):
-        """Verifica setup corretto di FSL"""
+        """Verify correct FSL setup"""
         mock_run.return_value = Mock(
             stdout="/usr/local/fsl\nNIFTI_GZ\n",
             returncode=0
@@ -273,7 +273,7 @@ class TestSetupFSLEnv:
 
     @patch('subprocess.run')
     def test_setup_fsl_env_uses_zsh(self, mock_run):
-        """Verifica che usi zsh e sourci fsl.sh"""
+        """Verify it uses zsh and sources fsl.sh"""
         mock_run.return_value = Mock(
             stdout="/usr/local/fsl\nNIFTI_GZ\n",
             returncode=0
@@ -287,9 +287,9 @@ class TestSetupFSLEnv:
 
     @patch('subprocess.run')
     def test_setup_fsl_env_insufficient_output(self, mock_run):
-        """Verifica errore con output insufficiente"""
+        """Verify error with insufficient output"""
         mock_run.return_value = Mock(
-            stdout="/usr/local/fsl\n",  # Manca FSLOUTPUTTYPE
+            stdout="/usr/local/fsl\n",  # Missing FSLOUTPUTTYPE
             returncode=0
         )
 
@@ -300,7 +300,7 @@ class TestSetupFSLEnv:
 
     @patch('subprocess.run')
     def test_setup_fsl_env_empty_output(self, mock_run):
-        """Verifica errore con output vuoto"""
+        """Verify error with empty output"""
         mock_run.return_value = Mock(
             stdout="",
             returncode=0
@@ -311,30 +311,30 @@ class TestSetupFSLEnv:
 
     @patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'cmd'))
     def test_setup_fsl_env_command_fails(self, mock_run):
-        """Verifica gestione errore comando"""
+        """Verify handling of command error"""
         with pytest.raises(subprocess.CalledProcessError):
             utils.setup_fsl_env()
 
 
 class TestPlatformSpecificBehavior:
-    """Test per comportamenti specifici della piattaforma"""
+    """Tests for platform-specific behavior"""
 
     @patch('platform.system', return_value='Windows')
     def test_windows_executable_extension(self, mock_system):
-        """Verifica che Windows cerchi .exe"""
+        """Verify that Windows searches for .exe"""
         with patch('os.path.exists', return_value=True):
             with patch.object(sys, '_MEIPASS', '/test', create=True):
-                # Non dovrebbe sollevare eccezione
+                # Should not raise exception
                 try:
                     result = utils.get_bin_path("test_tool")
                     assert ".exe" in result
                 except FileNotFoundError:
-                    # Ok se non trova, importante che cerchi .exe
+                    # OK if not found, important that it searches for .exe
                     pass
 
     @patch('platform.system', return_value='Linux')
     def test_linux_no_extension(self, mock_system):
-        """Verifica che Linux non aggiunga estensione"""
+        """Verify that Linux does not add extension"""
         with patch('os.path.exists', return_value=True):
             with patch.object(sys, '_MEIPASS', '/test', create=True):
                 try:
@@ -345,28 +345,28 @@ class TestPlatformSpecificBehavior:
 
 
 class TestEdgeCases:
-    """Test per casi edge e situazioni inusuali"""
+    """Tests for edge cases and unusual situations"""
 
     def test_get_bin_path_empty_name(self):
-        """Verifica comportamento con nome vuoto"""
+        """Verify behavior with empty name"""
         with pytest.raises((FileNotFoundError, ValueError)):
             utils.get_bin_path("")
 
     def test_resource_path_empty_relative(self):
-        """Verifica comportamento con path relativo vuoto"""
+        """Verify behavior with empty relative path"""
         result = utils.resource_path("")
         assert os.path.isabs(result)
 
     def test_resource_path_absolute_input(self):
-        """Verifica comportamento con path assoluto in input"""
+        """Verify behavior with absolute path as input"""
         abs_path = "/absolute/path/to/resource"
         result = utils.resource_path(abs_path)
-        # Dovrebbe comunque processarlo
+        # Should still process it
         assert isinstance(result, str)
 
     @patch('subprocess.run')
     def test_setup_fsl_env_whitespace_output(self, mock_run):
-        """Verifica gestione whitespace nell'output"""
+        """Verify handling of whitespace in output"""
         mock_run.return_value = Mock(
             stdout="  /usr/local/fsl  \n  NIFTI_GZ  \n",
             returncode=0
@@ -374,12 +374,12 @@ class TestEdgeCases:
 
         fsldir, fsloutputtype = utils.setup_fsl_env()
 
-        # strip dovrebbe rimuovere whitespace
+        # strip should remove whitespace
         assert fsldir.strip() == "/usr/local/fsl"
         assert fsloutputtype.strip() == "NIFTI_GZ"
 
     def test_get_shell_path_empty_environ(self):
-        """Verifica comportamento con PATH vuoto"""
+        """Verify behavior with empty PATH"""
         with patch.dict(os.environ, {'PATH': ''}):
             with patch('platform.system', return_value='Windows'):
                 result = utils.get_shell_path()
@@ -387,12 +387,12 @@ class TestEdgeCases:
 
 
 class TestIntegrationScenarios:
-    """Test di integrazione per scenari realistici"""
+    """Integration tests for realistic scenarios"""
 
     @patch('platform.system', return_value='Darwin')
     @patch('subprocess.run')
     def test_macos_full_setup(self, mock_run, mock_system):
-        """Test scenario completo su macOS"""
+        """Test full scenario on macOS"""
         # Setup PATH
         mock_run.return_value = Mock(
             stdout="/usr/local/bin:/usr/bin\n",
@@ -413,19 +413,19 @@ class TestIntegrationScenarios:
         assert fsltype == "NIFTI_GZ"
 
     def test_development_mode_paths(self, monkeypatch):
-        """Test percorsi in modalità sviluppo"""
-        # Simula sviluppo (no PyInstaller)
+        """Test paths in development mode"""
+        # Simulate development (no PyInstaller)
         if hasattr(sys, '_MEIPASS'):
             delattr(sys, '_MEIPASS')
 
         test_dir = "/home/user/project"
         monkeypatch.setattr(utils, '__file__', os.path.join(test_dir, 'utils.py'))
 
-        # Resource path dovrebbe usare directory del progetto
+        # Resource path should use project directory
         resource = utils.resource_path("icon.png")
         assert test_dir in resource
 
-        # App dir dovrebbe essere creata
+        # App dir should be created
         with patch('utils.QStandardPaths.writableLocation') as mock_loc:
             temp_home = tempfile.mkdtemp()
             mock_loc.return_value = temp_home
@@ -438,34 +438,34 @@ class TestIntegrationScenarios:
 
 
 class TestErrorHandling:
-    """Test per gestione errori"""
+    """Tests for error handling"""
 
     @patch('subprocess.run', side_effect=FileNotFoundError("Shell not found"))
     @patch('platform.system', return_value='Linux')
     def test_shell_not_found_fallback(self, mock_system, mock_run):
-        """Verifica fallback quando shell non trovata"""
+        """Verify fallback when shell is not found"""
         with patch.dict(os.environ, {'PATH': '/backup/path'}):
             result = utils.get_shell_path()
-            # Dovrebbe usare PATH dall'ambiente
+            # Should use PATH from environment
             assert result == '/backup/path'
 
     @patch('os.makedirs', side_effect=PermissionError("No permission"))
     def test_app_dir_permission_error(self, mock_makedirs):
-        """Verifica gestione errore permessi"""
+        """Verify handling of permission error"""
         with patch('utils.QStandardPaths.writableLocation', return_value='/root/restricted'):
             with pytest.raises(PermissionError):
                 utils.get_app_dir()
 
     @patch('subprocess.run')
     def test_setup_fsl_malformed_output(self, mock_run):
-        """Verifica gestione output malformato"""
-        # Output con caratteri strani
+        """Verify handling of malformed output"""
+        # Output with strange characters
         mock_run.return_value = Mock(
             stdout="\x00/usr/local/fsl\nNIFTI_GZ\x00\n",
             returncode=0
         )
 
-        # Dovrebbe comunque funzionare (strip gestisce)
+        # Should still work (strip handles it)
         fsldir, fsltype = utils.setup_fsl_env()
         assert "/usr/local/fsl" in fsldir
 

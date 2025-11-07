@@ -1,13 +1,13 @@
 """
-test_import_thread.py - Test Suite per ImportThread
+test_import_thread.py - Test Suite for ImportThread
 
-Questa suite testa tutte le funzionalità principali di ImportThread:
-- Importazione di cartelle BIDS già organizzate
-- Conversione DICOM → NIfTI
-- Gestione di pazienti singoli vs multipli
-- Heuristiche di rilevamento struttura
-- Cancellazione dell'import
-- Gestione errori
+This suite tests all the main functionalities of ImportThread:
+- Importing already organized BIDS folders
+- DICOM → NIfTI conversion
+- Handling single vs. multiple patients
+- Structure detection heuristics
+- Import cancellation
+- Error handling
 """
 
 import os
@@ -20,10 +20,10 @@ from main.threads.import_thread import ImportThread
 
 
 class TestImportThreadInitialization:
-    """Test per l'inizializzazione di ImportThread"""
+    """Tests for ImportThread initialization"""
 
     def test_init_single_path(self, mock_context, temp_workspace):
-        """Test inizializzazione con un singolo path"""
+        """Test initialization with a single path"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
         assert thread.context == mock_context
@@ -34,7 +34,7 @@ class TestImportThreadInitialization:
         assert thread.process is None
 
     def test_init_multiple_paths(self, mock_context, temp_workspace):
-        """Test inizializzazione con più path"""
+        """Test initialization with multiple paths"""
         paths = [temp_workspace, os.path.join(temp_workspace, "sub-01")]
         thread = ImportThread(mock_context, paths, temp_workspace)
 
@@ -42,7 +42,7 @@ class TestImportThreadInitialization:
         assert thread.folders_path == paths
 
     def test_signals_exist(self, mock_context, temp_workspace):
-        """Verifica che i signal siano definiti correttamente"""
+        """Verify that signals are defined correctly"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
         assert hasattr(thread, 'finished')
@@ -51,10 +51,10 @@ class TestImportThreadInitialization:
 
 
 class TestFileDetection:
-    """Test per i metodi di rilevamento file"""
+    """Tests for file detection methods"""
 
     def test_is_nifti_file(self, mock_context, temp_workspace):
-        """Test rilevamento file NIfTI"""
+        """Test NIfTI file detection"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
         assert thread._is_nifti_file("brain.nii") is True
@@ -63,23 +63,23 @@ class TestFileDetection:
         assert thread._is_nifti_file("brain.dcm") is False
 
     def test_is_dicom_file_valid(self, mock_context, temp_workspace):
-        """Test rilevamento DICOM valido"""
+        """Test valid DICOM detection"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Crea un file DICOM mock
+        # Create a mock DICOM file
         dicom_path = os.path.join(temp_workspace, "test.dcm")
         with open(dicom_path, "wb") as f:
-            f.write(b'\x00' * 128)  # 128 byte di padding
-            f.write(b'DICM')  # Magic bytes DICOM
-            f.write(b'\x00' * 100)  # Altri dati
+            f.write(b'\x00' * 128)  # 128 bytes of padding
+            f.write(b'DICM')  # DICOM magic bytes
+            f.write(b'\x00' * 100)
 
         assert thread._is_dicom_file(dicom_path) is True
 
     def test_is_dicom_file_invalid(self, mock_context, temp_workspace):
-        """Test rilevamento file non-DICOM"""
+        """Test non-DICOM file detection"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # File senza magic bytes DICOM
+        # File without DICOM magic bytes
         non_dicom_path = os.path.join(temp_workspace, "notdicom.txt")
         with open(non_dicom_path, "w") as f:
             f.write("This is not a DICOM file")
@@ -87,48 +87,48 @@ class TestFileDetection:
         assert thread._is_dicom_file(non_dicom_path) is False
 
     def test_is_dicom_file_exception(self, mock_context, temp_workspace):
-        """Test gestione eccezione durante lettura DICOM"""
+        """Test exception handling during DICOM read"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # File inesistente
+        # Non-existent file
         assert thread._is_dicom_file("/nonexistent/file.dcm") is False
 
 
 class TestBIDSDetection:
-    """Test per il rilevamento di strutture BIDS"""
+    """Tests for BIDS structure detection"""
 
     def test_is_bids_folder_valid(self, mock_context, temp_workspace):
-        """Test rilevamento cartella BIDS valida"""
+        """Test valid BIDS folder detection"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Crea struttura BIDS
+        # Create BIDS structure
         bids_dir = os.path.join(temp_workspace, "bids_test")
-        # **MODIFICA**: Il nome della cartella che passiamo al metodo deve iniziare con "sub-"
-        # secondo la logica del codice fornito.
+        # **EDIT**: The folder name passed to the method must start with "sub-"
+        # according to the provided code logic.
         sub_folder = os.path.join(bids_dir, "sub-01")
         anat_dir = os.path.join(sub_folder, "anat")
         os.makedirs(anat_dir, exist_ok=True)
 
-        # Aggiungi file NIfTI
+        # Add NIfTI file
         nifti_path = os.path.join(anat_dir, "sub-01_T1w.nii.gz")
         with open(nifti_path, "w") as f:
             f.write("nifti data")
 
-        # **CORREZIONE**: L'asserzione deve testare 'sub_folder', non 'bids_dir'
+        # **FIX**: The assertion must test 'sub_folder', not 'bids_dir'
         assert thread._is_bids_folder(sub_folder) is True
 
     def test_is_bids_folder_invalid(self, mock_context, temp_workspace):
-        """Test rilevamento cartella non-BIDS (nome errato)"""
+        """Test detection of non-BIDS folder (wrong name)"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         invalid_dir = os.path.join(temp_workspace, "not_bids")
         os.makedirs(invalid_dir, exist_ok=True)
         assert thread._is_bids_folder(invalid_dir) is False
 
     def test_is_bids_folder_no_sub_prefix(self, mock_context, temp_workspace):
-        """Test cartella senza prefisso 'sub-'"""
+        """Test folder without 'sub-' prefix"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Cartella con struttura simile ma senza prefisso corretto
+        # Folder with similar structure but without the correct prefix
         fake_bids = os.path.join(temp_workspace, "fake_bids")
         anat_dir = os.path.join(fake_bids, "patient01", "anat")
         os.makedirs(anat_dir, exist_ok=True)
@@ -140,10 +140,10 @@ class TestBIDSDetection:
 
 
 class TestSubjectIDGeneration:
-    """Test per la generazione di ID soggetto"""
+    """Tests for subject ID generation"""
 
     def test_get_next_sub_id_empty_workspace(self, mock_context, temp_workspace):
-        """Test generazione ID su workspace vuoto"""
+        """Test ID generation on an empty workspace"""
         empty_ws = os.path.join(temp_workspace, "empty")
         os.makedirs(empty_ws)
 
@@ -153,8 +153,8 @@ class TestSubjectIDGeneration:
         assert sub_id == "sub-01"
 
     def test_get_next_sub_id_existing_subjects(self, mock_context, temp_workspace):
-        """Test generazione ID con soggetti esistenti"""
-        # Aggiungi exist_ok=True
+        """Test ID generation with existing subjects"""
+        # Add exist_ok=True
         os.makedirs(os.path.join(temp_workspace, "sub-01"), exist_ok=True)
         os.makedirs(os.path.join(temp_workspace, "sub-02"), exist_ok=True)
 
@@ -164,20 +164,20 @@ class TestSubjectIDGeneration:
         assert sub_id == "sub-03"
 
     def test_get_next_sub_id_non_sequential(self, mock_context, temp_workspace):
-        """Test con ID non sequenziali"""
-        # Aggiungi exist_ok=True
+        """Test with non-sequential IDs"""
+        # Add exist_ok=True
         os.makedirs(os.path.join(temp_workspace, "sub-01"), exist_ok=True)
-        os.makedirs(os.path.join(temp_workspace, "sub-05"))  # Salta
+        os.makedirs(os.path.join(temp_workspace, "sub-05"))  # Skip
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         sub_id = thread._get_next_sub_id()
 
-        # Dovrebbe essere sub-06 (max + 1)
+        # Should be sub-06 (max + 1)
         assert sub_id == "sub-06"
 
     def test_get_next_sub_id_invalid_names(self, mock_context, temp_workspace):
-        """Test con nomi cartelle invalidi"""
-        # Aggiungi exist_ok=True
+        """Test with invalid folder names"""
+        # Add exist_ok=True
         os.makedirs(os.path.join(temp_workspace, "sub-01"), exist_ok=True)
         os.makedirs(os.path.join(temp_workspace, "sub-02"), exist_ok=True)
         os.makedirs(os.path.join(temp_workspace, "sub-invalid"))
@@ -186,18 +186,18 @@ class TestSubjectIDGeneration:
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         sub_id = thread._get_next_sub_id()
 
-        # Dovrebbe ignorare cartelle non valide e usare sub-01, sub-02
+        # Should ignore invalid folders and use sub-01, sub-02
         assert sub_id == "sub-03"
 
 
 class TestPatientDetectionHeuristics:
-    """Test per le euristiche di rilevamento paziente singolo/multiplo"""
+    """Tests for single/multiple patient detection heuristics"""
 
     def test_subfolders_look_like_different_patients(self, mock_context, temp_workspace):
-        """Test rilevamento cartelle multi-paziente"""
+        """Test multi-patient folder detection"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Crea cartelle che sembrano pazienti diversi
+        # Create folders that look like different patients
         patient_folders = [
             os.path.join(temp_workspace, "sub-01"),
             os.path.join(temp_workspace, "sub-02"),
@@ -210,10 +210,10 @@ class TestPatientDetectionHeuristics:
         assert thread._subfolders_look_like_different_patients(patient_folders) is True
 
     def test_subfolders_single_patient(self, mock_context, temp_workspace):
-        """Test cartelle che appartengono a un singolo paziente"""
+        """Test folders belonging to a single patient"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Cartelle senza pattern multi-paziente
+        # Folders without multi-patient pattern
         series_folders = [
             os.path.join(temp_workspace, "series_001"),
             os.path.join(temp_workspace, "series_002"),
@@ -227,22 +227,22 @@ class TestPatientDetectionHeuristics:
 
     @patch('main.threads.import_thread.pydicom.dcmread')
     def test_are_dicom_series_of_same_patient_true(self, mock_dcmread, mock_context, temp_workspace):
-        """Test DICOM dello stesso paziente"""
+        """Test DICOM files from the same patient"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Setup mock DICOM con stesso PatientID
+        # Setup mock DICOM with the same PatientID
         mock_dcm = Mock()
         mock_dcm.PatientID = "PATIENT001"
         mock_dcm.PatientName = "Doe^John"
         mock_dcmread.return_value = mock_dcm
 
-        # Crea cartelle con DICOM
+        # Create folders with DICOM
         series_folders = []
         for i in range(3):
             folder = os.path.join(temp_workspace, f"series_{i}")
             os.makedirs(folder, exist_ok=True)
 
-            # Crea file DICOM mock
+            # Create mock DICOM file
             dicom_file = os.path.join(folder, f"image_{i}.dcm")
             with open(dicom_file, "wb") as f:
                 f.write(b'\x00' * 128)
@@ -255,20 +255,20 @@ class TestPatientDetectionHeuristics:
 
     @patch('main.threads.import_thread.pydicom.dcmread')
     def test_are_dicom_series_of_same_patient_false(self, mock_dcmread, mock_context, temp_workspace):
-        """Test DICOM di pazienti diversi"""
+        """Test DICOM files from different patients"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Tutti i file vengono riconosciuti come DICOM
+        # All files are recognized as DICOM
         thread._is_dicom_file = Mock(return_value=True)
 
-        # Ogni chiamata a dcmread restituisce un paziente diverso
+        # Each call to dcmread returns a different patient
         mock_dcmread.side_effect = [
             SimpleNamespace(PatientID="PATIENT01"),
             SimpleNamespace(PatientID="PATIENT02"),
             SimpleNamespace(PatientID="PATIENT03"),
         ]
 
-        # Crea cartelle e file DICOM finti
+        # Create fake DICOM folders and files
         series_folders = []
         for i in range(3):
             folder = os.path.join(temp_workspace, f"patient_{i}")
@@ -284,10 +284,10 @@ class TestPatientDetectionHeuristics:
         assert result is False
 
     def test_are_dicom_series_no_dicom_files(self, mock_context, temp_workspace):
-        """Test con cartelle senza DICOM"""
+        """Test with folders containing no DICOM files"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Cartelle vuote o con altri file
+        # Empty folders or with other files
         folders = []
         for i in range(3):
             folder = os.path.join(temp_workspace, f"empty_{i}")
@@ -299,10 +299,10 @@ class TestPatientDetectionHeuristics:
 
 
 class TestCancellation:
-    """Test per la cancellazione dell'import"""
+    """Tests for import cancellation"""
 
     def test_cancel_flag_set(self, mock_context, temp_workspace):
-        """Test che il flag di cancellazione venga impostato"""
+        """Test that the cancellation flag is set"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
         assert thread._is_canceled is False
@@ -310,10 +310,10 @@ class TestCancellation:
         assert thread._is_canceled is True
 
     def test_cancel_terminates_process(self, mock_context, temp_workspace):
-        """Test terminazione processo esterno durante cancellazione"""
+        """Test termination of external process during cancellation"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Mock di un processo in esecuzione
+        # Mock an external running process
         mock_process = Mock()
         thread.process = mock_process
 
@@ -324,27 +324,27 @@ class TestCancellation:
         mock_process.kill.assert_called_once()
 
     def test_cancel_no_process(self, mock_context, temp_workspace):
-        """Test cancellazione senza processo attivo"""
+        """Test cancellation with no active process"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Non dovrebbe sollevare eccezioni
+        # Should not raise exceptions
         thread.cancel()
         assert thread._is_canceled is True
 
 
 class TestBIDSImport:
-    """Test per l'importazione di cartelle BIDS"""
+    """Tests for BIDS folder import"""
 
     @patch.object(ImportThread, '_is_bids_folder')
     @patch.object(ImportThread, '_get_next_sub_id')
     def test_import_bids_folder_directly(self, mock_get_id, mock_is_bids,
                                          mock_context, temp_workspace):
-        """Test copia diretta di cartella BIDS"""
+        """Test direct copy of BIDS folder"""
         # Setup
         mock_is_bids.return_value = True
         mock_get_id.return_value = "sub-003"
 
-        # Crea cartella BIDS sorgente
+        # Create source BIDS folder
         src_bids = os.path.join(temp_workspace, "source_bids")
         anat_dir = os.path.join(src_bids, "sub-01", "anat")
         os.makedirs(anat_dir)
@@ -353,13 +353,13 @@ class TestBIDSImport:
         with open(nifti_file, "w") as f:
             f.write("test nifti data")
 
-        # Crea workspace destinazione
+        # Create destination workspace
         dest_ws = os.path.join(temp_workspace, "dest_workspace")
         os.makedirs(dest_ws)
 
         thread = ImportThread(mock_context, [src_bids], dest_ws)
 
-        # Connetti signal per verificare emissione
+        # Connect signal to verify emission
         finished_called = [False]
 
         def on_finished():
@@ -367,57 +367,55 @@ class TestBIDSImport:
 
         thread.finished.connect(on_finished)
 
-        # Esegui
         thread.run()
 
-        # Verifica
         assert finished_called[0] is True
         dest_folder = os.path.join(dest_ws, "sub-003")
         assert os.path.exists(dest_folder)
 
 
 class TestDICOMConversion:
-    """Test per la conversione DICOM → NIfTI"""
+    """Tests for DICOM → NIfTI conversion"""
 
     @patch('main.threads.import_thread.subprocess.Popen')
     @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_success(self, mock_get_bin, mock_Popen,
                                           mock_context, temp_workspace):
-        """Test conversione DICOM riuscita"""
+        """Test successful DICOM conversion"""
         mock_get_bin.return_value = "/fake/path/dcm2niix"
 
-        # Configura il mock Popen per simulare un processo di successo
+        # Configure the Popen mock to simulate a successful process
         mock_process = Mock()
         mock_process.communicate.return_value = (b'Conversion complete', b'')  # stdout, stderr (bytes)
         mock_process.returncode = 0
-        mock_Popen.return_value = mock_process  # Popen() restituisce il nostro mock
+        mock_Popen.return_value = mock_process  # Popen() returns our mock
 
         src_folder = os.path.join(temp_workspace, "dicom_source")
         dest_folder = os.path.join(temp_workspace, "nifti_dest")
         os.makedirs(src_folder)
-        # os.makedirs(dest_folder) # La funzione stessa crea questa cartella
+        # os.makedirs(dest_folder) # The function itself creates this folder
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Esegui la funzione
+        # Run the function
         thread._convert_dicom_folder_to_nifti(src_folder, dest_folder)
 
-        # Verifica che Popen sia stato chiamato correttamente
+        # Verify that Popen was called correctly
         mock_Popen.assert_called_once()
         mock_process.communicate.assert_called_once()
-        # Verifica che nessun errore sia stato sollevato (il test fallirebbe prima se lo fosse)
+        # Verify that no error was raised (the test would fail earlier if it were)
 
     @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_missing_tool(self, mock_get_bin,
                                                mock_context, temp_workspace):
-        """Test quando dcm2niix non è disponibile"""
-        # Simula FileNotFoundError quando si cerca il binario
+        """Test when dcm2niix is not available"""
+        # Simulate FileNotFoundError when searching for the binary
         mock_get_bin.side_effect = FileNotFoundError("dcm2niix not found")
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # **CORREZIONE**: Il codice ora rileva l'eccezione e solleva un RuntimeError.
-        # Il vecchio test si aspettava che non accadesse nulla.
+        # **FIX**: The code now catches the exception and raises a RuntimeError.
+        # The old test expected nothing to happen.
         with pytest.raises(RuntimeError, match="dcm2niix not found"):
             thread._convert_dicom_folder_to_nifti(temp_workspace, temp_workspace)
 
@@ -425,37 +423,37 @@ class TestDICOMConversion:
     @patch('main.threads.import_thread.get_bin_path')
     def test_convert_dicom_folder_process_error(self, mock_get_bin, mock_Popen,
                                                 mock_context, temp_workspace):
-        """Test errore durante esecuzione dcm2niix (returncode != 0)"""
+        """Test error during dcm2niix execution (returncode != 0)"""
         mock_get_bin.return_value = "/fake/path/dcm2niix"
 
-        # Simula un processo che fallisce
+        # Simulate a process that fails
         mock_process = Mock()
-        mock_process.communicate.return_value = (b'', b'Errore fatale')  # Messaggio su stderr
-        mock_process.returncode = 1  # Codice di uscita di errore
+        mock_process.communicate.return_value = (b'', b'Errore fatale')  # Message on stderr
+        mock_process.returncode = 1  # Error exit code
         mock_Popen.return_value = mock_process
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # **CORREZIONE**: Il codice rileva il returncode != 0 e solleva un RuntimeError.
+        # **FIX**: The code detects the returncode != 0 and raises a RuntimeError.
         with pytest.raises(RuntimeError, match="dcm2niix failed: Errore fatale"):
             thread._convert_dicom_folder_to_nifti(temp_workspace, temp_workspace)
 
 
 class TestBIDSStructureConversion:
-    """Test per la conversione a struttura BIDS"""
+    """Tests for BIDS structure conversion"""
 
     @patch.object(ImportThread, '_get_next_sub_id', return_value="sub-01")
     def test_convert_to_bids_structure(self, mock_get_id, mock_context, temp_workspace):
-        """Test conversione cartella a struttura BIDS"""
+        """Test folder conversion to BIDS structure"""
         src_folder = os.path.join(temp_workspace, "source")
         os.makedirs(src_folder)
 
-        # Crea NIfTI e JSON fittizi con metadati minimi
+        # Create fictitious NIfTI and JSON with minimal metadata
         nifti_file = os.path.join(src_folder, "brain.nii.gz")
         json_file = os.path.join(src_folder, "brain.json")
 
         with open(nifti_file, "w") as f: f.write("nifti data")
-        # Il codice richiede metadati 'Modality'
+        # The code requires 'Modality' metadata
         with open(json_file, "w") as f: f.write('{"Modality": "MR", "ProtocolName": "T1w"}')
 
         dest_ws = os.path.join(temp_workspace, "workspace")
@@ -464,21 +462,21 @@ class TestBIDSStructureConversion:
         thread = ImportThread(mock_context, [temp_workspace], dest_ws)
         thread._convert_to_bids_structure(src_folder)
 
-        # Verifica struttura creata (con ID corretto)
-        expected_sub = os.path.join(dest_ws, "sub-01", "anat")  # <- CORRETTO
+        # Verify created structure (with correct ID)
+        expected_sub = os.path.join(dest_ws, "sub-01", "anat")  # <- CORRECT
         assert os.path.exists(expected_sub)
         expected_file = os.path.join(expected_sub, "sub-01_run-1_T1w.nii.gz")
         assert os.path.exists(expected_file)
 
     @patch.object(ImportThread, '_get_next_sub_id', return_value="sub-01")
     def test_convert_to_bids_structure_nested(self, mock_get_id, mock_context, temp_workspace):
-        """Test conversione con file in sottocartelle"""
+        """Test conversion with files in subfolders"""
         src_folder = os.path.join(temp_workspace, "nested_source")
         sub_dir = os.path.join(src_folder, "subdir")
         os.makedirs(sub_dir)
 
-        # File in sottocartella
-        nifti_file = os.path.join(sub_dir, "scan.nii.gz")  # Aggiunto .gz per coerenza
+        # File in subfolder
+        nifti_file = os.path.join(sub_dir, "scan.nii.gz")  # Added .gz for consistency
         json_file = os.path.join(sub_dir, "scan.json")
         with open(nifti_file, "w") as f: f.write("scan data")
         with open(json_file, "w") as f: f.write('{"Modality": "PT", "Radiopharmaceutical": "FDG"}')
@@ -489,24 +487,24 @@ class TestBIDSStructureConversion:
         thread = ImportThread(mock_context, [temp_workspace], dest_ws)
         thread._convert_to_bids_structure(src_folder)
 
-        # File dovrebbe essere copiato in pet/ (secondo la logica PT)
-        expected_pet = os.path.join(dest_ws, "sub-01", "ses-01", "pet")  # <- CORRETTO
+        # File should be copied to pet/ (according to PT logic)
+        expected_pet = os.path.join(dest_ws, "sub-01", "ses-01", "pet")  # <- CORRECT
         assert os.path.exists(expected_pet)
-        # Il nome del file viene cambiato
+        # The filename is changed
         expected_file_path = os.path.join(expected_pet, "sub-01_task-unknown_run-1_pet.nii.gz")
         assert os.path.exists(expected_file_path)
 
 
 class TestSinglePatientProcessing:
-    """Test per la processazione di cartelle singolo paziente"""
+    """Tests for single-patient folder processing"""
 
     @patch.object(ImportThread, '_convert_dicom_folder_to_nifti')
     @patch.object(ImportThread, '_convert_to_bids_structure')
     def test_process_single_patient_folder_with_nifti(self, mock_convert_bids,
                                                       mock_convert_dicom,
                                                       mock_context, temp_workspace):
-        """Test processazione cartella con NIfTI esistenti"""
-        # Cartella paziente con NIfTI
+        """Test processing folder with existing NIfTI files"""
+        # Patient folder with NIfTI
         patient_folder = os.path.join(temp_workspace, "patient_data")
         os.makedirs(patient_folder)
 
@@ -517,7 +515,7 @@ class TestSinglePatientProcessing:
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         thread._process_single_patient_folder(patient_folder)
 
-        # Dovrebbe convertire a BIDS ma non chiamare dcm2niix
+        # Should convert to BIDS but not call dcm2niix
         mock_convert_bids.assert_called_once()
         mock_convert_dicom.assert_not_called()
 
@@ -526,11 +524,11 @@ class TestSinglePatientProcessing:
     def test_process_single_patient_folder_with_dicom(self, mock_convert_bids,
                                                       mock_convert_dicom,
                                                       mock_context, temp_workspace):
-        """Test processazione cartella con DICOM"""
+        """Test processing folder with DICOM files"""
         patient_folder = os.path.join(temp_workspace, "patient_dicom")
         os.makedirs(patient_folder)
 
-        # Crea file DICOM
+        # Create DICOM file
         dicom_file = os.path.join(patient_folder, "image.dcm")
         with open(dicom_file, "wb") as f:
             f.write(b'\x00' * 128)
@@ -539,27 +537,27 @@ class TestSinglePatientProcessing:
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         thread._process_single_patient_folder(patient_folder)
 
-        # Entrambe le conversioni dovrebbero essere chiamate
+        # Both conversions should be called
         mock_convert_dicom.assert_called_once()
         mock_convert_bids.assert_called_once()
 
     def test_process_single_patient_folder_cancelled(self, mock_context, temp_workspace):
-        """Test cancellazione durante processazione"""
+        """Test cancellation during processing"""
         patient_folder = os.path.join(temp_workspace, "patient")
         os.makedirs(patient_folder)
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
-        thread.cancel()  # Cancella prima di iniziare
+        thread.cancel()  # Cancel before starting
 
-        # Non dovrebbe sollevare eccezioni
+        # Should not raise exceptions
         thread._process_single_patient_folder(patient_folder)
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori"""
+    """Tests for error handling"""
 
     def test_run_invalid_folder_path(self, mock_context, temp_workspace):
-        """Test con path cartella non valido"""
+        """Test with invalid folder path"""
         invalid_path = os.path.join(temp_workspace, "nonexistent")
         thread = ImportThread(mock_context, [invalid_path], temp_workspace)
 
@@ -577,7 +575,7 @@ class TestErrorHandling:
         assert "Invalid" in error_msg[0] or "non valido" in error_msg[0]
 
     def test_run_empty_folders_list(self, mock_context, temp_workspace):
-        """Test con lista cartelle vuota"""
+        """Test with empty folder list"""
         thread = ImportThread(mock_context, [], temp_workspace)
 
         error_called = [False]
@@ -591,7 +589,7 @@ class TestErrorHandling:
         assert error_called[0] is True
 
     def test_run_cancelled_no_error_emit(self, mock_context, temp_workspace):
-        """Test che la cancellazione non emetta errori"""
+        """Test that cancellation does not emit errors"""
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
         error_called = [False]
@@ -603,24 +601,24 @@ class TestErrorHandling:
         thread.cancel()
         thread.run()
 
-        # Non dovrebbe emettere errore quando cancellato
+        # Should not emit an error when canceled
         assert error_called[0] is False
 
 
 class TestProgressEmission:
-    """Test per l'emissione dei progressi"""
+    """Tests for progress emission"""
 
     @patch('main.threads.import_thread.subprocess.Popen')
     def test_progress_increases_monotonically(self, mock_Popen, mock_context, temp_workspace):
-        """Test che il progress aumenti monotonicamente"""
+        """Test that progress increases monotonically"""
 
-        # Simula Popen per evitare FileNotFoundError
+        # Simulate Popen to avoid FileNotFoundError
         mock_process = Mock()
         mock_process.communicate.return_value = (b'Success', b'')
         mock_process.returncode = 0
         mock_Popen.return_value = mock_process
 
-        # Crea una cartella che NON è BIDS (così segue il "Case C")
+        # Create a folder that is NOT BIDS (so it follows "Case C")
         nifti_folder = os.path.join(temp_workspace, "nifti_src")
         os.makedirs(nifti_folder)
         with open(os.path.join(nifti_folder, "scan.nii.gz"), "w") as f:
@@ -631,21 +629,21 @@ class TestProgressEmission:
         dest = os.path.join(temp_workspace, "out")
         os.makedirs(dest)
 
-        # Usa la cartella "nifti_folder" (non BIDS) come input
+        # Use the "nifti_folder" (non-BIDS) as input
         thread = ImportThread(mock_context, [nifti_folder], dest)
 
         progress_values = []
         thread.progress.connect(lambda v: progress_values.append(v))
 
-        # Esegui il thread
+        # Run the thread
         thread.run()
 
-        # **CORREZIONE**: Asserzioni più robuste. Il valore strano (1251907152)
-        # era probabilmente un sintomo del test interrotto bruscamente.
+        # **FIX**: More robust assertions. The strange value (1251907152)
+        # was likely a symptom of the test being interrupted abruptly.
         assert len(progress_values) > 0
-        assert progress_values[-1] == 100  # Deve finire a 100
+        assert progress_values[-1] == 100  # Must end at 100
 
-        # Verifica che i valori non diminuiscano mai
+        # Verify that values never decrease
         last_val = -1
         for val in progress_values:
             assert val >= last_val
@@ -653,11 +651,11 @@ class TestProgressEmission:
 
 
 class TestMultipleFoldersImport:
-    """Test per l'importazione di più cartelle"""
+    """Tests for multiple folder import"""
 
     @patch.object(ImportThread, '_handle_import')
     def test_run_multiple_folders(self, mock_handle, mock_context, temp_workspace):
-        """Test gestione di più cartelle"""
+        """Test handling of multiple folders"""
         folders = [
             os.path.join(temp_workspace, "folder1"),
             os.path.join(temp_workspace, "folder2"),
@@ -674,12 +672,12 @@ class TestMultipleFoldersImport:
 
         thread.run()
 
-        # Dovrebbe chiamare _handle_import per ogni cartella
+        # Should call _handle_import for each folder
         assert mock_handle.call_count == 3
         assert finished_called[0] is True
 
     def test_run_multiple_folders_progress(self, mock_context, temp_workspace):
-        """Test progress con più cartelle"""
+        """Test progress with multiple folders"""
         folders = []
         for i in range(3):
             folder = os.path.join(temp_workspace, f"bids{i}")
@@ -698,20 +696,20 @@ class TestMultipleFoldersImport:
         thread.progress.connect(lambda v: progress_values.append(v))
         thread.run()
 
-        # Progress dovrebbe arrivare a 100
+        # Progress should reach 100
         assert 100 in progress_values
-        # Dovrebbe avere valori intermedi
+        # Should have intermediate values
         assert len(progress_values) > 2
 
 
 class TestHandleImport:
-    """Test per il metodo _handle_import che gestisce singole cartelle"""
+    """Tests for the _handle_import method which manages single folders"""
 
     @patch.object(ImportThread, '_is_bids_folder')
     @patch.object(ImportThread, '_get_next_sub_id')
     def test_handle_import_bids_folder(self, mock_get_id, mock_is_bids,
                                        mock_context, temp_workspace):
-        """Test _handle_import con cartella BIDS"""
+        """Test _handle_import with BIDS folder"""
         mock_is_bids.return_value = True
         mock_get_id.return_value = "sub-005"
 
@@ -727,38 +725,38 @@ class TestHandleImport:
         thread = ImportThread(mock_context, [temp_workspace], dest_ws)
         thread._handle_import(bids_src)
 
-        # Verifica copia diretta
+        # Verify direct copy
         dest_folder = os.path.join(dest_ws, "sub-005")
         assert os.path.exists(dest_folder)
 
     @patch.object(ImportThread, '_process_single_patient_folder')
     def test_handle_import_direct_medical_files(self, mock_process,
                                                 mock_context, temp_workspace):
-        """Test _handle_import con file medici diretti"""
+        """Test _handle_import with direct medical files"""
         folder = os.path.join(temp_workspace, "patient_folder")
         os.makedirs(folder)
 
-        # File NIfTI diretto
+        # Direct NIfTI file
         with open(os.path.join(folder, "brain.nii.gz"), "w") as f:
             f.write("nifti")
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         thread._handle_import(folder)
 
-        # Dovrebbe processare come singolo paziente
+        # Should process as a single patient
         mock_process.assert_called_once_with(folder)
 
     @patch.object(ImportThread, '_are_dicom_series_of_same_patient')
     @patch.object(ImportThread, '_process_single_patient_folder')
     def test_handle_import_dicom_series_same_patient(self, mock_process, mock_same_patient,
                                                      mock_context, temp_workspace):
-        """Test _handle_import con serie DICOM dello stesso paziente"""
+        """Test _handle_import with DICOM series from the same patient"""
         mock_same_patient.return_value = True
 
         root_folder = os.path.join(temp_workspace, "dicom_root")
         os.makedirs(root_folder)
 
-        # Crea sottocartelle DICOM
+        # Create DICOM subfolders
         for i in range(3):
             series_dir = os.path.join(root_folder, f"series_{i}")
             os.makedirs(series_dir)
@@ -769,7 +767,7 @@ class TestHandleImport:
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
         thread._handle_import(root_folder)
 
-        # Dovrebbe processare come singolo paziente
+        # Should process as a single patient
         mock_process.assert_called_once_with(root_folder)
 
     @patch.object(ImportThread, '_subfolders_look_like_different_patients')
@@ -783,71 +781,68 @@ class TestHandleImport:
         for p in patient_folders:
             os.makedirs(p)
 
-        # Patch interno, non decoratore
+        # Internal patch, not a decorator
         with patch.object(thread, "_handle_import", wraps=thread._handle_import) as mock_handle_recursive:
             thread._handle_import(root)
 
-        # Ora le chiamate interne vengono contate
+        # Now internal calls are counted
         assert mock_handle_recursive.call_count >= 3
 
     def test_handle_import_empty_folder(self, mock_context, temp_workspace):
-        """Test _handle_import con cartella vuota"""
+        """Test _handle_import with an empty folder"""
         empty_folder = os.path.join(temp_workspace, "empty")
         os.makedirs(empty_folder)
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Non dovrebbe sollevare eccezioni
+        # Should not raise exceptions
         thread._handle_import(empty_folder)
 
     def test_handle_import_not_directory(self, mock_context, temp_workspace):
-        """Test _handle_import con file invece di directory"""
+        """Test _handle_import with a file instead of a directory"""
         file_path = os.path.join(temp_workspace, "file.txt")
         with open(file_path, "w") as f:
             f.write("not a directory")
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Dovrebbe gestire gracefully e non fare nulla
+        # Should handle gracefully and do nothing
         thread._handle_import(file_path)
 
 
 class TestComplexScenarios:
-    """Test per scenari complessi e casi limite"""
+    """Tests for complex scenarios and edge cases"""
 
     def test_nested_bids_structure(self, mock_context, temp_workspace):
-        """Test con struttura BIDS annidata complessa"""
+        """Test with complex nested BIDS structure"""
         bids_root = os.path.join(temp_workspace, "complex_bids")
 
-        # Multipli soggetti
+        # Multiple subjects
         for sub_id in ["sub-01", "sub-02"]:
-            mod_dir = os.path.join(bids_root, sub_id, "anat")  # Semplificato per il test
+            mod_dir = os.path.join(bids_root, sub_id, "anat")  # Simplified for the test
             os.makedirs(mod_dir)
             nifti = os.path.join(mod_dir, f"{sub_id}_anat.nii.gz")
             with open(nifti, "w") as f: f.write("nifti data")
 
         thread = ImportThread(mock_context, [bids_root], temp_workspace)
 
-        # **CORREZIONE**: Testa una delle cartelle 'sub-' create, non la radice
+        # **FIX**: Test one of the created 'sub-' folders, not the root
         assert thread._is_bids_folder(os.path.join(bids_root, "sub-01")) is True
         assert thread._is_bids_folder(os.path.join(bids_root, "sub-02")) is True
-        assert thread._is_bids_folder(bids_root) is False  # La radice non è una cartella BIDS
+        assert thread._is_bids_folder(bids_root) is False  # The root is not a BIDS folder
 
     def test_mixed_content_folder(self, mock_context, temp_workspace):
-        """Test con cartella contenente mix di file diversi"""
+        """Test with folder containing a mix of different files"""
         mixed_folder = os.path.join(temp_workspace, "mixed")
         os.makedirs(mixed_folder)
 
-        # NIfTI
         with open(os.path.join(mixed_folder, "brain.nii"), "w") as f:
             f.write("nifti")
 
-        # DICOM
         dicom_file = os.path.join(mixed_folder, "scan.dcm")
         with open(dicom_file, "wb") as f:
             f.write(b'\x00' * 128 + b'DICM')
 
-        # Altri file
         with open(os.path.join(mixed_folder, "report.pdf"), "w") as f:
             f.write("pdf")
         with open(os.path.join(mixed_folder, "metadata.json"), "w") as f:
@@ -855,7 +850,7 @@ class TestComplexScenarios:
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Dovrebbe rilevare file medici diretti
+        # Should detect direct medical files
         has_medical = any(
             thread._is_nifti_file(f) or thread._is_dicom_file(os.path.join(mixed_folder, f))
             for f in os.listdir(mixed_folder)
@@ -865,11 +860,11 @@ class TestComplexScenarios:
     @patch.object(ImportThread, '_convert_dicom_folder_to_nifti')
     @patch.object(ImportThread, '_convert_dicom_folder_to_nifti')
     def test_large_dataset_simulation(self, mock_convert, mock_context, temp_workspace):
-        """Test simulazione dataset grande (NIfTI)"""
+        """Test large dataset simulation (NIfTI)"""
         root = os.path.join(temp_workspace, "large_dataset")
         os.makedirs(root)
 
-        # Simula molti file NIfTI
+        # Simulate many NIfTI files
         for i in range(20):
             nifti_file = os.path.join(root, f"scan_{i:03d}.nii.gz")
             json_file = os.path.join(root, f"scan_{i:03d}.json")
@@ -877,8 +872,8 @@ class TestComplexScenarios:
             with open(nifti_file, "w") as f:
                 f.write(f"scan {i}")
 
-            # --- CORREZIONE QUI ---
-            # Aggiungi metadati minimi per la conversione BIDS
+            # --- FIX HERE ---
+            # Add minimal metadata for BIDS conversion
             with open(json_file, "w") as f:
                 f.write('{"Modality": "MR", "ProtocolName": "T1w"}')
             # ---------------------
@@ -893,17 +888,17 @@ class TestComplexScenarios:
 
         thread.run()
 
-        # Dovrebbe completare con successo
+        # Should complete successfully
         assert 100 in progress_updates
-        # Ora questa asserzione funzionerà
+        # Now this assertion will work
         assert os.path.exists(os.path.join(dest_ws, "sub-01", "anat"))
 
     def test_special_characters_in_filenames(self, mock_context, temp_workspace):
-        """Test con caratteri speciali nei nomi file"""
+        """Test with special characters in filenames"""
         folder = os.path.join(temp_workspace, "special_chars")
         os.makedirs(folder)
 
-        # File con caratteri speciali
+        # File with special characters
         special_names = [
             "brain (copy).nii",
             "scan_01-02-2024.nii.gz",
@@ -919,14 +914,14 @@ class TestComplexScenarios:
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Dovrebbe gestire senza errori
+        # Should handle without errors
         nifti_files = [f for f in os.listdir(folder) if thread._is_nifti_file(f)]
         assert len(nifti_files) > 0
 
     @patch('main.threads.import_thread.pydicom.dcmread')
     def test_dicom_missing_patient_info(self, mock_dcmread, mock_context, temp_workspace):
-        """Test DICOM senza informazioni paziente"""
-        # Mock DICOM senza PatientID né PatientName
+        """Test DICOM without patient information"""
+        # Mock DICOM without PatientID or PatientName
         mock_dcm = Mock()
         mock_dcm.PatientID = None
         mock_dcm.PatientName = None
@@ -941,18 +936,18 @@ class TestComplexScenarios:
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Dovrebbe gestire gracefully
+        # Should handle gracefully
         result = thread._are_dicom_series_of_same_patient([folder])
-        # Senza PatientID, considera come stesso paziente
+        # Without PatientID, it considers them the same patient
         assert result is True
 
 
 class TestConcurrencyAndThreadSafety:
-    """Test per thread safety e concorrenza"""
+    """Tests for thread safety and concurrency"""
 
     def test_cancel_during_file_copy(self, mock_context, temp_workspace):
-        """Test cancellazione durante copia file"""
-        # Crea molti file da copiare
+        """Test cancellation during file copy"""
+        # Create many files to copy
         src = os.path.join(temp_workspace, "source_large")
         os.makedirs(src)
 
@@ -965,7 +960,7 @@ class TestConcurrencyAndThreadSafety:
 
         thread = ImportThread(mock_context, [src], dest)
 
-        # Cancella dopo breve delay
+        # Cancel after a short delay
         import threading
         def cancel_after_delay():
             import time
@@ -978,11 +973,11 @@ class TestConcurrencyAndThreadSafety:
         thread.run()
         cancel_thread.join()
 
-        # Dovrebbe essere cancellato
+        # Should be canceled
         assert thread._is_canceled is True
 
     def test_multiple_progress_emissions(self, mock_context, temp_workspace):
-        """Test emissioni multiple di progress"""
+        """Test multiple progress emissions"""
         bids = os.path.join(temp_workspace, "bids_multi")
         anat = os.path.join(bids, "sub-01", "anat")
         os.makedirs(anat)
@@ -1002,16 +997,16 @@ class TestConcurrencyAndThreadSafety:
         thread.progress.connect(count_progress)
         thread.run()
 
-        # Dovrebbe avere emesso progress più volte
+        # Should have emitted progress multiple times
         assert progress_count[0] >= 3
 
 
 class TestEdgeCases:
-    """Test per casi limite"""
+    """Tests for edge cases"""
 
     def test_symlink_handling(self, mock_context, temp_workspace):
-        """Test gestione symlink"""
-        if os.name == 'nt':  # Skip su Windows
+        """Test symlink handling"""
+        if os.name == 'nt':  # Skip on Windows
             pytest.skip("Symlinks not reliable on Windows")
 
         real_folder = os.path.join(temp_workspace, "real")
@@ -1024,11 +1019,11 @@ class TestEdgeCases:
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Dovrebbe seguire symlink
+        # Should follow symlink
         assert os.path.isdir(symlink)
 
     def test_readonly_source_files(self, mock_context, temp_workspace):
-        """Test con file sorgente read-only"""
+        """Test with read-only source files"""
         src = os.path.join(temp_workspace, "readonly_src")
         os.makedirs(src)
 
@@ -1036,7 +1031,7 @@ class TestEdgeCases:
         with open(readonly_file, "w") as f:
             f.write("nifti")
 
-        # Rendi read-only
+        # Make read-only
         os.chmod(readonly_file, 0o444)
 
         dest = os.path.join(temp_workspace, "dest")
@@ -1044,16 +1039,16 @@ class TestEdgeCases:
 
         thread = ImportThread(mock_context, [src], dest)
 
-        # Dovrebbe copiare comunque
+        # Should copy anyway
         try:
             thread.run()
         finally:
-            # Cleanup: rimuovi read-only per permettere pulizia
+            # Cleanup: remove read-only to allow cleanup
             os.chmod(readonly_file, 0o644)
 
     def test_very_long_path(self, mock_context, temp_workspace):
-        """Test con path molto lungo"""
-        # Crea path molto lungo
+        """Test with very long path"""
+        # Create a very long path
         long_path = temp_workspace
         for i in range(10):
             long_path = os.path.join(long_path, f"nested_folder_{i}")
@@ -1066,11 +1061,11 @@ class TestEdgeCases:
             pytest.skip("Path too long for filesystem")
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
-        # Dovrebbe gestire senza errori
+        # Should handle without errors
         assert os.path.exists(long_path)
 
     def test_unicode_filenames(self, mock_context, temp_workspace):
-        """Test con nomi file Unicode"""
+        """Test with Unicode filenames"""
         folder = os.path.join(temp_workspace, "unicode")
         os.makedirs(folder)
 
@@ -1090,30 +1085,30 @@ class TestEdgeCases:
 
         thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
 
-        # Verifica rilevamento NIfTI con Unicode
+        # Verify NIfTI detection with Unicode
         nifti_count = sum(1 for f in os.listdir(folder) if thread._is_nifti_file(f))
         assert nifti_count >= 2
 
 
 class TestIntegrationScenarios:
-    """Test di integrazione end-to-end"""
+    """Tests for end-to-end integration"""
 
     @patch('main.threads.import_thread.subprocess.Popen')
     @patch('main.threads.import_thread.get_bin_path')
     def test_full_dicom_to_bids_workflow(self, mock_get_bin, mock_Popen,
                                          mock_context, temp_workspace):
-        """Test workflow completo DICOM → BIDS"""
+        """Test complete DICOM → BIDS workflow"""
         mock_get_bin.return_value = "/fake/path/dcm2niix"
 
-        # Simula output dcm2niix
+        # Simulate dcm2niix output
         def mock_popen_side_effect(*args, **kwargs):
             command = args[0]
             output_dir = command[command.index("-o") + 1]
 
-            # Crea file NIfTI e JSON fittizi nell'output temporaneo
+            # Create fictitious NIfTI and JSON files in the temporary output
             with open(os.path.join(output_dir, "converted.nii.gz"), "w") as f:
                 f.write("converted nifti")
-            # Aggiungi metadati per la conversione BIDS
+            # Add metadata for BIDS conversion
             with open(os.path.join(output_dir, "converted.json"), "w") as f:
                 f.write('{"Modality": "MR", "ProtocolName": "T1w"}')
 
@@ -1124,10 +1119,10 @@ class TestIntegrationScenarios:
 
         mock_Popen.side_effect = mock_popen_side_effect
 
-        # Crea cartella DICOM fittizia
+        # Create fictitious DICOM folder
         dicom_folder = os.path.join(temp_workspace, "dicom_data")
         os.makedirs(dicom_folder)
-        # Usa pydicom per creare un file DICOM "minimamente valido"
+        # Use pydicom to create a "minimally valid" DICOM file
         try:
             import pydicom
             from pydicom.dataset import Dataset, FileMetaDataset
@@ -1148,7 +1143,7 @@ class TestIntegrationScenarios:
             ds.save_as(os.path.join(dicom_folder, "image_001.dcm"), write_like_original=False)
 
         except ImportError:
-            # Fallback se pydicom non è installato nell'ambiente di test
+            # Fallback if pydicom is not installed in the test environment
             with open(os.path.join(dicom_folder, "image_001.dcm"), "wb") as f:
                 f.write(b'\x00' * 128 + b'DICM' + b'\x00' * 100)
 
@@ -1162,34 +1157,34 @@ class TestIntegrationScenarios:
 
         thread.run()
 
-        # **CORREZIONE**: L'asserzione ora passa perché il mock Popen
-        # previene il FileNotFoundError e permette al thread di emettere 'finished'.
+        # **FIX**: The assertion now passes because the Popen mock
+        # prevents the FileNotFoundError and allows the thread to emit 'finished'.
         assert finished[0] is True
 
-        # Aggiungi un'asserzione per verificare che la struttura BIDS sia stata creata
+        # Add an assertion to verify the BIDS structure was created
         expected_anat = os.path.join(dest_ws, "sub-01", "anat")
         assert os.path.exists(expected_anat)
         expected_file = os.path.join(expected_anat, "sub-01_run-1_T1w.nii.gz")
         assert os.path.exists(expected_file)
 
     def test_mixed_patient_dataset_import(self, mock_context, temp_workspace):
-        """Test import dataset con pazienti multipli e formati misti"""
+        """Test importing dataset with multiple patients and mixed formats"""
         root = os.path.join(temp_workspace, "mixed_dataset")
         os.makedirs(root)
 
-        # Paziente 1: NIfTI
+        # Patient 1: NIfTI
         p1 = os.path.join(root, "sub-01")
         os.makedirs(p1)
         with open(os.path.join(p1, "T1w.nii.gz"), "w") as f:
             f.write("patient 1 nifti")
 
-        # Paziente 2: BIDS già organizzato
+        # Patient 2: Already organized BIDS
         p2_anat = os.path.join(root, "sub-02", "anat")
         os.makedirs(p2_anat)
         with open(os.path.join(p2_anat, "sub-02_T1w.nii"), "w") as f:
             f.write("patient 2")
 
-        # Paziente 3: DICOM
+        # Patient 3: DICOM
         p3 = os.path.join(root, "patient_003")
         os.makedirs(p3)
         with open(os.path.join(p3, "scan.dcm"), "wb") as f:
@@ -1201,15 +1196,15 @@ class TestIntegrationScenarios:
         thread = ImportThread(mock_context, [root], dest)
         thread.run()
 
-        # Dovrebbe processare come multipli pazienti
-        # (grazie all'euristica dei nomi cartelle)
+        # Should process as multiple patients
+        # (thanks to the folder name heuristic)
         assert thread._subfolders_look_like_different_patients([p1, p2_anat, p3])
 
 
-# Parametrized tests per riutilizzo
+# Parametrized tests for reuse
 @pytest.mark.parametrize("extension", [".nii", ".nii.gz"])
 def test_nifti_extensions(extension, mock_context, temp_workspace):
-    """Test parametrizzato per diverse estensioni NIfTI"""
+    """Parametrized test for different NIfTI extensions"""
     thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
     filename = f"brain{extension}"
     assert thread._is_nifti_file(filename) is True
@@ -1217,7 +1212,7 @@ def test_nifti_extensions(extension, mock_context, temp_workspace):
 
 @pytest.mark.parametrize("invalid_ext", [".dcm", ".txt", ".json", ".pdf", ""])
 def test_non_nifti_extensions(invalid_ext, mock_context, temp_workspace):
-    """Test parametrizzato per estensioni non-NIfTI"""
+    """Parametrized test for non-NIfTI extensions"""
     thread = ImportThread(mock_context, [temp_workspace], temp_workspace)
     filename = f"file{invalid_ext}"
     assert thread._is_nifti_file(filename) is False

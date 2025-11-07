@@ -9,24 +9,25 @@ echo "Complete test suite - GliAAns UI"
 echo "=========================================="
 echo ""
 
+# Define colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
 print_header() {
     echo -e "${BLUE}>>> $1${NC}"
 }
 
-# Verifica pytest
+# Verify pytest
 if ! command -v pytest &> /dev/null; then
     echo -e "${RED}pytest not installed!${NC}"
     echo "pip install -r requirements-test.txt"
     exit 1
 fi
 
-# Parsing argoments
+# Parse arguments
 COVERAGE=false
 VERBOSE=false
 MODULE=""
@@ -51,30 +52,30 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            echo "Uso: $0 [opzioni]"
+            echo "Usage: $0 [options]"
             echo ""
-            echo "Opzioni:"
-            echo "  -c, --coverage       Coverage report"
-            echo "  -v, --verbose        Output verboso"
-            echo "  -m, --module NAME    Solo un modulo (main_window, import_page, workspace_tree_view)"
-            echo "  -k, --pattern PAT    Pattern per test specifici"
-            echo "  -h, --help           Mostra questo messaggio"
+            echo "Options:"
+            echo "  -c, --coverage       Generate coverage report"
+            echo "  -v, --verbose        Verbose output"
+            echo "  -m, --module NAME    Run tests for a specific module (e.g., main_window, import_page)"
+            echo "  -k, --pattern PAT    Run tests matching a specific pattern"
+            echo "  -h, --help           Show this help message"
             echo ""
-            echo "Esempi:"
-            echo "  $0                                    # Tutti i test"
-            echo "  $0 -c                                 # Con coverage"
-            echo "  $0 -m main_window                     # Solo MainWindow"
-            echo "  $0 -k test_initialization             # Pattern specifico"
+            echo "Examples:"
+            echo "  $0                                    # Run all tests"
+            echo "  $0 -c                                 # Run with coverage"
+            echo "  $0 -m main_window                     # Run only MainWindow tests"
+            echo "  $0 -k test_initialization             # Run tests matching a specific pattern"
             exit 0
             ;;
         *)
-            echo "Opzione sconosciuta: $1"
+            echo "Unknown option: $1"
             exit 1
             ;;
     esac
 done
 
-# Construct command
+# Construct pytest command
 PYTEST_CMD="pytest"
 
 if [ "$VERBOSE" = true ]; then
@@ -92,7 +93,7 @@ if [ -n "$PATTERN" ]; then
 fi
 
 # Test execution
-print_header "Esecuzione tests"
+print_header "Running tests"
 
 if [ "$COVERAGE" = true ]; then
     COVERAGE_DIR="$SCRIPT_DIR/htmlcov"
@@ -103,17 +104,17 @@ if [ "$COVERAGE" = true ]; then
 
     if [ $? -eq 0 ]; then
         echo ""
-        echo -e "${GREEN}✓ Test completati!${NC}"
+        echo -e "${GREEN}✓ Tests completed!${NC}"
         echo ""
         print_header "Coverage report: htmlcov/index.html"
 
-        # Mostra statistiche
+        # Show stats
         echo ""
-        echo -e "${YELLOW}Statistiche Coverage:${NC}"
+        echo -e "${YELLOW}Coverage Stats:${NC}"
         pytest --cov=ui --cov-report=term --quiet 2>/dev/null | tail -5
     else
         echo ""
-        echo -e "${RED}✗ Alcuni test falliti${NC}"
+        echo -e "${RED}✗ Some tests failed${NC}"
         exit 1
     fi
 else
@@ -121,19 +122,19 @@ else
 
     if [ $? -eq 0 ]; then
         echo ""
-        echo -e "${GREEN}✓ Tutti i test passati!${NC}"
+        echo -e "${GREEN}✓ All tests passed!${NC}"
     else
         echo ""
-        echo -e "${RED}✗ Alcuni test falliti${NC}"
+        echo -e "${RED}✗ Some tests failed${NC}"
         exit 1
     fi
 fi
 
 echo ""
 echo "=========================================="
-print_header "Comandi Utili"
-echo "  • Solo MainWindow:     $0 -m main_window"
-echo "  • Con coverage:        $0 -c"
-echo "  • Verbose:             $0 -v"
-echo "  • Pattern specifico:   $0 -k pattern"
+print_header "Useful Commands"
+echo "  • MainWindow only:   $0 -m main_window"
+echo "  • With coverage:     $0 -c"
+echo "  • Verbose:           $0 -v"
+echo "  • Specific pattern:  $0 -k pattern"
 echo "=========================================="

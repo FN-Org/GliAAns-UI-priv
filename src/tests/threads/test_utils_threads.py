@@ -1,13 +1,13 @@
 """
-test_copy_delete_thread.py - Test Suite per CopyDeleteThread
+test_copy_delete_thread.py - Test Suite for CopyDeleteThread
 
-Questa suite testa tutte le funzionalità del thread di copia/eliminazione:
-- Copia file singoli
-- Copia directory ricorsive
-- Eliminazione file singoli
-- Eliminazione directory
-- Operazioni combinate
-- Gestione errori e edge cases
+This suite tests all functionalities of the copy/delete thread:
+- Copying single files
+- Copying recursive directories
+- Deleting single files
+- Deleting directories
+- Combined operations
+- Error handling and edge cases
 """
 
 import os
@@ -20,10 +20,10 @@ from main.threads.utils_threads import CopyDeleteThread
 
 
 class TestCopyDeleteThreadInitialization:
-    """Test per l'inizializzazione di CopyDeleteThread"""
+    """Tests for CopyDeleteThread initialization"""
 
     def test_init_copy_file(self, temp_workspace):
-        """Test inizializzazione per copia file"""
+        """Test initialization for file copy"""
         src = os.path.join(temp_workspace, "source.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -42,7 +42,7 @@ class TestCopyDeleteThreadInitialization:
         assert thread.delete is False
 
     def test_init_delete_folder(self, temp_workspace):
-        """Test inizializzazione per eliminazione cartella"""
+        """Test initialization for folder deletion"""
         src = os.path.join(temp_workspace, "folder_to_delete")
 
         thread = CopyDeleteThread(
@@ -60,7 +60,7 @@ class TestCopyDeleteThreadInitialization:
         assert thread.delete is True
 
     def test_init_copy_and_delete(self, temp_workspace):
-        """Test inizializzazione per operazione combinata"""
+        """Test initialization for combined operation"""
         src = os.path.join(temp_workspace, "source")
         dst = os.path.join(temp_workspace, "dest")
 
@@ -76,7 +76,7 @@ class TestCopyDeleteThreadInitialization:
         assert thread.delete is True
 
     def test_signals_exist(self, temp_workspace):
-        """Verifica che i signal siano definiti correttamente"""
+        """Verify that signals are defined correctly"""
         thread = CopyDeleteThread(src="dummy", dst=None)
 
         assert hasattr(thread, 'finished')
@@ -84,11 +84,10 @@ class TestCopyDeleteThreadInitialization:
 
 
 class TestFileCopy:
-    """Test per la copia di file singoli"""
+    """Tests for single file copy"""
 
     def test_copy_file_success(self, temp_workspace):
-        """Test copia file riuscita"""
-        # Crea file sorgente
+        """Test successful file copy"""
         src = os.path.join(temp_workspace, "source.txt")
         dst = os.path.join(temp_workspace, "destination.txt")
 
@@ -102,37 +101,36 @@ class TestFileCopy:
 
         thread.run()
 
-        # Verifica file copiato
+        # Verify file was copied
         assert os.path.exists(dst)
         with open(dst, 'r') as f:
             assert f.read() == "test content"
 
-        # Verifica signal
+        # Verify signal
         assert len(finished_msgs) == 1
         assert "copied" or "copiato" in finished_msgs[0].lower()
 
     def test_copy_file_overwrites_existing(self, temp_workspace):
-        """Test che la copia sovrascriva file esistente"""
+        """Test that copy overwrites existing file"""
         src = os.path.join(temp_workspace, "source.txt")
         dst = os.path.join(temp_workspace, "existing.txt")
 
-        # Crea sorgente
         with open(src, 'w') as f:
             f.write("new content")
 
-        # Crea destinazione esistente
+        # Create existing destination
         with open(dst, 'w') as f:
             f.write("old content")
 
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=False, copy=True)
         thread.run()
 
-        # Verifica sovrascrittura
+        # Verify overwrite
         with open(dst, 'r') as f:
             assert f.read() == "new content"
 
     def test_copy_file_to_subfolder(self, temp_workspace):
-        """Test copia file in sottocartella"""
+        """Test copying file into subfolder"""
         src = os.path.join(temp_workspace, "file.txt")
         subfolder = os.path.join(temp_workspace, "subfolder")
         dst = os.path.join(subfolder, "file.txt")
@@ -140,7 +138,7 @@ class TestFileCopy:
         with open(src, 'w') as f:
             f.write("data")
 
-        # Crea sottocartella
+        # Create subfolder
         os.makedirs(subfolder)
 
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=False, copy=True)
@@ -149,11 +147,11 @@ class TestFileCopy:
         assert os.path.exists(dst)
 
     def test_copy_binary_file(self, temp_workspace):
-        """Test copia file binario"""
+        """Test copying binary file"""
         src = os.path.join(temp_workspace, "binary.bin")
         dst = os.path.join(temp_workspace, "binary_copy.bin")
 
-        # Crea file binario
+        # Create binary file
         binary_data = bytes([0, 1, 2, 255, 128, 64])
         with open(src, 'wb') as f:
             f.write(binary_data)
@@ -161,16 +159,16 @@ class TestFileCopy:
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=False, copy=True)
         thread.run()
 
-        # Verifica contenuto binario
+        # Verify binary content
         with open(dst, 'rb') as f:
             assert f.read() == binary_data
 
     def test_copy_large_file(self, temp_workspace):
-        """Test copia file grande"""
+        """Test copying large file"""
         src = os.path.join(temp_workspace, "large.dat")
         dst = os.path.join(temp_workspace, "large_copy.dat")
 
-        # Crea file "grande" (1 MB)
+        # Create "large" file (1 MB)
         large_content = "x" * (1024 * 1024)
         with open(src, 'w') as f:
             f.write(large_content)
@@ -183,14 +181,14 @@ class TestFileCopy:
 
 
 class TestFolderCopy:
-    """Test per la copia di directory"""
+    """Tests for directory copy"""
 
     def test_copy_folder_success(self, temp_workspace):
-        """Test copia cartella riuscita"""
+        """Test successful folder copy"""
         src = os.path.join(temp_workspace, "source_folder")
         dst = os.path.join(temp_workspace, "dest_folder")
 
-        # Crea cartella sorgente con file
+        # Create source folder with files
         os.makedirs(src)
         with open(os.path.join(src, "file1.txt"), 'w') as f:
             f.write("content 1")
@@ -204,23 +202,23 @@ class TestFolderCopy:
 
         thread.run()
 
-        # Verifica cartella copiata
+        # Verify folder was copied
         assert os.path.exists(dst)
         assert os.path.exists(os.path.join(dst, "file1.txt"))
         assert os.path.exists(os.path.join(dst, "file2.txt"))
 
-        # Verifica contenuti
+        # Verify contents
         with open(os.path.join(dst, "file1.txt"), 'r') as f:
             assert f.read() == "content 1"
 
         assert len(finished_msgs) == 1
 
     def test_copy_nested_folder(self, temp_workspace):
-        """Test copia cartella con sottocartelle"""
+        """Test copying folder with subfolders"""
         src = os.path.join(temp_workspace, "nested_src")
         dst = os.path.join(temp_workspace, "nested_dst")
 
-        # Crea struttura annidata
+        # Create nested structure
         os.makedirs(os.path.join(src, "sub1", "sub2"))
         with open(os.path.join(src, "root.txt"), 'w') as f:
             f.write("root")
@@ -232,22 +230,21 @@ class TestFolderCopy:
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=True, copy=True)
         thread.run()
 
-        # Verifica tutta la struttura
+        # Verify the entire structure
         assert os.path.exists(os.path.join(dst, "root.txt"))
         assert os.path.exists(os.path.join(dst, "sub1", "file1.txt"))
         assert os.path.exists(os.path.join(dst, "sub1", "sub2", "file2.txt"))
 
     def test_copy_folder_with_dirs_exist_ok(self, temp_workspace):
-        """Test copia in cartella già esistente (dirs_exist_ok=True)"""
+        """Test copying into existing folder (dirs_exist_ok=True)"""
         src = os.path.join(temp_workspace, "source")
         dst = os.path.join(temp_workspace, "existing_dest")
 
-        # Crea sorgente
         os.makedirs(src)
         with open(os.path.join(src, "new_file.txt"), 'w') as f:
             f.write("new")
 
-        # Crea destinazione esistente
+        # Create existing destination
         os.makedirs(dst)
         with open(os.path.join(dst, "old_file.txt"), 'w') as f:
             f.write("old")
@@ -255,12 +252,12 @@ class TestFolderCopy:
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=True, copy=True)
         thread.run()
 
-        # Entrambi i file dovrebbero esistere
+        # Both files should exist
         assert os.path.exists(os.path.join(dst, "new_file.txt"))
         assert os.path.exists(os.path.join(dst, "old_file.txt"))
 
     def test_copy_empty_folder(self, temp_workspace):
-        """Test copia cartella vuota"""
+        """Test copying empty folder"""
         src = os.path.join(temp_workspace, "empty_src")
         dst = os.path.join(temp_workspace, "empty_dst")
 
@@ -275,10 +272,10 @@ class TestFolderCopy:
 
 
 class TestFileDelete:
-    """Test per l'eliminazione di file"""
+    """Tests for file deletion"""
 
     def test_delete_file_success(self, temp_workspace):
-        """Test eliminazione file riuscita"""
+        """Test successful file deletion"""
         file_path = os.path.join(temp_workspace, "to_delete.txt")
 
         with open(file_path, 'w') as f:
@@ -293,19 +290,19 @@ class TestFileDelete:
 
         thread.run()
 
-        # Verifica file eliminato
+        # Verify file was deleted
         assert not os.path.exists(file_path)
         assert len(finished_msgs) == 1
         assert "deleted" in finished_msgs[0].lower() or "eliminato" in finished_msgs[0].lower()
 
     def test_delete_readonly_file(self, temp_workspace):
-        """Test eliminazione file read-only"""
+        """Test deleting read-only file"""
         file_path = os.path.join(temp_workspace, "readonly.txt")
 
         with open(file_path, 'w') as f:
             f.write("readonly")
 
-        # Rendi read-only
+        # Make read-only
         os.chmod(file_path, 0o444)
 
         thread = CopyDeleteThread(src=file_path, is_folder=False, delete=True)
@@ -315,8 +312,8 @@ class TestFileDelete:
 
         thread.run()
 
-        # Potrebbe fallire su sistemi Unix/Linux
-        # Ma dovrebbe comunque emettere error signal se fallisce
+        # Might fail on Unix/Linux systems
+        # But should still emit error signal if it fails
         if os.path.exists(file_path):
             assert len(error_msgs) > 0
             # Cleanup
@@ -325,13 +322,13 @@ class TestFileDelete:
 
 
 class TestFolderDelete:
-    """Test per l'eliminazione di directory"""
+    """Tests for directory deletion"""
 
     def test_delete_folder_success(self, temp_workspace):
-        """Test eliminazione cartella riuscita"""
+        """Test successful folder deletion"""
         folder_path = os.path.join(temp_workspace, "folder_to_delete")
 
-        # Crea cartella con contenuto
+        # Create folder with content
         os.makedirs(folder_path)
         with open(os.path.join(folder_path, "file.txt"), 'w') as f:
             f.write("content")
@@ -345,15 +342,15 @@ class TestFolderDelete:
 
         thread.run()
 
-        # Verifica cartella eliminata
+        # Verify folder was deleted
         assert not os.path.exists(folder_path)
         assert len(finished_msgs) == 1
 
     def test_delete_nested_folder(self, temp_workspace):
-        """Test eliminazione cartella con sottocartelle"""
+        """Test deleting folder with subfolders"""
         folder_path = os.path.join(temp_workspace, "nested_delete")
 
-        # Crea struttura complessa
+        # Create complex structure
         os.makedirs(os.path.join(folder_path, "sub1", "sub2"))
         for i in range(5):
             with open(os.path.join(folder_path, f"file{i}.txt"), 'w') as f:
@@ -362,11 +359,11 @@ class TestFolderDelete:
         thread = CopyDeleteThread(src=folder_path, is_folder=True, delete=True)
         thread.run()
 
-        # Tutta la struttura dovrebbe essere eliminata
+        # The entire structure should be deleted
         assert not os.path.exists(folder_path)
 
     def test_delete_empty_folder(self, temp_workspace):
-        """Test eliminazione cartella vuota"""
+        """Test deleting empty folder"""
         folder_path = os.path.join(temp_workspace, "empty_folder")
         os.makedirs(folder_path)
 
@@ -377,17 +374,17 @@ class TestFolderDelete:
 
 
 class TestCombinedOperations:
-    """Test per operazioni combinate (copia + eliminazione)"""
+    """Tests for combined operations (copy + delete)"""
 
     def test_copy_then_delete_file(self, temp_workspace):
-        """Test copia e poi elimina file"""
+        """Test copy then delete file"""
         src = os.path.join(temp_workspace, "original.txt")
         dst = os.path.join(temp_workspace, "copy.txt")
 
         with open(src, 'w') as f:
             f.write("move me")
 
-        # Operazione combinata = "move"
+        # Combined operation = "move"
         thread = CopyDeleteThread(
             src=src,
             dst=dst,
@@ -401,19 +398,19 @@ class TestCombinedOperations:
 
         thread.run()
 
-        # File copiato dovrebbe esistere
+        # Copied file should exist
         assert os.path.exists(dst)
         with open(dst, 'r') as f:
             assert f.read() == "move me"
 
-        # File originale dovrebbe essere eliminato
+        # Original file should be deleted
         assert not os.path.exists(src)
 
-        # Due signal finished (uno per copy, uno per delete)
+        # Two finished signals (one for copy, one for delete)
         assert finished_count[0] == 2
 
     def test_copy_then_delete_folder(self, temp_workspace):
-        """Test copia e poi elimina cartella (equivalente a move)"""
+        """Test copy then delete folder (equivalent to move)"""
         src = os.path.join(temp_workspace, "src_folder")
         dst = os.path.join(temp_workspace, "dst_folder")
 
@@ -431,19 +428,19 @@ class TestCombinedOperations:
 
         thread.run()
 
-        # Destinazione dovrebbe esistere
+        # Destination should exist
         assert os.path.exists(dst)
         assert os.path.exists(os.path.join(dst, "data.txt"))
 
-        # Sorgente dovrebbe essere eliminata
+        # Source should be deleted
         assert not os.path.exists(src)
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori"""
+    """Tests for error handling"""
 
     def test_copy_missing_source(self, temp_workspace):
-        """Test copia con file sorgente mancante"""
+        """Test copy with missing source file"""
         src = os.path.join(temp_workspace, "nonexistent.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -454,12 +451,12 @@ class TestErrorHandling:
 
         thread.run()
 
-        # Dovrebbe emettere errore
+        # Should emit error
         assert len(error_msgs) == 1
         assert "error" in error_msgs[0].lower() or src in error_msgs[0]
 
     def test_copy_missing_src_parameter(self, temp_workspace):
-        """Test copia con parametro src mancante"""
+        """Test copy with missing src parameter"""
         thread = CopyDeleteThread(src=None, dst="dest", copy=True)
 
         error_msgs = []
@@ -471,7 +468,7 @@ class TestErrorHandling:
         assert "missing" in error_msgs[0].lower() or "manca" in error_msgs[0].lower()
 
     def test_copy_missing_dst_parameter(self, temp_workspace):
-        """Test copia con parametro dst mancante"""
+        """Test copy with missing dst parameter"""
         thread = CopyDeleteThread(src="src", dst=None, copy=True)
 
         error_msgs = []
@@ -483,7 +480,7 @@ class TestErrorHandling:
         assert "missing" in error_msgs[0].lower() or "manca" in error_msgs[0].lower()
 
     def test_delete_missing_source(self, temp_workspace):
-        """Test eliminazione file inesistente"""
+        """Test deleting non-existent file"""
         src = os.path.join(temp_workspace, "does_not_exist.txt")
 
         thread = CopyDeleteThread(src=src, is_folder=False, delete=True)
@@ -493,11 +490,11 @@ class TestErrorHandling:
 
         thread.run()
 
-        # Dovrebbe emettere errore
+        # Should emit error
         assert len(error_msgs) == 1
 
     def test_delete_missing_src_parameter(self, temp_workspace):
-        """Test eliminazione con parametro src mancante"""
+        """Test deletion with missing src parameter"""
         thread = CopyDeleteThread(src=None, delete=True)
 
         error_msgs = []
@@ -509,9 +506,9 @@ class TestErrorHandling:
         assert "missing" in error_msgs[0].lower() or "manca" in error_msgs[0].lower()
 
     def test_copy_to_invalid_destination(self, temp_workspace):
-        """Test copia in destinazione non valida"""
+        """Test copy to invalid destination"""
         src = os.path.join(temp_workspace, "source.txt")
-        # Destinazione in directory inesistente
+        # Destination in non-existent directory
         dst = os.path.join(temp_workspace, "nonexistent_dir", "subdir", "dest.txt")
 
         with open(src, 'w') as f:
@@ -524,12 +521,12 @@ class TestErrorHandling:
 
         thread.run()
 
-        # Dovrebbe fallire
+        # Should fail
         assert len(error_msgs) == 1
 
     @patch('shutil.copy')
     def test_copy_permission_error(self, mock_copy, temp_workspace):
-        """Test gestione errore permessi durante copia"""
+        """Test handling permission error during copy"""
         mock_copy.side_effect = PermissionError("Permission denied")
 
         src = os.path.join(temp_workspace, "source.txt")
@@ -550,10 +547,10 @@ class TestErrorHandling:
 
 
 class TestEdgeCases:
-    """Test per casi limite"""
+    """Tests for edge cases"""
 
     def test_copy_file_to_itself(self, temp_workspace):
-        """Test copia file su se stesso"""
+        """Test copying file onto itself"""
         file_path = os.path.join(temp_workspace, "same.txt")
 
         with open(file_path, 'w') as f:
@@ -571,14 +568,14 @@ class TestEdgeCases:
 
         thread.run()
 
-        # shutil.copy dovrebbe gestire questo caso
-        # Potrebbe emettere errore o avere successo dipendendo dall'implementazione
-        # Verifichiamo solo che non sollevi eccezioni non gestite
+        # shutil.copy should handle this case
+        # It might emit an error or succeed depending on the implementation
+        # We just verify it doesn't raise unhandled exceptions
 
     def test_copy_symlink(self, temp_workspace):
-        """Test copia symlink"""
+        """Test copying symlink"""
         if os.name == 'nt':
-            pytest.skip("Symlinks non affidabili su Windows")
+            pytest.skip("Symlinks not reliable on Windows")
 
         src = os.path.join(temp_workspace, "original.txt")
         link = os.path.join(temp_workspace, "link.txt")
@@ -592,15 +589,15 @@ class TestEdgeCases:
         thread = CopyDeleteThread(src=link, dst=dst, is_folder=False, copy=True)
         thread.run()
 
-        # Dovrebbe copiare il contenuto, non il link
+        # Should copy the content, not the link
         assert os.path.exists(dst)
         with open(dst, 'r') as f:
             assert f.read() == "original data"
 
     def test_delete_symlink(self, temp_workspace):
-        """Test eliminazione symlink"""
+        """Test deleting symlink"""
         if os.name == 'nt':
-            pytest.skip("Symlinks non affidabili su Windows")
+            pytest.skip("Symlinks not reliable on Windows")
 
         target = os.path.join(temp_workspace, "target.txt")
         link = os.path.join(temp_workspace, "link.txt")
@@ -613,12 +610,12 @@ class TestEdgeCases:
         thread = CopyDeleteThread(src=link, is_folder=False, delete=True)
         thread.run()
 
-        # Link dovrebbe essere eliminato, target dovrebbe esistere ancora
+        # Link should be deleted, target should still exist
         assert not os.path.exists(link)
         assert os.path.exists(target)
 
     def test_copy_file_with_special_characters(self, temp_workspace):
-        """Test copia file con caratteri speciali nel nome"""
+        """Test copying file with special characters in name"""
         src = os.path.join(temp_workspace, "file (copy) #1.txt")
         dst = os.path.join(temp_workspace, "destination [final].txt")
 
@@ -633,7 +630,7 @@ class TestEdgeCases:
             assert f.read() == "special chars"
 
     def test_copy_unicode_filename(self, temp_workspace):
-        """Test copia file con nome Unicode"""
+        """Test copying file with Unicode name"""
         src = os.path.join(temp_workspace, "文件.txt")
         dst = os.path.join(temp_workspace, "файл.txt")
 
@@ -641,7 +638,7 @@ class TestEdgeCases:
             with open(src, 'w', encoding='utf-8') as f:
                 f.write("unicode content")
         except (OSError, UnicodeError):
-            pytest.skip("Filesystem non supporta Unicode")
+            pytest.skip("Filesystem doesn't support Unicode")
 
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=False, copy=True)
         thread.run()
@@ -651,7 +648,7 @@ class TestEdgeCases:
                 assert f.read() == "unicode content"
 
     def test_copy_hidden_file(self, temp_workspace):
-        """Test copia file nascosto"""
+        """Test copying hidden file"""
         src = os.path.join(temp_workspace, ".hidden_file")
         dst = os.path.join(temp_workspace, ".hidden_copy")
 
@@ -664,7 +661,7 @@ class TestEdgeCases:
         assert os.path.exists(dst)
 
     def test_no_operation_specified(self, temp_workspace):
-        """Test senza operazioni (né copy né delete)"""
+        """Test with no operations (neither copy nor delete)"""
         src = os.path.join(temp_workspace, "file.txt")
         with open(src, 'w') as f:
             f.write("data")
@@ -678,16 +675,16 @@ class TestEdgeCases:
 
         thread.run()
 
-        # Non dovrebbe fare nulla, ma non dovrebbe neanche crashare
+        # Should do nothing, but also shouldn't crash
         assert finished_count[0] == 0
         assert error_count[0] == 0
 
 
 class TestSignalEmissions:
-    """Test per le emissioni dei signal"""
+    """Tests for signal emissions"""
 
     def test_finished_signal_contains_paths(self, temp_workspace):
-        """Test che il signal finished contenga i path"""
+        """Test that finished signal contains paths"""
         src = os.path.join(temp_workspace, "source.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -704,12 +701,12 @@ class TestSignalEmissions:
         assert len(finished_msgs) == 1
         msg = finished_msgs[0]
 
-        # Messaggio dovrebbe contenere src e dst
+        # Message should contain src and dst
         assert src in msg or os.path.basename(src) in msg
         assert dst in msg or os.path.basename(dst) in msg
 
     def test_error_signal_contains_details(self, temp_workspace):
-        """Test che il signal error contenga dettagli"""
+        """Test that error signal contains details"""
         src = os.path.join(temp_workspace, "nonexistent.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -723,11 +720,11 @@ class TestSignalEmissions:
         assert len(error_msgs) == 1
         msg = error_msgs[0]
 
-        # Messaggio di errore dovrebbe contenere src
+        # Error message should contain src
         assert src in msg
 
     def test_multiple_finished_signals_on_combined_operation(self, temp_workspace):
-        """Test emissione di più signal finished su operazione combinata"""
+        """Test multiple finished signal emissions on combined operation"""
         src = os.path.join(temp_workspace, "file.txt")
         dst = os.path.join(temp_workspace, "copy.txt")
 
@@ -753,10 +750,10 @@ class TestSignalEmissions:
 
 
 class TestConcurrency:
-    """Test per concorrenza e thread safety"""
+    """Tests for concurrency and thread safety"""
 
     def test_multiple_copy_threads_concurrent(self, temp_workspace):
-        """Test esecuzione concorrente di più thread di copia"""
+        """Test concurrent execution of multiple copy threads"""
         threads = []
         files_to_create = 5
 
@@ -770,25 +767,25 @@ class TestConcurrency:
             thread = CopyDeleteThread(src=src, dst=dst, is_folder=False, copy=True)
             threads.append(thread)
 
-        # Avvia tutti i thread
+        # Start all threads
         for thread in threads:
             thread.start()
 
-        # Attendi completamento
+        # Wait for completion
         for thread in threads:
-            thread.wait(5000)  # 5 secondi timeout
+            thread.wait(5000)  # 5 second timeout
 
-        # Verifica tutti i file copiati
+        # Verify all files were copied
         for i in range(files_to_create):
             dst = os.path.join(temp_workspace, f"dest_{i}.txt")
             assert os.path.exists(dst)
 
     def test_multiple_delete_threads_concurrent(self, temp_workspace):
-        """Test eliminazione concorrente di file multipli"""
+        """Test concurrent deletion of multiple files"""
         threads = []
         files_to_delete = 5
 
-        # Crea file
+        # Create files
         for i in range(files_to_delete):
             file_path = os.path.join(temp_workspace, f"delete_{i}.txt")
             with open(file_path, 'w') as f:
@@ -797,30 +794,30 @@ class TestConcurrency:
             thread = CopyDeleteThread(src=file_path, is_folder=False, delete=True)
             threads.append((thread, file_path))
 
-        # Avvia tutti
+        # Start all
         for thread, _ in threads:
             thread.start()
 
-        # Attendi
+        # Wait
         for thread, _ in threads:
             thread.wait(5000)
 
-        # Verifica tutti eliminati
+        # Verify all were deleted
         for _, file_path in threads:
             assert not os.path.exists(file_path)
 
 
 class TestPerformance:
-    """Test per performance con file/cartelle grandi"""
+    """Tests for performance with large files/folders"""
 
     def test_copy_many_files_in_folder(self, temp_workspace):
-        """Test copia cartella con molti file"""
+        """Test copying folder with many files"""
         src = os.path.join(temp_workspace, "many_files_src")
         dst = os.path.join(temp_workspace, "many_files_dst")
 
         os.makedirs(src)
 
-        # Crea 100 file
+        # Create 100 files
         num_files = 100
         for i in range(num_files):
             with open(os.path.join(src, f"file_{i:03d}.txt"), 'w') as f:
@@ -829,15 +826,15 @@ class TestPerformance:
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=True, copy=True)
         thread.run()
 
-        # Verifica tutti copiati
+        # Verify all were copied
         assert len(os.listdir(dst)) == num_files
 
     def test_delete_folder_with_many_files(self, temp_workspace):
-        """Test eliminazione cartella con molti file"""
+        """Test deleting folder with many files"""
         folder = os.path.join(temp_workspace, "many_files_delete")
         os.makedirs(folder)
 
-        # Crea molti file
+        # Create many files
         for i in range(50):
             with open(os.path.join(folder, f"file_{i}.txt"), 'w') as f:
                 f.write("data")
@@ -848,11 +845,11 @@ class TestPerformance:
         assert not os.path.exists(folder)
 
     def test_copy_deep_nested_structure(self, temp_workspace):
-        """Test copia struttura molto annidata"""
+        """Test copying deeply nested structure"""
         src = os.path.join(temp_workspace, "deep_src")
         dst = os.path.join(temp_workspace, "deep_dst")
 
-        # Crea struttura profonda
+        # Create deep structure
         current = src
         for i in range(10):
             current = os.path.join(current, f"level_{i}")
@@ -863,10 +860,10 @@ class TestPerformance:
         thread = CopyDeleteThread(src=src, dst=dst, is_folder=True, copy=True)
         thread.run()
 
-        # Verifica struttura copiata
+        # Verify copied structure
         assert os.path.exists(dst)
 
-        # Verifica profondità
+        # Verify depth
         current_check = dst
         for i in range(10):
             current_check = os.path.join(current_check, f"level_{i}")
@@ -875,15 +872,15 @@ class TestPerformance:
 
 
 class TestRealWorldScenarios:
-    """Test per scenari realistici"""
+    """Tests for realistic scenarios"""
 
     def test_backup_workspace_folder(self, temp_workspace):
-        """Test backup di cartella workspace"""
-        # Simula workspace con struttura BIDS
+        """Test backing up a workspace folder"""
+        # Simulate workspace with BIDS structure
         workspace = os.path.join(temp_workspace, "workspace")
         backup = os.path.join(temp_workspace, "backup")
 
-        # Crea struttura
+        # Create structure
         for i in range(3):
             subject_dir = os.path.join(workspace, f"sub-{i:02d}", "anat")
             os.makedirs(subject_dir)
@@ -893,7 +890,7 @@ class TestRealWorldScenarios:
         thread = CopyDeleteThread(src=workspace, dst=backup, is_folder=True, copy=True)
         thread.run()
 
-        # Verifica backup completo
+        # Verify complete backup
         assert os.path.exists(backup)
         for i in range(3):
             assert os.path.exists(
@@ -901,11 +898,11 @@ class TestRealWorldScenarios:
             )
 
     def test_cleanup_temp_derivatives(self, temp_workspace):
-        """Test pulizia derivati temporanei"""
+        """Test cleaning up temporary derivatives"""
         derivatives = os.path.join(temp_workspace, "derivatives", "temp_processing")
         os.makedirs(derivatives)
 
-        # Crea file temporanei
+        # Create temporary files
         for i in range(5):
             with open(os.path.join(derivatives, f"temp_{i}.nii"), 'w') as f:
                 f.write("temp data")
@@ -916,7 +913,7 @@ class TestRealWorldScenarios:
         assert not os.path.exists(derivatives)
 
     def test_move_processed_results(self, temp_workspace):
-        """Test spostamento risultati processati"""
+        """Test moving processed results"""
         processing = os.path.join(temp_workspace, "processing")
         results = os.path.join(temp_workspace, "results")
 
@@ -936,20 +933,20 @@ class TestRealWorldScenarios:
         )
         thread.run()
 
-        # Risultati dovrebbero esistere
+        # Results should exist
         assert os.path.exists(results)
         assert os.path.exists(os.path.join(results, "output.nii"))
         assert os.path.exists(os.path.join(results, "output.json"))
 
-        # Cartella processing dovrebbe essere eliminata
+        # Processing folder should be deleted
         assert not os.path.exists(processing)
 
 
 class TestPathNormalization:
-    """Test per normalizzazione path"""
+    """Tests for path normalization"""
 
     def test_copy_with_trailing_slash(self, temp_workspace):
-        """Test copia con trailing slash nei path"""
+        """Test copy with trailing slash in paths"""
         src = os.path.join(temp_workspace, "source") + os.sep
         dst = os.path.join(temp_workspace, "dest") + os.sep
 
@@ -963,8 +960,8 @@ class TestPathNormalization:
         assert os.path.exists(dst.rstrip(os.sep))
 
     def test_copy_with_relative_path(self, temp_workspace):
-        """Test copia con path relativi"""
-        # Cambia directory temporaneamente
+        """Test copy with relative path"""
+        # Change directory temporarily
         original_cwd = os.getcwd()
         try:
             os.chdir(temp_workspace)
@@ -983,7 +980,7 @@ class TestPathNormalization:
             os.chdir(original_cwd)
 
     def test_copy_with_absolute_path(self, temp_workspace):
-        """Test copia con path assoluti"""
+        """Test copy with absolute path"""
         src = os.path.abspath(os.path.join(temp_workspace, "abs_source.txt"))
         dst = os.path.abspath(os.path.join(temp_workspace, "abs_dest.txt"))
 
@@ -997,10 +994,10 @@ class TestPathNormalization:
 
 
 class TestErrorMessages:
-    """Test per i messaggi di errore"""
+    """Tests for error messages"""
 
     def test_error_message_format(self, temp_workspace):
-        """Test formato messaggio di errore"""
+        """Test error message format"""
         src = os.path.join(temp_workspace, "missing.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -1014,12 +1011,12 @@ class TestErrorMessages:
         assert len(error_msgs) == 1
         msg = error_msgs[0]
 
-        # Messaggio dovrebbe contenere src, dst e descrizione errore
+        # Message should contain src, dst, and error description
         assert "src:" in msg.lower() or src in msg
         assert "dst:" in msg.lower() or dst in msg
 
     def test_translatable_messages(self, temp_workspace):
-        """Test che i messaggi siano traducibili"""
+        """Test that messages are translatable"""
         src = os.path.join(temp_workspace, "source.txt")
         dst = os.path.join(temp_workspace, "dest.txt")
 
@@ -1033,16 +1030,16 @@ class TestErrorMessages:
 
         thread.run()
 
-        # I messaggi dovrebbero venire da QCoreApplication.translate
-        # Quindi dovrebbero essere stringhe leggibili
+        # Messages should come from QCoreApplication.translate
+        # So they should be readable strings
         assert len(finished_msgs) == 1
         assert len(finished_msgs[0]) > 0
 
 
-# Test parametrizzati
+# Parametrized tests
 @pytest.mark.parametrize("is_folder", [True, False])
 def test_copy_parametrized_folder_flag(is_folder, temp_workspace):
-    """Test parametrizzato per flag is_folder"""
+    """Parametrized test for is_folder flag"""
     if is_folder:
         src = os.path.join(temp_workspace, "folder_src")
         dst = os.path.join(temp_workspace, "folder_dst")
@@ -1066,7 +1063,7 @@ def test_copy_parametrized_folder_flag(is_folder, temp_workspace):
     ("delete", "delete"),
 ])
 def test_operation_flags_parametrized(operation, flag_name, temp_workspace):
-    """Test parametrizzato per flag operazioni"""
+    """Parametrized test for operation flags"""
     src = os.path.join(temp_workspace, f"{operation}_test.txt")
     with open(src, 'w') as f:
         f.write("data")

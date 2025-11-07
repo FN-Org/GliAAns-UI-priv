@@ -11,23 +11,19 @@ from main.components.file_role_dialog import FileRoleDialog
 
 @pytest.fixture
 def workspace_with_subjects(temp_workspace):
-    """Crea workspace con soggetti e struttura BIDS."""
-    # Crea soggetti
+    """Creates a workspace with subjects and BIDS structure."""
     subjects = ["sub-01", "sub-02", "sub-03"]
     for subj in subjects:
         subj_dir = os.path.join(temp_workspace, subj)
         os.makedirs(subj_dir, exist_ok=True)
 
-        # Crea directory anat
         anat_dir = os.path.join(subj_dir, "anat")
         os.makedirs(anat_dir, exist_ok=True)
 
-        # Crea sessioni
         for ses in ["ses-01", "ses-02"]:
             ses_dir = os.path.join(subj_dir, ses, "pet")
             os.makedirs(ses_dir, exist_ok=True)
 
-    # Crea directory derivatives
     derivatives_dir = os.path.join(temp_workspace, "derivatives")
     os.makedirs(derivatives_dir, exist_ok=True)
 
@@ -39,10 +35,10 @@ def workspace_with_subjects(temp_workspace):
     return temp_workspace
 
 class TestFileRoleDialogInitialization:
-    """Test per l'inizializzazione del dialogo."""
+    """Tests for the dialog initialization."""
 
     def test_initialization_full_dialog(self, qtbot, workspace_with_subjects):
-        """Test inizializzazione dialogo completo (tutti i livelli)."""
+        """Test full dialog initialization (all levels)."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -51,14 +47,14 @@ class TestFileRoleDialogInitialization:
         assert dialog.role is None
         assert dialog.main is None
 
-        # Verifica presenza livelli
+        # Verify levels are present
         assert hasattr(dialog, 'level1_widget')
         assert hasattr(dialog, 'level2_widget')
         assert hasattr(dialog, 'level3_widget')
         assert hasattr(dialog, 'ok_button')
 
     def test_initialization_with_main_derivatives(self, qtbot, workspace_with_subjects):
-        """Test inizializzazione con main='derivatives'."""
+        """Test initialization with main='derivatives'."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             main="derivatives"
@@ -71,7 +67,7 @@ class TestFileRoleDialogInitialization:
         assert dialog.derivative_extra_frame.isVisibleTo(dialog)
 
     def test_initialization_with_subject(self, qtbot, workspace_with_subjects):
-        """Test inizializzazione con subject specificato."""
+        """Test initialization with a specified subject."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             subj="sub-01"
@@ -83,7 +79,7 @@ class TestFileRoleDialogInitialization:
         assert not hasattr(dialog, 'subj_combo')
 
     def test_initialization_with_role(self, qtbot, workspace_with_subjects):
-        """Test inizializzazione con role specificato."""
+        """Test initialization with a specified role."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             role="anat"
@@ -95,7 +91,7 @@ class TestFileRoleDialogInitialization:
         assert not hasattr(dialog, 'level3_widget')
 
     def test_initialization_partial_params(self, qtbot, workspace_with_subjects):
-        """Test inizializzazione con parametri parziali."""
+        """Test initialization with partial parameters."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             main="derivatives",
@@ -108,14 +104,14 @@ class TestFileRoleDialogInitialization:
         assert dialog.role is None
 
     def test_ok_button_initially_disabled(self, qtbot, workspace_with_subjects):
-        """Test che il pulsante OK sia inizialmente disabilitato."""
+        """Test that the OK button is initially disabled."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         assert not dialog.ok_button.isEnabled()
 
     def test_window_title_set(self, qtbot, workspace_with_subjects):
-        """Test che il titolo della finestra sia impostato."""
+        """Test that the window title is set."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -123,10 +119,10 @@ class TestFileRoleDialogInitialization:
 
 
 class TestFindPatientDirs:
-    """Test per il metodo _find_patient_dirs."""
+    """Tests for the _find_patient_dirs method."""
 
     def test_find_patient_dirs_basic(self, qtbot, workspace_with_subjects):
-        """Test ricerca directory pazienti base."""
+        """Test basic patient directory search."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -134,23 +130,21 @@ class TestFindPatientDirs:
 
         assert len(patient_dirs) == 3
 
-        # Verifica che tutti i path contengano 'sub-'
         for p in patient_dirs:
             assert 'sub-' in os.path.basename(p)
 
     def test_find_patient_dirs_excludes_derivatives(self, qtbot, workspace_with_subjects):
-        """Test che la ricerca escluda derivatives."""
+        """Test that the search excludes derivatives."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         patient_dirs = dialog._find_patient_dirs()
 
-        # Nessun path dovrebbe contenere 'derivatives'
         for p in patient_dirs:
             assert 'derivatives' not in p.split(os.sep)
 
     def test_find_patient_dirs_empty_workspace(self, qtbot):
-        """Test con workspace vuoto."""
+        """Test with an empty workspace."""
         temp_dir = tempfile.mkdtemp()
         os.makedirs(os.path.join(temp_dir, "empty"), exist_ok=True)
         dialog = FileRoleDialog(workspace_path=temp_dir)
@@ -161,8 +155,7 @@ class TestFindPatientDirs:
         assert len(patient_dirs) == 0
 
     def test_find_patient_dirs_nested_subjects(self, qtbot, temp_workspace):
-        """Test con soggetti annidati."""
-        # Crea struttura annidata
+        """Test with nested subjects."""
         nested_path = os.path.join(temp_workspace, "study", "cohort1", "sub-nested")
         os.makedirs(nested_path)
 
@@ -178,10 +171,10 @@ class TestFindPatientDirs:
 
 
 class TestLevel1MainDerivatives:
-    """Test per il livello 1 (Main/Derivatives)."""
+    """Tests for level 1 (Main/Derivatives)."""
 
     def test_main_selected(self, qtbot, workspace_with_subjects):
-        """Test selezione 'main'."""
+        """Test 'main' selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -191,7 +184,7 @@ class TestLevel1MainDerivatives:
         assert selections['main'] == "main subject files"
 
     def test_derivatives_selected(self, qtbot, workspace_with_subjects):
-        """Test selezione 'derivatives'."""
+        """Test 'derivatives' selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -201,7 +194,7 @@ class TestLevel1MainDerivatives:
         assert selections['main'] == "derivatives"
 
     def test_derivatives_shows_extra_frame(self, qtbot, workspace_with_subjects):
-        """Test che selezionare derivatives mostri il frame extra."""
+        """Test that selecting derivatives shows the extra frame."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -212,20 +205,18 @@ class TestLevel1MainDerivatives:
         assert dialog.derivative_extra_frame.isVisibleTo(dialog)
 
     def test_main_hides_extra_frame(self, qtbot, workspace_with_subjects):
-        """Test che selezionare main nasconda il frame extra."""
+        """Test that selecting main hides the extra frame."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Prima seleziona derivatives
         dialog.opt_derivatives.setChecked(True)
         assert dialog.derivative_extra_frame.isVisibleTo(dialog)
 
-        # Poi seleziona main
         dialog.opt_main.setChecked(True)
         assert not dialog.derivative_extra_frame.isVisibleTo(dialog)
 
     def test_derivative_type_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione tipo di derivative."""
+        """Test derivative type selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -236,7 +227,7 @@ class TestLevel1MainDerivatives:
         assert selections['derivative'] == "skullstrips"
 
     def test_all_derivative_types(self, qtbot, workspace_with_subjects):
-        """Test tutti i tipi di derivative."""
+        """Test all derivative types."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -255,43 +246,40 @@ class TestLevel1MainDerivatives:
 
 
 class TestLevel2Subject:
-    """Test per il livello 2 (Subject)."""
+    """Tests for level 2 (Subject)."""
 
     def test_subject_combo_populated(self, qtbot, workspace_with_subjects):
-        """Test che la combo dei soggetti sia popolata."""
+        """Test that the subject combo box is populated."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         assert dialog.subj_combo.count() == 3
 
-        # Verifica che tutti i soggetti siano presenti
         subjects = [dialog.subj_combo.itemText(i) for i in range(dialog.subj_combo.count())]
         assert "sub-01" in subjects
         assert "sub-02" in subjects
         assert "sub-03" in subjects
 
     def test_subject_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione soggetto."""
+        """Test subject selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Seleziona sub-02
         dialog.subj_combo.setCurrentText("sub-02")
 
         selections = dialog.get_selections()
         assert selections['subj'] == "sub-02"
 
     def test_subject_combo_default_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione default combo soggetti."""
+        """Test default subject combo selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Dovrebbe essere selezionato il primo
         selections = dialog.get_selections()
         assert selections['subj'] is not None
 
     def test_subject_not_shown_when_provided(self, qtbot, workspace_with_subjects):
-        """Test che il livello soggetto non sia mostrato se fornito."""
+        """Test that the subject level is not shown if provided."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             subj="sub-01"
@@ -303,10 +291,10 @@ class TestLevel2Subject:
 
 
 class TestLevel3Role:
-    """Test per il livello 3 (Role)."""
+    """Tests for level 3 (Role)."""
 
     def test_anat_role_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione role 'anat'."""
+        """Test 'anat' role selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -316,7 +304,7 @@ class TestLevel3Role:
         assert selections['role'] == "anat"
 
     def test_ses01_role_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione role 'ses-01'."""
+        """Test 'ses-01' role selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -326,7 +314,7 @@ class TestLevel3Role:
         assert selections['role'] == "ses-01"
 
     def test_ses02_role_selection(self, qtbot, workspace_with_subjects):
-        """Test selezione role 'ses-02'."""
+        """Test 'ses-02' role selection."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -336,7 +324,7 @@ class TestLevel3Role:
         assert selections['role'] == "ses-02"
 
     def test_role_not_shown_when_provided(self, qtbot, workspace_with_subjects):
-        """Test che il livello role non sia mostrato se fornito."""
+        """Test that the role level is not shown if provided."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             role="anat"
@@ -348,10 +336,10 @@ class TestLevel3Role:
 
 
 class TestGetSelections:
-    """Test per il metodo get_selections."""
+    """Tests for the get_selections method."""
 
     def test_get_selections_all_levels(self, qtbot, workspace_with_subjects):
-        """Test get_selections con tutti i livelli."""
+        """Test get_selections with all levels."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -366,7 +354,7 @@ class TestGetSelections:
         assert selections['role'] == "anat"
 
     def test_get_selections_derivatives(self, qtbot, workspace_with_subjects):
-        """Test get_selections con derivatives."""
+        """Test get_selections with derivatives."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -383,7 +371,7 @@ class TestGetSelections:
         assert selections['role'] == "anat"
 
     def test_get_selections_partial(self, qtbot, workspace_with_subjects):
-        """Test get_selections con selezioni parziali."""
+        """Test get_selections with partial selections."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -396,10 +384,10 @@ class TestGetSelections:
 
 
 class TestGetRelativePath:
-    """Test per il metodo get_relative_path."""
+    """Tests for the get_relative_path method."""
 
     def test_relative_path_main_anat(self, qtbot, workspace_with_subjects):
-        """Test path relativo: main/subject/anat."""
+        """Test relative path: main/subject/anat."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -412,7 +400,7 @@ class TestGetRelativePath:
         assert path == os.path.join("sub-01", "anat")
 
     def test_relative_path_main_session(self, qtbot, workspace_with_subjects):
-        """Test path relativo: main/subject/session/pet."""
+        """Test relative path: main/subject/session/pet."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -425,7 +413,7 @@ class TestGetRelativePath:
         assert path == os.path.join("sub-02", "ses-01", "pet")
 
     def test_relative_path_derivatives(self, qtbot, workspace_with_subjects):
-        """Test path relativo: derivatives/type/subject/anat."""
+        """Test relative path: derivatives/type/subject/anat."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -439,7 +427,7 @@ class TestGetRelativePath:
         assert path == os.path.join("derivatives", "skullstrips", "sub-01", "anat")
 
     def test_relative_path_derivatives_with_session(self, qtbot, workspace_with_subjects):
-        """Test path relativo: derivatives con sessione."""
+        """Test relative path: derivatives with session."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -453,51 +441,48 @@ class TestGetRelativePath:
         assert path == os.path.join("derivatives", "manual_masks", "sub-03", "ses-02", "pet")
 
     def test_relative_path_empty(self, qtbot, workspace_with_subjects):
-        """Test path relativo vuoto (nessuna selezione)."""
+        """Test empty relative path (no selection)."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         path = dialog.get_relative_path()
 
-        # Con nessuna selezione (tranne subject default), path potrebbe essere parziale
-        assert path is not None or path is None  # Dipende dall'implementazione
+        # With no selection (except default subject), path might be partial
+        assert path is not None or path is None  # Depends on implementation
 
     def test_relative_path_session_pattern_matching(self, qtbot, workspace_with_subjects):
-        """Test che il pattern ses-XX aggiunga /pet."""
+        """Test that the ses-XX pattern adds /pet."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         dialog.opt_main.setChecked(True)
         dialog.subj_combo.setCurrentText("sub-01")
 
-        # Test ses-01
         dialog.ses_1_button.setChecked(True)
         path1 = dialog.get_relative_path()
         assert path1.endswith("pet")
 
-        # Test ses-02
         dialog.ses_2_button.setChecked(True)
         path2 = dialog.get_relative_path()
         assert path2.endswith("pet")
 
-        # Test anat (non dovrebbe avere pet)
         dialog.anat_button.setChecked(True)
         path3 = dialog.get_relative_path()
         assert not path3.endswith("pet")
 
 
 class TestUpdateOkButton:
-    """Test per il metodo update_ok_button."""
+    """Tests for the update_ok_button method."""
 
     def test_ok_button_disabled_initially(self, qtbot, workspace_with_subjects):
-        """Test che OK sia disabilitato inizialmente."""
+        """Test that OK is disabled initially."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         assert not dialog.ok_button.isEnabled()
 
     def test_ok_button_enabled_all_selected(self, qtbot, workspace_with_subjects):
-        """Test che OK sia abilitato con tutte le selezioni."""
+        """Test that OK is enabled with all selections."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -508,7 +493,7 @@ class TestUpdateOkButton:
         assert dialog.ok_button.isEnabled()
 
     def test_ok_button_disabled_no_main(self, qtbot, workspace_with_subjects):
-        """Test OK disabilitato senza main."""
+        """Test OK disabled without main."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -518,18 +503,16 @@ class TestUpdateOkButton:
         assert not dialog.ok_button.isEnabled()
 
     def test_ok_button_disabled_no_subject(self, qtbot, workspace_with_subjects):
-        """Test OK disabilitato senza subject."""
+        """Test OK disabled without subject."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         dialog.opt_main.setChecked(True)
         dialog.anat_button.setChecked(True)
-        # Non selezionare nessun subject (combo vuota)
-
-        # Questo test potrebbe non essere valido se la combo ha sempre una selezione default
+        # This test may not be valid if the combo always has a default selection
 
     def test_ok_button_disabled_no_role(self, qtbot, workspace_with_subjects):
-        """Test OK disabilitato senza role."""
+        """Test OK disabled without role."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -539,7 +522,7 @@ class TestUpdateOkButton:
         assert not dialog.ok_button.isEnabled()
 
     def test_ok_button_disabled_derivatives_no_type(self, qtbot, workspace_with_subjects):
-        """Test OK disabilitato con derivatives ma senza tipo."""
+        """Test OK disabled with derivatives but no type."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -550,7 +533,7 @@ class TestUpdateOkButton:
         assert not dialog.ok_button.isEnabled()
 
     def test_ok_button_enabled_derivatives_complete(self, qtbot, workspace_with_subjects):
-        """Test OK abilitato con derivatives completo."""
+        """Test OK enabled with complete derivatives."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -562,14 +545,12 @@ class TestUpdateOkButton:
         assert dialog.ok_button.isEnabled()
 
     def test_ok_button_updates_on_change(self, qtbot, workspace_with_subjects):
-        """Test che OK si aggiorni ad ogni cambio."""
+        """Test that OK updates on every change."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Inizialmente disabilitato
         assert not dialog.ok_button.isEnabled()
 
-        # Aggiungi selezioni una alla volta
         dialog.opt_main.setChecked(True)
         assert not dialog.ok_button.isEnabled()
 
@@ -581,21 +562,20 @@ class TestUpdateOkButton:
 
 
 class TestDialogButtons:
-    """Test per i pulsanti del dialogo."""
+    """Tests for the dialog buttons."""
 
     def test_accept_button_exists(self, qtbot, workspace_with_subjects):
-        """Test che il pulsante Accept esista."""
+        """Test that the Accept button exists."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
         assert dialog.ok_button is not None
 
     def test_cancel_button_exists(self, qtbot, workspace_with_subjects):
-        """Test che il pulsante Cancel esista."""
+        """Test that the Cancel button exists."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Cerca il pulsante Cancel
         buttons = dialog.findChildren(QDialogButtonBox)
         assert len(buttons) > 0
 
@@ -605,19 +585,18 @@ class TestDialogButtons:
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_empty_workspace(self, qtbot):
-        """Test con workspace vuoto."""
+        """Test with empty workspace."""
         temp_dir = tempfile.mkdtemp()
         dialog = FileRoleDialog(workspace_path=temp_dir)
         qtbot.addWidget(dialog)
 
-        # La combo dovrebbe essere vuota
         assert dialog.subj_combo.count() == 0
 
     def test_workspace_with_single_subject(self, qtbot, temp_workspace):
-        """Test con un solo soggetto."""
+        """Test with a single subject."""
         temp_dir = tempfile.mkdtemp()
         os.makedirs(os.path.join(temp_dir, "sub-only"))
 
@@ -628,7 +607,7 @@ class TestEdgeCases:
         assert dialog.subj_combo.itemText(0) == "sub-only"
 
     def test_workspace_with_many_subjects(self, qtbot):
-        """Test con molti soggetti."""
+        """Test with many subjects."""
         temp_dir = tempfile.mkdtemp()
         for i in range(50):
             os.makedirs(os.path.join(temp_dir, f"sub-{i:03d}"))
@@ -640,7 +619,7 @@ class TestEdgeCases:
 
 
     def test_subject_with_special_characters(self, qtbot, temp_workspace):
-        """Test soggetto con caratteri speciali."""
+        """Test subject with special characters."""
         special_names = ["sub-test_01", "sub-patient-A", "sub-123abc"]
 
         for name in special_names:
@@ -653,33 +632,29 @@ class TestEdgeCases:
 
 
 class TestIntegration:
-    """Test di integrazione."""
+    """Integration tests."""
 
     def test_full_workflow_main_anat(self, qtbot, workspace_with_subjects):
-        """Test workflow completo: main -> subject -> anat."""
+        """Test full workflow: main -> subject -> anat."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Seleziona tutto
         dialog.opt_main.setChecked(True)
         dialog.subj_combo.setCurrentText("sub-02")
         dialog.anat_button.setChecked(True)
 
-        # Verifica OK abilitato
         assert dialog.ok_button.isEnabled()
 
-        # Verifica selezioni
         selections = dialog.get_selections()
         assert selections['main'] == "main subject files"
         assert selections['subj'] == "sub-02"
         assert selections['role'] == "anat"
 
-        # Verifica path
         path = dialog.get_relative_path()
         assert path == os.path.join("sub-02", "anat")
 
     def test_full_workflow_derivatives(self, qtbot, workspace_with_subjects):
-        """Test workflow completo: derivatives."""
+        """Test full workflow: derivatives."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
@@ -701,18 +676,16 @@ class TestIntegration:
         assert path == expected
 
     def test_change_selections_multiple_times(self, qtbot, workspace_with_subjects):
-        """Test cambio selezioni multiple volte."""
+        """Test changing selections multiple times."""
         dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
         qtbot.addWidget(dialog)
 
-        # Prima selezione
         dialog.opt_main.setChecked(True)
         dialog.subj_combo.setCurrentText("sub-01")
         dialog.anat_button.setChecked(True)
 
         path1 = dialog.get_relative_path()
 
-        # Cambia selezione
         dialog.opt_derivatives.setChecked(True)
         dialog.skull_strip_btn.setChecked(True)
         dialog.subj_combo.setCurrentText("sub-02")
@@ -725,10 +698,10 @@ class TestIntegration:
 
 
 class TestPartialInitialization:
-    """Test per inizializzazioni parziali."""
+    """Tests for partial initializations."""
 
     def test_only_role_missing(self, qtbot, workspace_with_subjects):
-        """Test con solo role mancante."""
+        """Test with only role missing."""
         dialog = FileRoleDialog(
             workspace_path=workspace_with_subjects,
             main="derivatives",
@@ -736,14 +709,12 @@ class TestPartialInitialization:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe mostrare solo il livello role
         assert hasattr(dialog, 'level3_widget')
         assert not hasattr(dialog, 'level1_widget')
         assert not hasattr(dialog, 'subj_combo')
 
         def test_only_subject_missing(self, qtbot, workspace_with_subjects):
-            """Test con solo subject mancante (main e role forniti)."""
-            # main è fornito (derivatives) e role è fornito -> deve mancare solo il livello subject
+            """Test with only subject missing (main and role provided)."""
             dialog = FileRoleDialog(
                 workspace_path=workspace_with_subjects,
                 main="derivatives",
@@ -751,18 +722,13 @@ class TestPartialInitialization:
             )
             qtbot.addWidget(dialog)
 
-            # level2_widget deve esistere (subject mancante -> viene creato)
             assert hasattr(dialog, 'level2_widget')
-
-            # level1 non deve esistere (main fornito come "derivatives")
             assert not hasattr(dialog, 'level1_widget')
-
-            # level3 non deve esistere (role fornito)
             assert not hasattr(dialog, 'level3_widget')
             assert dialog.button_third_group is None
 
         def test_only_main_missing(self, qtbot, workspace_with_subjects):
-            """Test con solo main mancante (subj e role forniti)."""
+            """Test with only main missing (subj and role provided)."""
             dialog = FileRoleDialog(
                 workspace_path=workspace_with_subjects,
                 subj="sub-01",
@@ -770,20 +736,16 @@ class TestPartialInitialization:
             )
             qtbot.addWidget(dialog)
 
-            # level1 dovrebbe essere presente (main è None)
             assert hasattr(dialog, 'level1_widget')
-            # subject non deve esistere come combo (fornito)
             assert not hasattr(dialog, 'subj_combo')
-            # role è fornito -> level3 non dovrebbe esistere
             assert not hasattr(dialog, 'level3_widget')
             assert dialog.button_third_group is None
 
     class TestFilterSubjects:
-        """Test per il metodo filter_subjects (comportamento live filter)."""
+        """Tests for the filter_subjects method (live filter behavior)."""
 
         def test_filter_subjects_with_list_widget(self, qtbot, temp_workspace):
-            """Test filtro quando esiste subj_list (QListWidget)."""
-            # prepara workspace con alcuni subject
+            """Test filter when subj_list (QListWidget) exists."""
             subjects = ["sub-one", "sub-two", "patient-three"]
             for s in subjects:
                 os.makedirs(os.path.join(temp_workspace, s))
@@ -791,62 +753,54 @@ class TestPartialInitialization:
             dialog = FileRoleDialog(workspace_path=temp_workspace)
             qtbot.addWidget(dialog)
 
-            # crea un QListWidget e assegnalo a dialog.subj_list così filter_subjects lo userà
             lw = QListWidget()
             for s in subjects:
                 item = QListWidgetItem(s)
                 lw.addItem(item)
             dialog.subj_list = lw
 
-            # filtra con 'sub' -> tutti gli elementi che contengono 'sub' dovrebbero rimanere visibili
             dialog.filter_subjects("sub")
             visible_texts = [dialog.subj_list.item(i).text() for i in range(dialog.subj_list.count())
                              if not dialog.subj_list.item(i).isHidden()]
             assert set(visible_texts) == {"sub-one", "sub-two"}
 
-            # filtra con stringa che non corrisponde -> tutti nascosti
             dialog.filter_subjects("zzz")
             hidden_count = sum(1 for i in range(dialog.subj_list.count()) if dialog.subj_list.item(i).isHidden())
             assert hidden_count == dialog.subj_list.count()
 
         def test_filter_subjects_no_subj_list(self, qtbot, workspace_with_subjects):
-            """Chiamare filter_subjects quando subj_list non esiste non deve sollevare eccezioni."""
+            """Calling filter_subjects when subj_list does not exist must not raise exceptions."""
             dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
             qtbot.addWidget(dialog)
 
-            # Non esiste subj_list in questo dialog così la funzione dovrebbe semplicemente ritornare senza errori
-            dialog.filter_subjects("anything")  # non deve lanciare eccezioni
+            dialog.filter_subjects("anything")  # should not raise exceptions
 
     class TestRegressionAndEdgeCases:
-        """Test addizionali di regressione e casi limite."""
+        """Additional regression and edge case tests."""
 
         def test_get_relative_path_returns_none_when_no_selection(self, qtbot):
-            """Se non ci sono selezioni (workspace vuoto), get_relative_path dovrebbe restituire None."""
+            """If no selections (empty workspace), get_relative_path should return None."""
             temp_dir = tempfile.mkdtemp()
             dialog = FileRoleDialog(workspace_path=temp_dir)
             qtbot.addWidget(dialog)
 
-            # assicurati che la combo sia vuota
             assert dialog.subj_combo.count() == 0
 
             path = dialog.get_relative_path()
             assert path is None
 
         def test_get_relative_path_handles_unset_buttons(self, qtbot, workspace_with_subjects):
-            """Assicura che get_relative_path non crashi se alcuni button non sono stati settati."""
+            """Ensure get_relative_path doesn't crash if some buttons aren't set."""
             dialog = FileRoleDialog(workspace_path=workspace_with_subjects)
             qtbot.addWidget(dialog)
 
-            # imposta solo subject (combo ha default) ma non main/role
             dialog.subj_combo.setCurrentText("sub-01")
 
-            # Nessun main o role selezionato -> dovrebbe restituire None o percorso parziale coerente
             path = dialog.get_relative_path()
-            # Non vogliamo imporre comportamento rigido qui; assicuriamoci che non crashi e ritorni stringa o None
             assert path is None or isinstance(path, str)
 
         def test_find_patient_dirs_ignores_non_sub_dirs(self, qtbot, temp_workspace):
-            """Assicura che _find_patient_dirs ignori cartelle che non iniziano con 'sub-'."""
+            """Ensure _find_patient_dirs ignores folders not starting with 'sub-'."""
             os.makedirs(os.path.join(temp_workspace, "not-a-sub"))
             os.makedirs(os.path.join(temp_workspace, "sub-valid"))
             os.makedirs(os.path.join(temp_workspace, "also-not"))
@@ -855,7 +809,6 @@ class TestPartialInitialization:
             qtbot.addWidget(dialog)
 
             patient_dirs = dialog._find_patient_dirs()
-            # Solo 'sub-valid' dovrebbe essere tornato
             basenames = [os.path.basename(p) for p in patient_dirs]
             assert "sub-valid" in basenames
             assert "not-a-sub" not in basenames
