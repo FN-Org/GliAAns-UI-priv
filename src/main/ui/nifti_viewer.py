@@ -158,6 +158,7 @@ class NiftiViewer(QMainWindow):
         """
         super().__init__()
 
+
         self.threads = []
         self.context = context
 
@@ -185,6 +186,8 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold = 0.1
         self.overlay_enabled = False
         self.overlay_file_path = None
+        self.overlay_max = 0
+        self.overlay_thresholded_data = None
 
         # === UI element placeholders ===
         self.info_text = None
@@ -1221,11 +1224,7 @@ class NiftiViewer(QMainWindow):
                 )
                 self.overlay_data = self.pad_volume_to_shape(self.overlay_data, self.dims[:3])
 
-            # Disable automatic ROI controls while overlay is active
-            # self.automaticROI_overlay = False
-            # self.automaticROI_save_btn.setEnabled(False)
-            # self.automaticROI_sliders_group.setEnabled(False)
-            # self.automaticROI_sliders_group.setVisible(False)
+            self.overlay_max = np.max(self.overlay_data) if np.max(self.overlay_data) > 0 else 1
 
             # Update overlay information label
             filename = os.path.basename(self.overlay_file_path)
@@ -1239,6 +1238,8 @@ class NiftiViewer(QMainWindow):
             self.toggle_overlay(True)
             self.overlay_checkbox.setChecked(True)
             self.overlay_checkbox.setEnabled(True)
+
+            self.update_overlay_threshold(self.overlay_threshold_slider.value())
 
             # Refresh display with updated overlay settings
             self.update_overlay_settings()
@@ -1461,7 +1462,11 @@ class NiftiViewer(QMainWindow):
             when overlay is active and data is present.
         """
         self.overlay_threshold = value / 100.0
-        if self.overlay_enabled or self.automaticROI_overlay or self.incrementalROI_enabled:
+        if self.overlay_enabled and self.overlay_data is not None and self.overlay_max is not None:
+            # Determine overlay threshold
+            threshold_value = self.overlay_threshold * self.overlay_max
+            # Create boolean mask of overlay pixels above threshold
+            self.overlay_thresholded_data = self.overlay_data > threshold_value
             self.update_all_displays()
 
     def update_overlay_settings(self):
@@ -1780,7 +1785,7 @@ class NiftiViewer(QMainWindow):
             automaticROI_slice = _slice(self.automaticROI_data, plane_idx, slice_idx) if self.automaticROI_overlay and self.automaticROI_data is not None else None
 
             # Prepare overlay if available and enabled
-            overlay_slice = _slice(self.overlay_data,plane_idx, slice_idx)  if self.overlay_enabled and self.overlay_data is not None else None
+            overlay_slice = _slice(self.overlay_thresholded_data,plane_idx, slice_idx)  if self.overlay_enabled and self.overlay_data is not None and self.overlay_thresholded_data is not None else None
 
             incrementalROI_slice = _slice(self.incrementalROI_data,plane_idx, slice_idx) if self.incrementalROI_enabled and self.incrementalROI_data is not None else None
 
@@ -1983,21 +1988,16 @@ class NiftiViewer(QMainWindow):
             rgba_image_float = rgba_image.astype(np.float64)  # shape (H, W, 4)
 
             if overlay_slice.size > 0:
-                # Determine overlay threshold
-                overlay_max = np.max(overlay_slice) if np.max(overlay_slice) > 0 else 1
-                threshold_value = self.overlay_threshold * overlay_max
-                # Create boolean mask of overlay pixels above threshold
-                overlay_mask = overlay_slice > threshold_value
 
-                if np.any(overlay_mask):
+                if np.any(overlay_slice):
                     # Apply transparency scaling (based on user alpha)
                     overlay_intensity = overlay_slice * self.overlay_alpha
 
                     # Retrieve overlay color from dictionary or default (green)
-                    overlay_color = self.overlay_colors.get(self.colormap, np.array([0.0, 1.0, 0.0]))
+                    overlay_color = self.overlay_colors.get(colormap, np.array([0.0, 1.0, 0.0]))
 
                     # Blend overlay into base image using a numba-accelerated function
-                    rgba_image_float = apply_overlay_numba(rgba_image, overlay_mask,
+                    rgba_image_float = apply_overlay_numba(rgba_image, overlay_slice,
                                                            overlay_intensity, overlay_color)
 
             # Clip values to valid range [0, 1]
@@ -2198,8 +2198,8 @@ class NiftiViewer(QMainWindow):
         origin_dict = {}
 
         total_ROI = np.zeros(self.dims)
-        if self.overlay_data is not None and self.overlay_enabled:
-            total_ROI = np.logical_or(self.overlay_data, total_ROI).astype(np.uint8)
+        if self.overlay_data is not None and self.overlay_enabled and self.overlay_thresholded_data is not None:
+            total_ROI = np.logical_or(self.overlay_thresholded_data, total_ROI).astype(np.uint8)
             origin_dict["Oiriginal overlay"] = self.overlay_file_path
 
         if self.incrementalROI_data is not None and self.incrementalROI_enabled:
