@@ -2200,7 +2200,7 @@ class NiftiViewer(QMainWindow):
         total_ROI = np.zeros(self.dims)
         if self.overlay_data is not None and self.overlay_enabled and self.overlay_thresholded_data is not None:
             total_ROI = np.logical_or(self.overlay_thresholded_data, total_ROI).astype(np.uint8)
-            origin_dict["Oiriginal overlay"] = self.overlay_file_path
+            origin_dict["Original overlay"] = self.overlay_file_path
 
         if self.incrementalROI_data is not None and self.incrementalROI_enabled:
             total_ROI = np.logical_or(self.incrementalROI_data,total_ROI).astype(np.uint8)
