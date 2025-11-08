@@ -12,7 +12,7 @@ from main.components.nifti_file_dialog import NiftiFileDialog
 
 @pytest.fixture
 def nifti_workspace():
-    """Crea workspace BIDS con file NIfTI."""
+    """Create BIDS workspace with NIfTI files."""
     temp_dir = tempfile.mkdtemp()
     # Subject 1 - anat
     sub1_anat = os.path.join(temp_dir, "sub-01", "anat")
@@ -50,21 +50,21 @@ def nifti_workspace():
 
 @pytest.fixture
 def mock_context_nifti(nifti_workspace):
-    """Context per NiftiFileDialog."""
+    """Context for NiftiFileDialog."""
     return {"workspace_path": nifti_workspace}
 
 
 @pytest.fixture
 def mock_has_existing():
-    """Mock per has_existing_func."""
+    """Mock for has_existing_func."""
     return Mock(return_value=False)
 
 
 class TestNiftiFileDialogInitialization:
-    """Test per l'inizializzazione del dialogo."""
+    """Tests for dialog initialization."""
 
     def test_initialization_basic(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test inizializzazione base."""
+        """Basic initialization test."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -80,7 +80,7 @@ class TestNiftiFileDialogInitialization:
         assert dialog.selected_files == []
 
     def test_initialization_single_selection(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test inizializzazione modalità selezione singola."""
+        """Initialization test with single selection mode."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=False,
@@ -92,7 +92,7 @@ class TestNiftiFileDialogInitialization:
         assert dialog.allow_multiple is False
 
     def test_initialization_without_has_existing_func(self, qtbot, mock_context_nifti):
-        """Test inizializzazione senza has_existing_func."""
+        """Initialization test without has_existing_func."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -100,12 +100,12 @@ class TestNiftiFileDialogInitialization:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe usare lambda di default
+        # Should use default lambda
         assert callable(dialog.has_existing_func)
         assert dialog.has_existing_func("any_path", "any_workspace") is False
 
     def test_initialization_with_forced_filters(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test inizializzazione con forced_filters."""
+        """Initialization test with forced_filters."""
         filters = {"subject": "sub-01", "modality": "T1w"}
 
         dialog = NiftiFileDialog(
@@ -120,7 +120,7 @@ class TestNiftiFileDialogInitialization:
         assert dialog.forced_filters == filters
 
     def test_ui_elements_created(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che tutti gli elementi UI siano creati."""
+        """Test that all UI elements are created."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -141,10 +141,10 @@ class TestNiftiFileDialogInitialization:
 
 
 class TestPopulateFiles:
-    """Test per il metodo _populate_files."""
+    """Tests for the _populate_files method."""
 
     def test_populate_files_finds_nifti(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che trovi file NIfTI."""
+        """Test that it finds NIfTI files."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -153,11 +153,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe trovare 5 file (.nii e .nii.gz) + 1 derivatives
+        # Should find 5 files (.nii and .nii.gz) + 1 derivatives
         assert len(dialog.all_nii_files) >= 5
 
     def test_populate_files_extracts_subjects(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test estrazione soggetti."""
+        """Test subject extraction."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -166,11 +166,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe avere almeno 2 soggetti + "All subjects"
+        # Should have at least 2 subjects + "All subjects"
         assert dialog.subject_combo.count() >= 3
 
     def test_populate_files_extracts_sessions(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test estrazione sessioni."""
+        """Test session extraction."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -179,11 +179,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe avere ses-01 + "All sessions"
+        # Should have ses-01 + "All sessions"
         assert dialog.session_combo.count() >= 2
 
     def test_populate_files_extracts_modalities(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test estrazione modalità."""
+        """Test modality extraction."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -192,11 +192,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe avere T1w, T2w, FLAIR, pet + "All modalities"
+        # Should have T1w, T2w, FLAIR, pet + "All modalities"
         assert dialog.modality_combo.count() >= 4
 
     def test_populate_files_extracts_datatypes(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test estrazione data types."""
+        """Test data type extraction."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -205,11 +205,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe avere anat, pet + "All types"
+        # Should have anat, pet + "All types"
         assert dialog.datatype_combo.count() >= 3
 
     def test_populate_files_calls_has_existing(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che chiami has_existing_func."""
+        """Test that has_existing_func is called."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -218,11 +218,11 @@ class TestPopulateFiles:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe essere chiamato per ogni file
+        # Should be called for each file
         assert mock_has_existing.call_count > 0
 
     def test_populate_files_list_widget(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test popolamento list widget."""
+        """Test that the list widget is populated."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -235,10 +235,10 @@ class TestPopulateFiles:
 
 
 class TestApplyFilters:
-    """Test per il metodo _apply_filters."""
+    """Tests for the _apply_filters method."""
 
     def test_apply_filters_search(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtro ricerca."""
+        """Test search filter."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -258,7 +258,7 @@ class TestApplyFilters:
         assert visible_after < initial_visible
 
     def test_apply_filters_subject(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtro soggetto."""
+        """Test subject filter."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -269,14 +269,14 @@ class TestApplyFilters:
 
         dialog.subject_combo.setCurrentText("sub-01")
 
-        # Verifica che siano visibili solo file di sub-01
+        # Verify that only sub-01 files are visible
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if not item.isHidden():
                 assert "sub-01" in item.text()
 
     def test_apply_filters_session(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtro sessione."""
+        """Test session filter."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -293,7 +293,7 @@ class TestApplyFilters:
         assert visible >= 1
 
     def test_apply_filters_modality(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtro modalità."""
+        """Test modality filter."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -310,7 +310,7 @@ class TestApplyFilters:
         assert visible >= 1
 
     def test_apply_filters_datatype(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtro data type."""
+        """Test data type filter."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -327,9 +327,9 @@ class TestApplyFilters:
         assert visible >= 1
 
     def test_apply_filters_no_flag(self, qtbot, mock_context_nifti):
-        """Test filtro no flag."""
+        """Test no-flag filter."""
 
-        # has_existing ritorna True per alcuni file
+        # has_existing returns True for some files
         def mock_has_existing_selective(path, workspace):
             return "sub-01_T1w" in path
 
@@ -343,14 +343,14 @@ class TestApplyFilters:
 
         dialog.no_flag_checkbox.setChecked(True)
 
-        # Verifica che i file con flag siano nascosti
+        # Verify that files with flag are hidden
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if not item.isHidden():
                 assert item.text() not in dialog.files_with_flag
 
     def test_apply_filters_with_flag(self, qtbot, mock_context_nifti):
-        """Test filtro with flag."""
+        """Test with-flag filter."""
 
         def mock_has_existing_selective(path, workspace):
             return "sub-01_T1w" in path
@@ -365,14 +365,14 @@ class TestApplyFilters:
 
         dialog.with_flag_checkbox.setChecked(True)
 
-        # Verifica che solo i file con flag siano visibili
+        # Verify that only files with flag are visible
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if not item.isHidden():
                 assert item.text() in dialog.files_with_flag
 
     def test_apply_filters_combined(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test filtri combinati."""
+        """Test combined filters."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -387,15 +387,15 @@ class TestApplyFilters:
         visible = sum(1 for i in range(dialog.file_list.count())
                       if not dialog.file_list.item(i).isHidden())
 
-        # Dovrebbe trovare solo i T1w di sub-01
+        # Should only find T1w of sub-01
         assert visible >= 1
 
 
 class TestCheckboxBehavior:
-    """Test per il comportamento dei checkbox."""
+    """Tests for checkbox behavior."""
 
     def test_no_flag_unchecks_with_flag(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che no_flag disattivi with_flag."""
+        """Test that no_flag unchecks with_flag."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -410,7 +410,7 @@ class TestCheckboxBehavior:
         assert not dialog.with_flag_checkbox.isChecked()
 
     def test_with_flag_unchecks_no_flag(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che with_flag disattivi no_flag."""
+        """Test that with_flag unchecks no_flag."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -426,10 +426,10 @@ class TestCheckboxBehavior:
 
 
 class TestResetFilters:
-    """Test per il metodo _reset_filters."""
+    """Tests for the _reset_filters method."""
 
     def test_reset_filters_basic(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test reset filtri base."""
+        """Basic filter reset test."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -438,7 +438,7 @@ class TestResetFilters:
         )
         qtbot.addWidget(dialog)
 
-        # Imposta filtri
+        # Set filters
         dialog.search_bar.setText("test")
         dialog.subject_combo.setCurrentIndex(1)
         dialog.no_flag_checkbox.setChecked(True)
@@ -452,10 +452,10 @@ class TestResetFilters:
 
 
 class TestSelectAllVisible:
-    """Test per il metodo _select_all_visible."""
+    """Tests for the _select_all_visible method."""
 
     def test_select_all_visible_basic(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test selezione di tutti i visibili."""
+        """Test selection of all visible items."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -466,14 +466,14 @@ class TestSelectAllVisible:
 
         dialog._select_all_visible()
 
-        # Tutti gli item visibili dovrebbero essere selezionati
+        # All visible items should be selected
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if not item.isHidden():
                 assert item.isSelected()
 
     def test_select_all_visible_with_filters(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test selezione dopo filtro."""
+        """Test selection after applying filters."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -485,7 +485,7 @@ class TestSelectAllVisible:
         dialog.search_bar.setText("T1w")
         dialog._select_all_visible()
 
-        # Solo i visibili dovrebbero essere selezionati
+        # Only visible items should be selected
         selected_count = len(dialog.file_list.selectedItems())
         visible_count = sum(1 for i in range(dialog.file_list.count())
                             if not dialog.file_list.item(i).isHidden())
@@ -494,10 +494,10 @@ class TestSelectAllVisible:
 
 
 class TestAccept:
-    """Test per il metodo _accept."""
+    """Tests for the _accept method."""
 
     def test_accept_with_selection(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test accept con selezione."""
+        """Test accept with a selection."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -506,7 +506,7 @@ class TestAccept:
         )
         qtbot.addWidget(dialog)
 
-        # Seleziona primo item
+        # Select first item
         dialog.file_list.item(0).setSelected(True)
 
         with patch.object(dialog, 'accept', wraps=dialog.accept) as mock_accept:
@@ -516,7 +516,7 @@ class TestAccept:
             assert len(dialog.selected_files) == 1
 
     def test_accept_without_selection(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test accept senza selezione."""
+        """Test accept without a selection."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -531,7 +531,7 @@ class TestAccept:
             mock_warning.assert_called_once()
 
     def test_accept_with_existing_flag_warning(self, qtbot, mock_context_nifti):
-        """Test warning quando ci sono file con flag."""
+        """Test warning when there are files with flags."""
 
         def mock_has_existing_selective(path, workspace):
             return "sub-01_T1w" in path
@@ -544,7 +544,7 @@ class TestAccept:
         )
         qtbot.addWidget(dialog)
 
-        # Seleziona file con flag
+        # Select file with flag
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if "sub-01_T1w" in item.text():
@@ -556,10 +556,10 @@ class TestAccept:
                 dialog._accept()
 
     def test_accept_warning_cancelled(self, qtbot, mock_context_nifti):
-        """Test cancellazione su warning."""
+        """Test cancellation after warning."""
 
         def mock_has_existing_selective(path, workspace):
-            return True  # Tutti hanno flag
+            return True  # All have flags
 
         dialog = NiftiFileDialog(
             mock_context_nifti,
@@ -574,15 +574,15 @@ class TestAccept:
         with patch.object(QMessageBox, 'exec', return_value=QMessageBox.StandardButton.No):
             dialog._accept()
 
-            # Non dovrebbe aver impostato selected_files
+            # Should not have set selected_files
             assert len(dialog.selected_files) == 0
 
 
 class TestGetFilesStaticMethod:
-    """Test per il metodo statico get_files."""
+    """Tests for the static method get_files."""
 
     def test_get_files_accepted(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test get_files con accept."""
+        """Test get_files with accept."""
         dialog_instance = MagicMock()
         dialog_instance.selected_files = ["/path/file1.nii", "/path/file2.nii"]
         dialog_instance.exec.return_value = QDialog.DialogCode.Accepted
@@ -598,7 +598,7 @@ class TestGetFilesStaticMethod:
             assert result == dialog_instance.selected_files
 
     def test_get_files_rejected(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test get_files con reject."""
+        """Test get_files with reject."""
         with patch.object(NiftiFileDialog, 'exec', return_value=QDialog.DialogCode.Rejected):
             result = NiftiFileDialog.get_files(
                 mock_context_nifti,
@@ -611,10 +611,10 @@ class TestGetFilesStaticMethod:
 
 
 class TestForcedFilters:
-    """Test per forced_filters."""
+    """Tests for forced_filters."""
 
     def test_forced_filters_search(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test forced filter per search."""
+        """Test forced filter for search."""
         filters = {"search": "T1w"}
 
         dialog = NiftiFileDialog(
@@ -630,7 +630,7 @@ class TestForcedFilters:
         assert not dialog.search_bar.isEnabled()
 
     def test_forced_filters_subject(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test forced filter per subject."""
+        """Test forced filter for subject."""
         filters = {"subject": "sub-01"}
 
         dialog = NiftiFileDialog(
@@ -646,7 +646,7 @@ class TestForcedFilters:
         assert not dialog.subject_combo.isEnabled()
 
     def test_forced_filters_modality(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test forced filter per modality."""
+        """Test forced filter for modality."""
         filters = {"modality": "T1w"}
 
         dialog = NiftiFileDialog(
@@ -662,7 +662,7 @@ class TestForcedFilters:
         assert not dialog.modality_combo.isEnabled()
 
     def test_forced_filters_no_flag(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test forced filter per no_flag."""
+        """Test forced filter for no_flag."""
         filters = {"no_flag": True}
 
         dialog = NiftiFileDialog(
@@ -678,7 +678,7 @@ class TestForcedFilters:
         assert not dialog.no_flag_checkbox.isEnabled()
 
     def test_forced_filters_multiple(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test forced filters multipli."""
+        """Test multiple forced filters."""
         filters = {
             "subject": "sub-01",
             "modality": "T1w",
@@ -700,10 +700,10 @@ class TestForcedFilters:
 
 
 class TestFileListBehavior:
-    """Test per il comportamento della lista file."""
+    """Tests for file list behavior."""
 
     def test_file_list_selection_mode_multiple(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test modalità selezione multipla."""
+        """Test multiple selection mode."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -715,7 +715,7 @@ class TestFileListBehavior:
         assert dialog.file_list.selectionMode() == dialog.file_list.SelectionMode.ExtendedSelection
 
     def test_file_list_selection_mode_single(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test modalità selezione singola."""
+        """Test single selection mode."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=False,
@@ -727,7 +727,7 @@ class TestFileListBehavior:
         assert dialog.file_list.selectionMode() == dialog.file_list.SelectionMode.SingleSelection
 
     def test_file_list_tooltips(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che i file abbiano tooltip."""
+        """Test that files have tooltips."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -742,10 +742,10 @@ class TestFileListBehavior:
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_empty_workspace(self, qtbot, mock_has_existing):
-        """Test con workspace vuoto."""
+        """Test with an empty workspace."""
         temp_dir = tempfile.mkdtemp()
         context = {"workspace_path": temp_dir}
 
@@ -760,11 +760,11 @@ class TestEdgeCases:
         assert len(dialog.all_nii_files) == 0
 
     def test_workspace_with_non_nifti(self, qtbot, temp_workspace, mock_has_existing):
-        """Test workspace con solo file non-NIfTI."""
+        """Test workspace with only non-NIfTI files."""
         temp_dir = tempfile.mkdtemp()
         context = {"workspace_path": temp_dir}
 
-        # Crea file non-NIfTI
+        # Create non-NIfTI file
         os.makedirs(os.path.join(temp_dir, "sub-01", "anat"))
         with open(os.path.join(temp_dir, "sub-01", "anat", "file.txt"), "w") as f:
             f.write("text")
@@ -780,7 +780,7 @@ class TestEdgeCases:
         assert len(dialog.all_nii_files) == 0
 
     def test_unicode_in_filenames(self, qtbot, mock_has_existing):
-        """Test con caratteri unicode nei nomi file."""
+        """Test with Unicode characters in filenames."""
         temp_dir = tempfile.mkdtemp()
         context = {"workspace_path": temp_dir}
 
@@ -803,7 +803,7 @@ class TestEdgeCases:
         assert len(dialog.all_nii_files) == 3
 
     def test_very_deep_directory_structure(self, qtbot, temp_workspace, mock_has_existing):
-        """Test con struttura directory molto profonda."""
+        """Test with a very deep directory structure."""
         context = {"workspace_path": temp_workspace}
 
         deep_path = os.path.join(temp_workspace, "sub-01", "ses-01", "extra", "nested", "anat")
@@ -822,7 +822,7 @@ class TestEdgeCases:
         assert len(dialog.all_nii_files) >= 1
 
     def test_label_none_hides_checkboxes(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che label None nasconda i checkbox."""
+        """Test that label None hides the checkboxes."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -836,10 +836,10 @@ class TestEdgeCases:
 
 
 class TestInfoLabel:
-    """Test per info_label."""
+    """Tests for info_label."""
 
     def test_info_label_shows_count(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che info_label mostri il conteggio."""
+        """Test that info_label shows the count."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -852,7 +852,7 @@ class TestInfoLabel:
         assert "files" in info_text.lower() or "file" in info_text.lower()
 
     def test_info_label_updates_with_filters(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che info_label si aggiorni con i filtri."""
+        """Test that info_label updates with filters."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -867,15 +867,15 @@ class TestInfoLabel:
 
         filtered_text = dialog.info_label.text()
 
-        # Il testo dovrebbe cambiare
+        # The text should change
         assert initial_text != filtered_text
 
 
 class TestRelativeToAbsolute:
-    """Test per il mapping relative_to_absolute."""
+    """Tests for the relative_to_absolute mapping."""
 
     def test_relative_to_absolute_mapping(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che il mapping sia corretto."""
+        """Test that the mapping is correct."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -891,10 +891,10 @@ class TestRelativeToAbsolute:
 
 
 class TestFilesWithFlag:
-    """Test per files_with_flag."""
+    """Tests for files_with_flag."""
 
     def test_files_with_flag_populated(self, qtbot, mock_context_nifti):
-        """Test che files_with_flag sia popolato."""
+        """Test that files_with_flag is populated."""
 
         def mock_has_existing_some(path, workspace):
             return "sub-01_T1w" in path
@@ -910,7 +910,7 @@ class TestFilesWithFlag:
         assert len(dialog.files_with_flag) > 0
 
     def test_files_with_flag_color(self, qtbot, mock_context_nifti):
-        """Test che i file con flag abbiano colore diverso."""
+        """Test that files with flags have a different color."""
 
         def mock_has_existing_some(path, workspace):
             return "sub-01_T1w" in path
@@ -923,21 +923,21 @@ class TestFilesWithFlag:
         )
         qtbot.addWidget(dialog)
 
-        # Trova un item con flag
+        # Find an item with a flag
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if item.text() in dialog.files_with_flag:
-                # Dovrebbe avere colore giallo/warning
+                # Should have yellow/warning color
                 color = item.foreground().color()
                 assert color == QColor(255, 193, 7)
                 break
 
 
 class TestButtonConnections:
-    """Test per le connessioni dei pulsanti."""
+    """Tests for button connections."""
 
     def test_reset_button_connected(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che il pulsante reset sia connesso."""
+        """Test that the reset button is connected."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -952,7 +952,7 @@ class TestButtonConnections:
         assert dialog.search_bar.text() == ""
 
     def test_select_all_button_connected(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che il pulsante select all sia connesso."""
+        """Test that the select all button is connected."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -966,7 +966,7 @@ class TestButtonConnections:
         assert len(dialog.file_list.selectedItems()) > 0
 
     def test_deselect_all_button_connected(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che il pulsante deselect all sia connesso."""
+        """Test that the deselect all button is connected."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -982,10 +982,10 @@ class TestButtonConnections:
 
 
 class TestIntegration:
-    """Test di integrazione."""
+    """Integration tests."""
 
     def test_full_workflow_filter_select_accept(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test workflow completo."""
+        """Test full workflow."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -994,10 +994,10 @@ class TestIntegration:
         )
         qtbot.addWidget(dialog)
 
-        # Filtra
+        # Filter
         dialog.search_bar.setText("T1w")
 
-        # Seleziona tutti visibili
+        # Select all visible files
         dialog._select_all_button.click()
 
         # Accept
@@ -1007,7 +1007,7 @@ class TestIntegration:
             assert len(dialog.selected_files) > 0
 
     def test_full_workflow_with_warning(self, qtbot, mock_context_nifti):
-        """Test workflow con warning."""
+        """Test workflow with warning."""
 
         def mock_has_existing_some(path, workspace):
             return "sub-01_T1w" in path
@@ -1020,14 +1020,14 @@ class TestIntegration:
         )
         qtbot.addWidget(dialog)
 
-        # Seleziona file con flag
+        # Select file with flag
         for i in range(dialog.file_list.count()):
             item = dialog.file_list.item(i)
             if item.text() in dialog.files_with_flag:
                 item.setSelected(True)
                 break
 
-        # Accept con warning
+        # Accept with warning
         with patch.object(QMessageBox, 'exec', return_value=QMessageBox.StandardButton.Yes):
             with patch.object(dialog, 'accept'):
                 dialog._accept()
@@ -1036,10 +1036,10 @@ class TestIntegration:
 
 
 class TestStateConsistency:
-    """Test per la consistenza dello stato."""
+    """Tests for state consistency."""
 
     def test_state_after_filter_changes(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test consistenza dopo cambio filtri."""
+        """Test consistency after changing filters."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1048,20 +1048,20 @@ class TestStateConsistency:
         )
         qtbot.addWidget(dialog)
 
-        # Cambia più filtri
+        # Change multiple filters
         dialog.subject_combo.setCurrentIndex(1)
         dialog.search_bar.setText("T1w")
         dialog.no_flag_checkbox.setChecked(True)
 
-        # Verifica che lo stato sia coerente
+        # Check that state is coherent
         visible = sum(1 for i in range(dialog.file_list.count())
                       if not dialog.file_list.item(i).isHidden())
 
-        # Dovrebbe esserci almeno qualche file visibile o nessuno
+        # There should be at least some visible files or none
         assert visible >= 0
 
     def test_state_after_reset(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test stato dopo reset."""
+        """Test state after reset."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1070,27 +1070,27 @@ class TestStateConsistency:
         )
         qtbot.addWidget(dialog)
 
-        # Imposta filtri
+        # Set filters
         dialog.search_bar.setText("test")
         dialog.subject_combo.setCurrentIndex(1)
 
         # Reset
         dialog._reset_filters()
 
-        # Tutti i filtri dovrebbero essere al default
+        # All filters should return to default
         assert dialog.search_bar.text() == ""
         assert dialog.subject_combo.currentIndex() == 0
 
 
 class TestMemoryAndPerformance:
-    """Test per memoria e performance."""
+    """Tests for memory and performance."""
 
     def test_many_files_performance(self, qtbot, mock_has_existing):
-        """Test performance con molti file."""
+        """Test performance with many files."""
         temp_dir = tempfile.mkdtemp()
         context = {"workspace_path": temp_dir}
 
-        # Crea molti file
+        # Create many files
         sub_dir = os.path.join(temp_dir, "sub-01", "anat")
         os.makedirs(sub_dir)
 
@@ -1106,11 +1106,11 @@ class TestMemoryAndPerformance:
         )
         qtbot.addWidget(dialog)
 
-        # Non dovrebbe essere troppo lento
+        # Should not be too slow
         assert len(dialog.all_nii_files) == 100
 
     def test_rapid_filter_changes(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test con cambi rapidi di filtri."""
+        """Test with rapid filter changes."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1119,20 +1119,20 @@ class TestMemoryAndPerformance:
         )
         qtbot.addWidget(dialog)
 
-        # Cambia filtri rapidamente
+        # Change filters rapidly
         for i in range(20):
             dialog.search_bar.setText(f"test{i}")
             dialog.subject_combo.setCurrentIndex(i % dialog.subject_combo.count())
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert True
 
 
 class TestAccessibility:
-    """Test per l'accessibilità."""
+    """Tests for accessibility."""
 
     def test_buttons_have_text(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che tutti i pulsanti abbiano testo."""
+        """Test that all buttons have text."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1146,7 +1146,7 @@ class TestAccessibility:
         assert len(dialog._deselect_all_button.text()) > 0
 
     def test_labels_have_text(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che le label abbiano testo."""
+        """Test that labels have text."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1158,7 +1158,7 @@ class TestAccessibility:
         assert dialog.info_label.text() != ""
 
     def test_search_bar_placeholder(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che search bar abbia placeholder."""
+        """Test that search bar has a placeholder."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1171,10 +1171,10 @@ class TestAccessibility:
 
 
 class TestTranslations:
-    """Test per le traduzioni."""
+    """Tests for translations."""
 
     def test_window_title_includes_label(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che il titolo includa il label."""
+        """Test that the window title includes the label."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1188,15 +1188,15 @@ class TestTranslations:
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori."""
+    """Tests for error handling."""
 
     def test_has_existing_func_exception(self, qtbot, mock_context_nifti):
-        """Test quando has_existing_func lancia eccezione."""
+        """Test when has_existing_func raises an exception."""
 
         def mock_has_existing_error(path, workspace):
             raise Exception("Test error")
 
-        # Non dovrebbe crashare durante inizializzazione
+        # Should not crash during initialization
         try:
             dialog = NiftiFileDialog(
                 mock_context_nifti,
@@ -1206,11 +1206,11 @@ class TestErrorHandling:
             )
             qtbot.addWidget(dialog)
         except Exception:
-            # Accettabile se propaga l'eccezione
+            # Acceptable if the exception propagates
             pass
 
     def test_invalid_workspace_path(self, qtbot, mock_has_existing):
-        """Test con workspace path non valido."""
+        """Test with invalid workspace path."""
         context = {"workspace_path": "/nonexistent/path"}
 
         dialog = NiftiFileDialog(
@@ -1221,15 +1221,15 @@ class TestErrorHandling:
         )
         qtbot.addWidget(dialog)
 
-        # Dovrebbe gestire gracefully
+        # Should handle gracefully
         assert len(dialog.all_nii_files) == 0
 
 
 class TestComboBoxBehavior:
-    """Test per il comportamento delle combo box."""
+    """Tests for combo box behavior."""
 
     def test_combo_boxes_have_all_option(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che le combo abbiano opzione 'All'."""
+        """Test that combo boxes have the 'All' option."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1244,7 +1244,7 @@ class TestComboBoxBehavior:
         assert "All" in dialog.datatype_combo.itemText(0)
 
     def test_combo_boxes_sorted(self, qtbot, mock_context_nifti, mock_has_existing):
-        """Test che le combo siano ordinate."""
+        """Test that combo boxes are sorted."""
         dialog = NiftiFileDialog(
             mock_context_nifti,
             allow_multiple=True,
@@ -1253,7 +1253,7 @@ class TestComboBoxBehavior:
         )
         qtbot.addWidget(dialog)
 
-        # Soggetti dovrebbero essere ordinati (dopo "All")
+        # Subjects should be sorted (after "All")
         subjects = [dialog.subject_combo.itemText(i)
                     for i in range(1, dialog.subject_combo.count())]
 
