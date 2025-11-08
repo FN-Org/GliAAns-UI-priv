@@ -141,10 +141,8 @@ class ImportPage(Page):
         """Handle dropped folders."""
         urls = event.mimeData().urls()
         if urls:
-            for url in urls:
-                file_path = url.toLocalFile()
-                if os.path.exists(file_path) and os.path.isdir(file_path):
-                    self._handle_import([file_path])
+                file_path = [url.toLocalFile() for url in urls]
+                self._handle_import(file_path)
 
     # ----------------------------
     # Folder Selection Dialog
