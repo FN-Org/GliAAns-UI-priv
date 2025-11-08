@@ -1,12 +1,12 @@
-"""
-test_skull_strip_thread.py - Test Suite per SkullStripThread
+""""
+test_skull_strip_thread.py - Test Suite for SkullStripThread
 
-Questa suite testa tutte le funzionalità del thread di skull-stripping:
-- Esecuzione FSL BET e HD-BET
-- Batch processing di file multipli
-- Progress tracking e cancellazione
-- Generazione metadata JSON BIDS
-- Gestione errori e edge cases
+This suite tests all functionalities of the skull-stripping thread:
+- Execution of FSL BET and HD-BET
+- Batch processing of multiple files
+- Progress tracking and cancellation
+- Generation of BIDS JSON metadata
+- Error handling and edge cases
 """
 
 import os
@@ -21,10 +21,10 @@ from main.threads.skull_strip_thread import SkullStripThread
 
 
 class TestSkullStripThreadInitialization:
-    """Test per l'inizializzazione di SkullStripThread"""
+    """Tests for the initialization of SkullStripThread"""
 
     def test_init_with_bet(self, temp_workspace):
-        """Test inizializzazione con FSL BET"""
+        """Test initialization with FSL BET"""
         files = [os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii.gz")]
         parameters = {'f_val': 0.5, 'opt_m': True}
 
@@ -46,7 +46,7 @@ class TestSkullStripThreadInitialization:
         assert thread.failed_files == []
 
     def test_init_with_hdbet(self, temp_workspace):
-        """Test inizializzazione con HD-BET"""
+        """Test initialization with HD-BET"""
         files = [os.path.join(temp_workspace, "test.nii")]
         parameters = {}
 
@@ -62,7 +62,7 @@ class TestSkullStripThreadInitialization:
         assert thread.bet_tool == "fsl-bet"
 
     def test_init_with_synthstrip(self, temp_workspace):
-        """Test inizializzazione con HD-BET"""
+        """Test initialization with SynthStrip"""
         files = [os.path.join(temp_workspace, "test.nii")]
         parameters = {}
 
@@ -77,9 +77,8 @@ class TestSkullStripThreadInitialization:
         assert thread.has_cuda is True
         assert thread.bet_tool == "synthstrip"
 
-
     def test_signals_exist(self, temp_workspace):
-        """Verifica che i signal siano definiti correttamente"""
+        """Verify that the signals are correctly defined"""
         thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         assert hasattr(thread, 'progress_updated')
@@ -90,10 +89,10 @@ class TestSkullStripThreadInitialization:
 
 
 class TestSkullStripThreadCancellation:
-    """Test per la cancellazione del thread"""
+    """Tests for thread cancellation"""
 
     def test_cancel_flag_set(self, temp_workspace):
-        """Test che il flag di cancellazione venga impostato"""
+        """Test that the cancellation flag is set"""
         thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         assert thread.is_cancelled is False
@@ -101,10 +100,10 @@ class TestSkullStripThreadCancellation:
         assert thread.is_cancelled is True
 
     def test_cancel_terminates_process(self, temp_workspace):
-        """Test terminazione processo durante cancellazione"""
+        """Test process termination during cancellation"""
         thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
-        # Mock processo in esecuzione
+        # Mock a running process
         mock_process = Mock(spec=QProcess)
         thread.process = mock_process
 
@@ -114,36 +113,36 @@ class TestSkullStripThreadCancellation:
         mock_process.kill.assert_called_once()
 
     def test_cancel_no_process(self, temp_workspace):
-        """Test cancellazione senza processo attivo"""
+        """Test cancellation without an active process"""
         thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
-        # Non dovrebbe sollevare eccezioni
+        # Should not raise exceptions
         thread.cancel()
         assert thread.is_cancelled is True
 
     def test_cancel_process_error_handling(self, temp_workspace):
-        """Test gestione errore durante cancellazione processo"""
+        """Test error handling during process cancellation"""
         thread = SkullStripThread([], temp_workspace, {}, False, "fsl-bet")
 
         mock_process = Mock()
         mock_process.terminate.side_effect = RuntimeError("Process error")
         thread.process = mock_process
 
-        # Non dovrebbe propagare l'eccezione
+        # Should not propagate the exception
         thread.cancel()
         assert thread.is_cancelled is True
 
 
 class TestBETCommandBuilding:
-    """Test per la costruzione comandi FSL BET"""
+    """Tests for building FSL BET commands"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_basic_command(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test comando BET di base"""
+        """Test basic BET command"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
-        # Mock processo
+        # Mock process
         mock_process_instance = Mock()
         mock_process_instance.waitForFinished.return_value = True
         mock_process_instance.exitCode.return_value = 0
@@ -151,7 +150,7 @@ class TestBETCommandBuilding:
         mock_process_instance.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process_instance
 
-        # Crea file di input
+        # Create input file
         input_file = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii.gz")
         os.makedirs(os.path.dirname(input_file), exist_ok=True)
         with open(input_file, 'w') as f:
@@ -163,7 +162,7 @@ class TestBETCommandBuilding:
         with patch('shutil.move'), patch('shutil.rmtree'), patch('os.makedirs'):
             thread.run()
 
-        # Verifica chiamata processo
+        # Verify process call
         mock_process_instance.start.assert_called_once()
         call_args = mock_process_instance.start.call_args[0]
 
@@ -175,7 +174,7 @@ class TestBETCommandBuilding:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_with_options(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test comando BET con opzioni avanzate"""
+        """Test BET command with advanced options"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -206,16 +205,16 @@ class TestBETCommandBuilding:
         call_args = mock_process.start.call_args[0]
         cmd = call_args[1]
 
-        # Verifica opzioni presenti
+        # Verify presence of options
         assert "-m" in cmd  # opt_m
         assert "-t" in cmd  # opt_t
         assert "-o" in cmd  # opt_o
-        assert "-s" not in cmd  # opt_s è False
+        assert "-s" not in cmd  # opt_s is False
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_with_center_coordinates(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test comando BET con coordinate centro"""
+        """Test BET command with center coordinates"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -245,14 +244,14 @@ class TestBETCommandBuilding:
         call_args = mock_process.start.call_args[0]
         cmd = call_args[1]
 
-        # Verifica coordinate
+        # Verify coordinates
         assert "-c" in cmd
         assert "128" in cmd or "64" in cmd
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_bet_brain_extracted_option(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test opzione -n per brain extraction"""
+        """Test -n option for brain extraction"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -269,7 +268,7 @@ class TestBETCommandBuilding:
 
         parameters = {
             'f_val': 0.5,
-            'opt_brain_extracted': False  # Disabilita estrazione mask
+            'opt_brain_extracted': False  # Disable mask extraction
         }
 
         thread = SkullStripThread([input_file], temp_workspace, parameters, False, "fsl-bet")
@@ -284,12 +283,12 @@ class TestBETCommandBuilding:
 
 
 class TestHDBETCommandBuilding:
-    """Test per la costruzione comandi HD-BET"""
+    """Tests for building HD-BET commands"""
 
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_basic_command(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test comando HD-BET di base"""
+        """Test basic HD-BET command"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
 
         mock_process = Mock()
@@ -318,7 +317,7 @@ class TestHDBETCommandBuilding:
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_cpu_mode(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test HD-BET in modalità CPU (senza CUDA)"""
+        """Test HD-BET in CPU mode (without CUDA)"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
 
         mock_process = Mock()
@@ -342,7 +341,7 @@ class TestHDBETCommandBuilding:
         call_args = mock_process.start.call_args[0]
         cmd = call_args[1]
 
-        # Verifica opzioni CPU
+        # Verify CPU options
         assert "-device" in cmd
         assert "cpu" in cmd
         assert "--disable_tta" in cmd
@@ -350,7 +349,7 @@ class TestHDBETCommandBuilding:
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_hdbet_cuda_mode(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test HD-BET con CUDA"""
+        """Test HD-BET with CUDA"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
 
         mock_process = Mock()
@@ -374,13 +373,13 @@ class TestHDBETCommandBuilding:
         call_args = mock_process.start.call_args[0]
         cmd = call_args[1]
 
-        # NON dovrebbe avere opzioni CPU
+        # Should NOT have CPU options
         assert "-device" not in cmd or "cpu" not in cmd
 
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_sinthstrip_basic_command(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test comando SynthStrip di base"""
+        """Test basic SynthStrip command"""
         mock_get_bin.return_value = "/usr/bin/mri_sinthstrip"
 
         mock_process = Mock()
@@ -407,12 +406,12 @@ class TestHDBETCommandBuilding:
         assert "-o" in call_args[1]
 
 class TestOutputGeneration:
-    """Test per la generazione output e metadata"""
+    """Tests for output and metadata generation"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_output_directory_creation(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test creazione directory output"""
+        """Test output directory creation"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -429,7 +428,7 @@ class TestOutputGeneration:
 
         thread = SkullStripThread([input_file], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
-        # Mock shutil.move per simulare file creato
+        # Mock shutil.move to simulate created file
         def mock_move(src, dst):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, 'w') as f:
@@ -438,7 +437,7 @@ class TestOutputGeneration:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica directory derivatives creata
+        # Verify derivatives directory created
         expected_dir = os.path.join(
             temp_workspace, 'derivatives', 'skullstrips', 'sub-05', 'anat'
         )
@@ -447,7 +446,7 @@ class TestOutputGeneration:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_bet(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test creazione metadata JSON per BET"""
+        """Test JSON metadata creation for BET"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -472,7 +471,7 @@ class TestOutputGeneration:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica JSON creato
+        # Verify JSON created
         json_file = os.path.join(
             temp_workspace, 'derivatives', 'skullstrips', 'sub-06', 'anat',
             'T1w_f04_brain.json'
@@ -491,7 +490,7 @@ class TestOutputGeneration:
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_hdbet(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test creazione metadata JSON per HD-BET"""
+        """Test JSON metadata creation for HD-BET"""
         mock_get_bin.return_value = "/usr/bin/hd-bet"
 
         mock_process = Mock()
@@ -531,7 +530,7 @@ class TestOutputGeneration:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_output_filename_format_bet(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test formato nome file output per BET"""
+        """Test output filename format for BET"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -557,7 +556,7 @@ class TestOutputGeneration:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica nome file contiene f07
+        # Verify filename contains f07
         output_file = os.path.join(
             temp_workspace, 'derivatives', 'skullstrips', 'sub-08', 'anat',
             'T1w_f07_brain.nii.gz'
@@ -568,7 +567,7 @@ class TestOutputGeneration:
     @patch('main.threads.skull_strip_thread.get_bin_path')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_json_metadata_creation_synthstrip(self, mock_qprocess, mock_get_bin, temp_workspace):
-        """Test creazione metadata JSON per SynthStrip"""
+        """Test JSON metadata creation for SynthStrip"""
         mock_get_bin.return_value = "/usr/bin/mri_synthstrip"
 
         mock_process = Mock()
@@ -607,12 +606,12 @@ class TestOutputGeneration:
 
 
 class TestBatchProcessing:
-    """Test per il processing batch di file multipli"""
+    """Tests for batch processing of multiple files"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_multiple_files_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test processamento di file multipli"""
+        """Test processing of multiple files"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -622,7 +621,7 @@ class TestBatchProcessing:
         mock_process.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process
 
-        # Crea file multipli
+        # Create multiple files
         files = []
         for i in range(1, 4):
             file_path = os.path.join(temp_workspace, f"sub-0{i}", "anat", f"T1w_{i}.nii")
@@ -647,7 +646,7 @@ class TestBatchProcessing:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica signal emessi per ogni file
+        # Verify signals emitted for each file
         assert file_started_count[0] == 3
         assert file_completed_count[0] == 3
         assert thread.success_count == 3
@@ -655,7 +654,7 @@ class TestBatchProcessing:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_progress_tracking_multiple_files(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test tracking progress con file multipli"""
+        """Test progress tracking with multiple files"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -686,16 +685,16 @@ class TestBatchProcessing:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica progress incrementale
+        # Verify incremental progress
         assert len(progress_values) == 5
-        # Progress dovrebbe crescere
+        # Progress should increase
         for i in range(1, len(progress_values)):
             assert progress_values[i] >= progress_values[i - 1]
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_all_completed_signal(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test signal all_completed al termine"""
+        """Test all_completed signal at the end"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -733,17 +732,17 @@ class TestBatchProcessing:
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori"""
+    """Tests for error handling"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_process_failure_nonzero_exit(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test gestione errore processo con exit code non zero"""
+        """Test process error handling with non-zero exit code"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
         mock_process.waitForFinished.return_value = True
-        mock_process.exitCode.return_value = 1  # Exit code di errore
+        mock_process.exitCode.return_value = 1  # Error exit code
         mock_process.readAllStandardError.return_value = b'BET error: invalid parameters'
         mock_process.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process
@@ -761,7 +760,7 @@ class TestErrorHandling:
         with patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica file segnato come fallito
+        # Verify that the file is marked as failed
         assert len(completed_files) == 1
         filename, success, message = completed_files[0]
         assert success is False
@@ -771,10 +770,10 @@ class TestErrorHandling:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_missing_subject_id(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test gestione file senza subject ID BIDS"""
+        """Test handling of files without BIDS subject ID"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
-        # File senza struttura BIDS (no sub-XX)
+        # File without BIDS structure (no sub-XX)
         input_file = os.path.join(temp_workspace, "random_folder", "brain.nii")
         os.makedirs(os.path.dirname(input_file), exist_ok=True)
         with open(input_file, 'w') as f:
@@ -787,7 +786,7 @@ class TestErrorHandling:
 
         thread.run()
 
-        # Dovrebbe fallire per mancanza subject ID
+        # Should fail due to missing subject ID
         assert len(completed_files) == 1
         filename, success, message = completed_files[0]
         assert success is False
@@ -797,7 +796,7 @@ class TestErrorHandling:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_exception_during_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test gestione eccezione generica durante processing"""
+        """Test generic exception handling during processing"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -817,7 +816,7 @@ class TestErrorHandling:
         with patch('shutil.rmtree'):
             thread.run()
 
-        # Dovrebbe catturare l'eccezione
+        # Should catch the exception
         assert len(completed_files) == 1
         filename, success, message = completed_files[0]
         assert success is False
@@ -826,16 +825,16 @@ class TestErrorHandling:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_partial_failure_multiple_files(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test con alcuni file che falliscono e altri che riescono"""
+        """Test with some files failing and others succeeding"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
-        # Mock processo che alterna successo/fallimento
+        # Mock process alternating success/failure
         call_count = [0]
 
         def get_mock_process():
             mock_process = Mock()
             mock_process.waitForFinished.return_value = True
-            # File 0 e 2 successo, file 1 fallimento
+            # File 0 and 2 succeed, file 1 fails
             if call_count[0] == 1:
                 mock_process.exitCode.return_value = 1
                 mock_process.readAllStandardError.return_value = b'Error'
@@ -866,23 +865,23 @@ class TestErrorHandling:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Dovrebbe avere 2 successi e 1 fallimento
+        # Should have 2 successes and 1 failure
         assert thread.success_count == 2
         assert len(thread.failed_files) == 1
 
 
 class TestCancellationDuringProcessing:
-    """Test per cancellazione durante il processing"""
+    """Tests for cancellation during processing"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_cancel_during_single_file(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test cancellazione durante processamento file singolo"""
+        """Test cancellation during single file processing"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
 
-        # Simula processo lungo che viene cancellato
+        # Simulate long process that gets cancelled
         def wait_with_cancel(*args):
             if not thread.is_cancelled:
                 thread.cancel()
@@ -904,14 +903,14 @@ class TestCancellationDuringProcessing:
         with patch('shutil.rmtree'):
             thread.run()
 
-        # Processo dovrebbe essere killato
+        # Process should be killed
         mock_process.kill.assert_called()
         assert thread.is_cancelled is True
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_cancel_stops_batch_processing(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test che la cancellazione fermi il batch"""
+        """Test that cancellation stops batch processing"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -935,7 +934,7 @@ class TestCancellationDuringProcessing:
 
         def on_file_started(f):
             file_count[0] += 1
-            if file_count[0] == 2:  # Cancella dopo 2° file
+            if file_count[0] == 2:  # Cancel after 2nd file
                 thread.cancel()
 
         thread.file_started.connect(on_file_started)
@@ -948,18 +947,18 @@ class TestCancellationDuringProcessing:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Dovrebbe processare solo 2 file
+        # Should only process 2 files
         assert file_count[0] == 2
         assert thread.success_count < 5
 
 
 class TestSubjectIDExtraction:
-    """Test per l'estrazione del subject ID"""
+    """Tests for subject ID extraction"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_extract_subject_id_standard_bids(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test estrazione subject ID da path BIDS standard"""
+        """Test extraction of subject ID from standard BIDS path"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -969,7 +968,7 @@ class TestSubjectIDExtraction:
         mock_process.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process
 
-        # Path BIDS: workspace/sub-XX/anat/file.nii
+        # BIDS path: workspace/sub-XX/anat/file.nii
         input_file = os.path.join(temp_workspace, "sub-123", "anat", "T1w.nii.gz")
         os.makedirs(os.path.dirname(input_file), exist_ok=True)
         with open(input_file, 'w') as f:
@@ -981,7 +980,7 @@ class TestSubjectIDExtraction:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, 'w') as f:
                 f.write("stripped")
-            # Verifica che output path contenga sub-123
+            # Verify that the output path contains sub-123
             assert "sub-123" in dst
 
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
@@ -992,7 +991,7 @@ class TestSubjectIDExtraction:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_extract_subject_id_nested_path(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test estrazione subject ID da path annidato"""
+        """Test extraction of subject ID from a nested path"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1002,7 +1001,7 @@ class TestSubjectIDExtraction:
         mock_process.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process
 
-        # Path con sottocartelle extra
+        # Path with extra subdirectories
         input_file = os.path.join(
             temp_workspace, "derivatives", "imported", "sub-456", "anat", "scan.nii"
         )
@@ -1025,13 +1024,13 @@ class TestSubjectIDExtraction:
 
 
 class TestTempDirectoryHandling:
-    """Test per la gestione delle directory temporanee"""
+    """Tests for temporary directory management"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     @patch('tempfile.mkdtemp')
     def test_temp_directory_created(self, mock_mkdtemp, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test che la directory temporanea venga creata"""
+        """Test that the temporary directory is created"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
         temp_dir_path = os.path.join(temp_workspace, "temp_skullstrip")
         mock_mkdtemp.return_value = temp_dir_path
@@ -1054,19 +1053,19 @@ class TestTempDirectoryHandling:
         with patch('shutil.move'), patch('shutil.rmtree') as mock_rmtree:
             thread.run()
 
-        # Verifica che temp directory sia stata creata e poi rimossa
+        # Verify that the temp directory was created and then removed
         mock_mkdtemp.assert_called()
         mock_rmtree.assert_called()
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_temp_directory_cleanup_on_error(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test pulizia temp directory in caso di errore"""
+        """Test cleanup of temp directory in case of error"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
         mock_process.waitForFinished.return_value = True
-        mock_process.exitCode.return_value = 1  # Errore
+        mock_process.exitCode.return_value = 1  # Error
         mock_process.readAllStandardError.return_value = b'Error'
         mock_process.readAllStandardOutput.return_value = b''
         mock_qprocess.return_value = mock_process
@@ -1081,13 +1080,13 @@ class TestTempDirectoryHandling:
         with patch('shutil.rmtree') as mock_rmtree:
             thread.run()
 
-        # Dovrebbe pulire temp directory anche con errore
+        # Should clean up the temp directory even after an error
         assert mock_rmtree.called
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_temp_directory_cleanup_on_cancel(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test pulizia temp directory su cancellazione"""
+        """Test cleanup of temp directory upon cancellation"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1109,9 +1108,8 @@ class TestTempDirectoryHandling:
         with patch('shutil.rmtree') as mock_rmtree:
             thread.run()
 
-        # Temp directory dovrebbe essere pulita
+        # Temp directory should be cleaned up
         assert mock_rmtree.called
-
 
 class TestEdgeCases:
     """Test per casi limite"""
