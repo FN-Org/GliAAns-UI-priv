@@ -15,34 +15,34 @@ def mask_page(qtbot, mock_context, mock_file_selector_mask):
     return page
 
 class TestNiftiMaskSelectionPageSetup:
-    """Test per l'inizializzazione di NiftiMaskSelectionPage"""
+    """Tests for NiftiMaskSelectionPage initialization"""
 
     def test_page_initialization(self, mask_page):
-        """Verifica inizializzazione corretta"""
+        """Test correct initialization"""
         assert mask_page.context is not None
         assert mask_page.previous_page is not None
         assert mask_page.selected_file is None
 
     def test_title_created(self, mask_page):
-        """Verifica creazione titolo"""
+        """Test title creation"""
         assert mask_page.title is not None
         assert mask_page.title.text() != ""
 
     def test_file_selector_created(self, mask_page):
-        """Verifica creazione file selector"""
+        """Test file selector creation"""
         assert mask_page.file_selector_widget is not None
 
     def test_viewer_button_created(self, mask_page):
-        """Verifica creazione pulsante viewer"""
+        """Test viewer button creation"""
         assert mask_page.viewer_button is not None
-        assert not mask_page.viewer_button.isEnabled()  # Disabilitato inizialmente
+        assert not mask_page.viewer_button.isEnabled()  # Disabled initially
 
 
 class TestNiftiMaskSelectionPageExistingMask:
-    """Test per controllo maschere esistenti"""
+    """Tests for checking existing masks"""
 
     def test_has_existing_manual_mask(self, mask_page, temp_workspace):
-        """Verifica rilevamento maschera manuale esistente"""
+        """Test detection of existing manual mask"""
         nifti_path = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
 
         result = mask_page.has_existing_mask(nifti_path, temp_workspace)
@@ -50,7 +50,7 @@ class TestNiftiMaskSelectionPageExistingMask:
         assert result == True
 
     def test_has_no_existing_mask(self, mask_page, temp_workspace):
-        """Verifica quando maschera non esiste"""
+        """Test when mask does not exist"""
         nifti_path = os.path.join(temp_workspace, "sub-03", "anat", "T1w.nii")
 
         result = mask_page.has_existing_mask(nifti_path, temp_workspace)
@@ -58,7 +58,7 @@ class TestNiftiMaskSelectionPageExistingMask:
         assert result == False
 
     def test_has_existing_mask_no_subject_id(self, mask_page, temp_workspace):
-        """Verifica comportamento senza subject ID"""
+        """Test behavior without subject ID"""
         nifti_path = os.path.join(temp_workspace, "invalid", "T1w.nii")
 
         result = mask_page.has_existing_mask(nifti_path, temp_workspace)
@@ -66,8 +66,8 @@ class TestNiftiMaskSelectionPageExistingMask:
         assert result == False
 
     def test_has_existing_mask_empty_directory(self, mask_page, temp_workspace):
-        """Verifica comportamento con directory vuota"""
-        # Crea directory ma senza file
+        """Test behavior with empty directory"""
+        # Create directory but without files
         empty_dir = os.path.join(temp_workspace, "derivatives", "manual_masks", "sub-04", "anat")
         os.makedirs(empty_dir)
 
@@ -79,10 +79,10 @@ class TestNiftiMaskSelectionPageExistingMask:
 
 
 class TestNiftiMaskSelectionPageViewer:
-    """Test per apertura NIfTI viewer"""
+    """Tests for opening NIfTI viewer"""
 
     def test_open_nifti_viewer_calls_context(self, mask_page):
-        """Verifica che open_nifti_viewer chiami il context"""
+        """Test that open_nifti_viewer calls the context"""
         test_file = "/path/to/scan.nii"
         mask_page.file_selector_widget.get_selected_files = Mock(
             return_value=[test_file]
@@ -93,7 +93,7 @@ class TestNiftiMaskSelectionPageViewer:
         mask_page.context["open_nifti_viewer"].assert_called_once_with(test_file)
 
     def test_open_nifti_viewer_uses_last_file(self, mask_page):
-        """Verifica che usi l'ultimo file selezionato"""
+        """Test that it uses the last selected file"""
         files = ["/path/file1.nii", "/path/file2.nii"]
         mask_page.file_selector_widget.get_selected_files = Mock(
             return_value=files
@@ -101,43 +101,43 @@ class TestNiftiMaskSelectionPageViewer:
 
         mask_page.open_nifti_viewer()
 
-        # Dovrebbe usare l'ultimo file
+        # Should use the last file
         mask_page.context["open_nifti_viewer"].assert_called_once_with(files[-1])
 
     def test_open_nifti_viewer_handles_error(self, mask_page):
-        """Verifica gestione errore"""
+        """Test error handling"""
         mask_page.file_selector_widget.get_selected_files = Mock(
             side_effect=Exception("Test error")
         )
 
-        # Non dovrebbe sollevare eccezione
+        # Should not raise exception
         mask_page.open_nifti_viewer()
 
 
 class TestNiftiMaskSelectionPageReadiness:
-    """Test per logica di avanzamento"""
+    """Tests for advancement logic"""
 
     def test_not_ready_to_advance(self, mask_page):
-        """Verifica che non si possa avanzare"""
+        """Test that advancing is not ready"""
         assert not mask_page.is_ready_to_advance()
 
     def test_ready_to_go_back(self, mask_page):
-        """Verifica che si possa tornare indietro"""
+        """Test that going back is ready"""
         assert mask_page.is_ready_to_go_back()
 
 
 class TestNiftiMaskSelectionPageNavigation:
-    """Test per navigazione"""
+    """Tests for navigation"""
 
     def test_back_returns_previous_page(self, mask_page):
-        """Verifica ritorno a pagina precedente"""
+        """Test return to previous page"""
         result = mask_page.back()
 
         assert result == mask_page.previous_page
         mask_page.previous_page.on_enter.assert_called_once()
 
     def test_back_returns_none_without_previous(self, mask_page):
-        """Verifica ritorno None senza pagina precedente"""
+        """Test return None without previous page"""
         mask_page.previous_page = None
 
         result = mask_page.back()
@@ -146,10 +146,10 @@ class TestNiftiMaskSelectionPageNavigation:
 
 
 class TestNiftiMaskSelectionPageReset:
-    """Test per reset pagina"""
+    """Tests for page reset"""
 
     def test_reset_clears_selected_file(self, mask_page):
-        """Verifica che reset pulisca il file selezionato"""
+        """Test that reset clears the selected file"""
         mask_page.selected_file = "/path/to/file.nii"
 
         mask_page.reset_page()
@@ -157,13 +157,13 @@ class TestNiftiMaskSelectionPageReset:
         assert mask_page.selected_file is None
 
     def test_reset_calls_clear_selected_files(self, mask_page):
-        """Verifica che reset chiami clear_selected_files"""
+        """Test that reset calls clear_selected_files"""
         mask_page.reset_page()
 
         mask_page.file_selector_widget.clear_selected_files.assert_called_once()
 
     def test_reset_disables_viewer_button(self, mask_page):
-        """Verifica che reset disabiliti il pulsante viewer"""
+        """Test that reset disables the viewer button"""
         mask_page.viewer_button.setEnabled(True)
 
         mask_page.reset_page()
@@ -172,44 +172,44 @@ class TestNiftiMaskSelectionPageReset:
 
 
 class TestNiftiMaskSelectionPageTranslation:
-    """Test per traduzioni"""
+    """Tests for translations"""
 
     def test_translate_ui_updates_title(self, mask_page):
-        """Verifica aggiornamento titolo"""
+        """Test title update"""
         mask_page._translate_ui()
         assert mask_page.title.text() != ""
 
     def test_translate_ui_updates_button(self, mask_page):
-        """Verifica aggiornamento pulsante"""
+        """Test button update"""
         mask_page._translate_ui()
         assert mask_page.viewer_button.text() != ""
 
 class TestNiftiMaskSelectionPageOnEnter:
-    """Test per on_enter"""
+    """Tests for on_enter"""
 
     def test_on_enter_does_nothing(self, mask_page):
-        """Verifica che on_enter non causi errori"""
-        # Dovrebbe eseguire senza errori
+        """Test that on_enter does not cause errors"""
+        # Should execute without errors
         mask_page.on_enter()
 
 
-# Test di integrazione
+# Integration tests
 class TestNiftiMaskSelectionPageIntegration:
-    """Test di integrazione"""
+    """Integration tests"""
 
     def test_full_workflow(self, mask_page, temp_workspace):
-        """Test flusso completo"""
-        # Verifica stato iniziale
+        """Test full workflow"""
+        # Test initial state
         assert mask_page.selected_file is None
         assert not mask_page.viewer_button.isEnabled()
 
-        # Simula selezione file
+        # Simulate file selection
         test_file = os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii")
         mask_page.file_selector_widget.get_selected_files = Mock(
             return_value=[test_file]
         )
 
-        # Apri viewer
+        # Open viewer
         mask_page.open_nifti_viewer()
         mask_page.context["open_nifti_viewer"].assert_called_once_with(test_file)
 
