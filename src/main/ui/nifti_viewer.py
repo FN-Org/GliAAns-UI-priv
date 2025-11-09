@@ -1,3 +1,4 @@
+import re
 import sys
 import os
 import gc
@@ -2170,7 +2171,8 @@ class NiftiViewer(QMainWindow):
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
 
         # Prepare filenames and output paths
-        new_base = f"{base_name}_ROI_mask"
+        id = self._get_next_file_id(save_dir)
+        new_base = f"{base_name}_ROI_id{id}_mask"
         new_name = f"{new_base}.nii.gz"
 
         # Show confirmation dialog before saving
@@ -2201,7 +2203,8 @@ class NiftiViewer(QMainWindow):
         if self.overlay_data is not None and self.overlay_enabled and self.overlay_thresholded_data is not None:
             total_ROI = np.logical_or(self.overlay_thresholded_data, total_ROI).astype(np.uint8)
             origin_dict["Original overlay"] = self.overlay_file_path
-
+            origin_dict["Original overlay threshold"] = self.overlay_threshold
+            
         if self.incrementalROI_data is not None and self.incrementalROI_enabled:
             total_ROI = np.logical_or(self.incrementalROI_data,total_ROI).astype(np.uint8)
             origin_dict["Automatic drawing parameters"] = self.incrementalROI_origins
@@ -2242,6 +2245,31 @@ class NiftiViewer(QMainWindow):
             f"Error when saving: {error}"
         )
         log.critical(f"Error when saving ROI: {error}")
+
+    def _get_next_file_id(self,folder_path):
+        """
+        Generates the next available numeric ID based on the files present in the folder.
+
+        Looks for files with names matching the pattern 'something_idNUM_other.extension'
+        (where NUM is an integer), and returns the next available number.
+
+        Args:
+            folder_path (str): Path to the folder to scan.
+
+        Returns:
+            int: The next available numeric ID.
+        """
+        pattern = re.compile(r"_id(\d+)_")
+        ids = []
+
+        for name in os.listdir(folder_path):
+            if os.path.isfile(os.path.join(folder_path, name)):
+                match = pattern.search(name)
+                if match:
+                    ids.append(int(match.group(1)))
+
+        next_id = max(ids) + 1 if ids else 1
+        return next_id
 
     def addOrigin_clicked(self):
         self.incrementalROI_data = self.incrementalROI_data if self.incrementalROI_data is not None else np.zeros(self.dims)
