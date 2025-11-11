@@ -11,8 +11,8 @@ from main.ui.dl_selection_page import DlNiftiSelectionPage
 
 @pytest.fixture
 def segmentation_workspace(temp_workspace):
-    """Crea workspace con segmentazioni esistenti."""
-    # Crea directory con segmentazione esistente
+    """Creates workspace with existing segmentations."""
+    # Create directory with existing segmentation
     seg_dir = os.path.join(
         temp_workspace,
         "derivatives",
@@ -22,11 +22,11 @@ def segmentation_workspace(temp_workspace):
     )
     os.makedirs(seg_dir, exist_ok=True)
 
-    # Crea file di segmentazione
+    # Create segmentation file
     with open(os.path.join(seg_dir, "sub-01_T1w_seg.nii.gz"), "w") as f:
         f.write("segmentation data")
 
-    # Crea paziente senza segmentazione
+    # Create patient without segmentation
     no_seg_dir = os.path.join(
         temp_workspace,
         "derivatives",
@@ -40,10 +40,10 @@ def segmentation_workspace(temp_workspace):
 
 
 class TestDlNiftiSelectionPageInitialization:
-    """Test per l'inizializzazione della pagina."""
+    """Tests for the page initialization."""
 
     def test_initialization_basic(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test inizializzazione base."""
+        """Test basic initialization."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -52,7 +52,7 @@ class TestDlNiftiSelectionPageInitialization:
         assert page.next_page is None
 
     def test_initialization_with_previous_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test inizializzazione con pagina precedente."""
+        """Test initialization with previous page."""
         previous = Mock()
         page = DlNiftiSelectionPage(mock_context, previous_page=previous)
         qtbot.addWidget(page)
@@ -60,7 +60,7 @@ class TestDlNiftiSelectionPageInitialization:
         assert page.previous_page == previous
 
     def test_ui_elements_created(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che tutti gli elementi UI siano creati."""
+        """Test that all UI elements are created."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -70,11 +70,11 @@ class TestDlNiftiSelectionPageInitialization:
         assert page.layout is not None
 
     def test_file_selector_widget_configured(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che il FileSelectorWidget sia configurato correttamente."""
+        """Test that FileSelectorWidget is configured correctly."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Verifica che il widget sia stato creato con i parametri corretti
+        # Verify the widget was created with the correct parameters
         mock_file_selector_dl.assert_called_once()
         call_kwargs = mock_file_selector_dl.call_args[1]
 
@@ -86,11 +86,11 @@ class TestDlNiftiSelectionPageInitialization:
 
 
 class TestHasExistingSegmentation:
-    """Test per il metodo has_existing_segmentation."""
+    """Tests for the has_existing_segmentation method."""
 
     def test_has_existing_segmentation_exists_nii_gz(self, qtbot, mock_context, segmentation_workspace,
                                                      mock_file_selector_dl):
-        """Test quando esiste segmentazione .nii.gz."""
+        """Test when .nii.gz segmentation exists."""
         mock_context["workspace_path"] = segmentation_workspace
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
@@ -101,8 +101,8 @@ class TestHasExistingSegmentation:
         assert result is True
 
     def test_has_existing_segmentation_exists_nii(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test quando esiste segmentazione .nii."""
-        # Crea segmentazione .nii (non compressa)
+        """Test when .nii segmentation exists."""
+        # Create .nii segmentation (uncompressed)
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -124,7 +124,7 @@ class TestHasExistingSegmentation:
 
     def test_has_existing_segmentation_not_exists(self, qtbot, mock_context, segmentation_workspace,
                                                   mock_file_selector_dl):
-        """Test quando non esiste segmentazione."""
+        """Test when segmentation does not exist."""
         mock_context["workspace_path"] = segmentation_workspace
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
@@ -135,7 +135,7 @@ class TestHasExistingSegmentation:
         assert result is False
 
     def test_has_existing_segmentation_no_subject_id(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test quando il path non contiene subject ID."""
+        """Test when the path does not contain a subject ID."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -146,7 +146,7 @@ class TestHasExistingSegmentation:
 
     def test_has_existing_segmentation_directory_not_exists(self, qtbot, mock_context, temp_workspace,
                                                             mock_file_selector_dl):
-        """Test quando la directory di segmentazione non esiste."""
+        """Test when the segmentation directory does not exist."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -156,7 +156,7 @@ class TestHasExistingSegmentation:
         assert result is False
 
     def test_has_existing_segmentation_multiple_files(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test quando ci sono più file di segmentazione."""
+        """Test when there are multiple segmentation files."""
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -166,7 +166,7 @@ class TestHasExistingSegmentation:
         )
         os.makedirs(seg_dir, exist_ok=True)
 
-        # Crea multipli file seg
+        # Create multiple seg files
         with open(os.path.join(seg_dir, "sub-04_T1w_seg.nii.gz"), "w") as f:
             f.write("seg1")
         with open(os.path.join(seg_dir, "sub-04_flair_seg.nii"), "w") as f:
@@ -182,7 +182,7 @@ class TestHasExistingSegmentation:
 
     def test_has_existing_segmentation_ignores_non_seg_files(self, qtbot, mock_context, temp_workspace,
                                                              mock_file_selector_dl):
-        """Test che ignori file che non sono segmentazioni."""
+        """Test that it ignores non-segmentation files."""
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -192,7 +192,7 @@ class TestHasExistingSegmentation:
         )
         os.makedirs(seg_dir, exist_ok=True)
 
-        # Crea file che non sono segmentazioni
+        # Create files that are not segmentations
         with open(os.path.join(seg_dir, "sub-05_T1w.nii.gz"), "w") as f:
             f.write("not seg")
         with open(os.path.join(seg_dir, "metadata.json"), "w") as f:
@@ -208,7 +208,7 @@ class TestHasExistingSegmentation:
 
     def test_has_existing_segmentation_nested_subject_path(self, qtbot, mock_context, temp_workspace,
                                                            mock_file_selector_dl):
-        """Test con path nidificato (es. con sessione)."""
+        """Test with nested path (e.g., with session)."""
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -223,7 +223,7 @@ class TestHasExistingSegmentation:
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Path con sessione
+        # Path with session
         nifti_path = os.path.join(temp_workspace, "sub-06", "ses-01", "anat", "sub-06_T1w.nii")
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
@@ -231,10 +231,10 @@ class TestHasExistingSegmentation:
 
 
 class TestBackNavigation:
-    """Test per la navigazione indietro."""
+    """Tests for back navigation."""
 
     def test_back_with_previous_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test back con previous_page."""
+        """Test back with previous_page."""
         previous = Mock()
         page = DlNiftiSelectionPage(mock_context, previous_page=previous)
         qtbot.addWidget(page)
@@ -245,7 +245,7 @@ class TestBackNavigation:
         previous.on_enter.assert_called_once()
 
     def test_back_no_previous_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test back senza previous_page."""
+        """Test back without previous_page."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -255,14 +255,14 @@ class TestBackNavigation:
 
 
 class TestNextNavigation:
-    """Test per la navigazione avanti."""
+    """Tests for next navigation."""
 
     def test_next_creates_dl_execution_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che next crei DlExecutionPage."""
+        """Test that next creates DlExecutionPage."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Simula selezione file
+        # Simulate file selection
         page.file_selector_widget._selected_files = ["file1.nii", "file2.nii"]
 
         result = page.next(mock_context)
@@ -272,7 +272,7 @@ class TestNextNavigation:
         assert "DlExecutionPage" in str(type(page.next_page))
 
     def test_next_saves_selected_files_to_context(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che next salvi i file selezionati nel context."""
+        """Test that next saves selected files to the context."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -284,7 +284,7 @@ class TestNextNavigation:
         assert mock_context["selected_segmentation_files"] == selected_files
 
     def test_next_adds_to_history(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che next aggiunga alla history."""
+        """Test that next adds to history."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -297,24 +297,24 @@ class TestNextNavigation:
         assert page.next_page in mock_context["history"]
 
     def test_next_reuses_existing_next_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che next riutilizzi next_page esistente."""
+        """Test that next reuses the existing next_page."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
         page.file_selector_widget._selected_files = ["file1.nii"]
 
-        # Prima chiamata
+        # First call
         result1 = page.next(mock_context)
         first_next_page = page.next_page
 
-        # Seconda chiamata
+        # Second call
         result2 = page.next(mock_context)
 
         assert page.next_page == first_next_page
         assert result1 == result2
 
     def test_next_calls_on_enter(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che next chiami on_enter sulla next_page."""
+        """Test that next calls on_enter on the next_page."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -329,7 +329,7 @@ class TestNextNavigation:
             mock_next.on_enter.assert_called_once()
 
     def test_next_with_empty_selection(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test next con selezione vuota."""
+        """Test next with empty selection."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -337,16 +337,16 @@ class TestNextNavigation:
 
         result = page.next(mock_context)
 
-        # Dovrebbe comunque creare la pagina successiva
+        # Should still create the next page
         assert result is not None
         assert mock_context["selected_segmentation_files"] == []
 
 
 class TestOnEnter:
-    """Test per il metodo on_enter."""
+    """Tests for the on_enter method."""
 
     def test_on_enter_clears_status(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che on_enter pulisca lo status label."""
+        """Test that on_enter clears the status label."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -358,10 +358,10 @@ class TestOnEnter:
 
 
 class TestReadyToAdvance:
-    """Test per is_ready_to_advance."""
+    """Tests for is_ready_to_advance."""
 
     def test_is_ready_to_advance_with_files(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test quando ci sono file selezionati."""
+        """Test when files are selected."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -370,7 +370,7 @@ class TestReadyToAdvance:
         assert bool(page.is_ready_to_advance()) is True
 
     def test_is_ready_to_advance_without_files(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test quando non ci sono file selezionati."""
+        """Test when no files are selected."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -379,7 +379,7 @@ class TestReadyToAdvance:
         assert not page.is_ready_to_advance()
 
     def test_is_ready_to_advance_single_file(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test con singolo file selezionato."""
+        """Test with a single file selected."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -389,25 +389,25 @@ class TestReadyToAdvance:
 
 
 class TestReadyToGoBack:
-    """Test per is_ready_to_go_back."""
+    """Tests for is_ready_to_go_back."""
 
     def test_is_ready_to_go_back_always_true(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che is_ready_to_go_back ritorni sempre True."""
+        """Test that is_ready_to_go_back always returns True."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
         assert page.is_ready_to_go_back() is True
 
-        # Anche con file selezionati
+        # Even with files selected
         page.file_selector_widget._selected_files = ["file1.nii"]
         assert page.is_ready_to_go_back() is True
 
 
 class TestResetPage:
-    """Test per reset_page."""
+    """Tests for reset_page."""
 
     def test_reset_page_clears_status(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che reset_page pulisca lo status."""
+        """Test that reset_page clears the status."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -418,7 +418,7 @@ class TestResetPage:
         assert page.status_label.text() == ""
 
     def test_reset_page_clears_context(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che reset_page pulisca il context."""
+        """Test that reset_page clears the context."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -429,23 +429,23 @@ class TestResetPage:
         assert mock_context["selected_segmentation_files"] == []
 
     def test_reset_page_without_context(self, qtbot, mock_file_selector_dl):
-        """Test reset_page senza context."""
+        """Test reset_page without context."""
         page = DlNiftiSelectionPage(context=None)
         qtbot.addWidget(page)
 
         page.status_label.setText("Test")
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         page.reset_page()
 
         assert page.status_label.text() == ""
 
 
 class TestTranslation:
-    """Test per le traduzioni."""
+    """Tests for translations."""
 
     def test_translate_ui_called_on_init(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che _translate_ui sia chiamato durante init."""
+        """Test that _translate_ui is called during init."""
         with patch.object(DlNiftiSelectionPage, '_translate_ui') as mock_translate:
             page = DlNiftiSelectionPage(mock_context)
             qtbot.addWidget(page)
@@ -453,7 +453,7 @@ class TestTranslation:
             mock_translate.assert_called()
 
     def test_translate_ui_updates_title(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che _translate_ui aggiorni il titolo."""
+        """Test that _translate_ui updates the title."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -463,7 +463,7 @@ class TestTranslation:
         assert len(page.title.text()) > 0
 
     def test_language_changed_signal(self, qtbot, mock_context, signal_emitter, mock_file_selector_dl):
-        """Test che il signal language_changed aggiorni l'UI."""
+        """Test that the language_changed signal updates the UI."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -475,14 +475,14 @@ class TestTranslation:
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_subject_id_extraction_complex_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test estrazione subject ID con path complessi."""
+        """Test subject ID extraction with complex paths."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea segmentazione
+        # Create segmentation
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -494,7 +494,7 @@ class TestEdgeCases:
         with open(os.path.join(seg_dir, "ok_seg.nii.gz"), "w") as f:
             f.write("seg")
 
-        # Path con molti livelli
+        # Path with many levels
         nifti_path = os.path.join(
             temp_workspace,
             "rawdata",
@@ -509,11 +509,11 @@ class TestEdgeCases:
         assert result is True
 
     def test_multiple_sub_in_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con multipli 'sub-' nel path (dovrebbe prendere il primo)."""
+        """Test with multiple 'sub-' in path (should take the first)."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea segmentazione per sub-01
+        # Create segmentation for sub-01
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -525,12 +525,12 @@ class TestEdgeCases:
         with open(os.path.join(seg_dir, "ok_seg.nii.gz"), "w") as f:
             f.write("seg")
 
-        # Path che contiene 'sub-' sia nel nome directory che nel nome file
+        # Path containing 'sub-' in both directory name and file name
         nifti_path = os.path.join(
             temp_workspace,
             "sub-01",
             "anat",
-            "sub-01_T1w.nii"  # 'sub-' appare anche qui
+            "sub-01_T1w.nii"  # 'sub-' also appears here
         )
 
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
@@ -538,7 +538,7 @@ class TestEdgeCases:
         assert result is True
 
     def test_workspace_path_with_trailing_slash(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con workspace_path che ha trailing slash."""
+        """Test with workspace_path that has a trailing slash."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -561,11 +561,11 @@ class TestEdgeCases:
         assert result is True
 
     def test_special_characters_in_paths(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con caratteri speciali nei path."""
+        """Test with special characters in paths."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Subject con caratteri speciali
+        # Subject with special characters
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -583,11 +583,11 @@ class TestEdgeCases:
         assert result is True
 
     def test_empty_segmentation_directory(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con directory di segmentazione vuota."""
+        """Test with empty segmentation directory."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea directory ma senza file
+        # Create directory but without files
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -603,11 +603,11 @@ class TestEdgeCases:
         assert result is False
 
     def test_unicode_in_paths(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con caratteri unicode nei path."""
+        """Test with unicode characters in paths."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Subject con unicode
+        # Subject with unicode
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -626,34 +626,34 @@ class TestEdgeCases:
 
 
 class TestIntegration:
-    """Test di integrazione per flussi completi."""
+    """Integration tests for complete flows."""
 
     def test_full_selection_flow(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test flusso completo: selezione -> next."""
+        """Test full flow: selection -> next."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Simula selezione file
+        # Simulate file selection
         selected_files = ["file1.nii", "file2.nii", "file3.nii"]
         page.file_selector_widget._selected_files = selected_files
 
-        # Verifica ready to advance
+        # Verify ready to advance
         assert bool(page.is_ready_to_advance()) is True
 
         # Next
         result = page.next(mock_context)
 
-        # Verifica
+        # Verify
         assert result is not None
         assert mock_context["selected_segmentation_files"] == selected_files
         assert page.next_page is not None
 
     def test_reset_and_reselect_flow(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test flusso: selezione -> reset -> nuova selezione."""
+        """Test flow: selection -> reset -> new selection."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Prima selezione
+        # First selection
         page.file_selector_widget._selected_files = ["file1.nii"]
         page.next(mock_context)
 
@@ -664,69 +664,69 @@ class TestIntegration:
 
         assert mock_context["selected_segmentation_files"] == []
 
-        # Nuova selezione
+        # New selection
         page.file_selector_widget._selected_files = ["file2.nii", "file3.nii"]
         page.next(mock_context)
 
         assert mock_context["selected_segmentation_files"] == ["file2.nii", "file3.nii"]
 
     def test_back_and_forth_navigation(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test navigazione avanti e indietro."""
+        """Test back and forth navigation."""
         previous = Mock()
         page = DlNiftiSelectionPage(mock_context, previous_page=previous)
         qtbot.addWidget(page)
 
-        # Avanti
+        # Next
         page.file_selector_widget._selected_files = ["file1.nii"]
         next_page = page.next(mock_context)
 
         assert next_page is not None
 
-        # Indietro
+        # Back
         result = page.back()
 
         assert result == previous
         previous.on_enter.assert_called_once()
 
     def test_status_label_lifecycle(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test ciclo di vita dello status label."""
+        """Test status label lifecycle."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Inizialmente vuoto
+        # Initially empty
         assert page.status_label.text() == ""
 
-        # Aggiungi status
+        # Add status
         page.status_label.setText("Processing...")
         assert page.status_label.text() == "Processing..."
 
-        # on_enter lo pulisce
+        # on_enter clears it
         page.on_enter()
         assert page.status_label.text() == ""
 
-        # Aggiungi di nuovo
+        # Add again
         page.status_label.setText("Error occurred")
 
-        # reset_page lo pulisce
+        # reset_page clears it
         page.reset_page()
         assert page.status_label.text() == ""
 
 
 class TestContextHandling:
-    """Test per la gestione del context."""
+    """Tests for context management."""
 
     def test_context_none_handling(self, qtbot, mock_file_selector_dl):
-        """Test gestione context None."""
+        """Test handling None context."""
         page = DlNiftiSelectionPage(context=None)
         qtbot.addWidget(page)
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         page.reset_page()
 
         assert page.context is None
 
     def test_context_without_history(self, qtbot, mock_file_selector_dl):
-        """Test context senza history."""
+        """Test context without history."""
         context = {
             "workspace_path": "/fake/path"
         }
@@ -735,13 +735,13 @@ class TestContextHandling:
 
         page.file_selector_widget._selected_files = ["file1.nii"]
 
-        # Non dovrebbe crashare se history non esiste
+        # Shouldn't crash if history doesn't exist
         result = page.next(context)
 
         assert result is not None
 
     def test_selected_files_persisted_in_context(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che i file selezionati persistano nel context."""
+        """Test that selected files persist in context."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -750,35 +750,35 @@ class TestContextHandling:
 
         page.next(mock_context)
 
-        # Verifica che siano salvati
+        # Verify they are saved
         assert "selected_segmentation_files" in mock_context
         assert mock_context["selected_segmentation_files"] == files
 
-        # Anche dopo reset
+        # Even after reset
         page.reset_page()
         assert mock_context["selected_segmentation_files"] == []
 
     def test_multiple_next_calls_update_context(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che chiamate multiple a next aggiornino il context."""
+        """Test that multiple calls to next update the context."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Prima chiamata
+        # First call
         page.file_selector_widget._selected_files = ["file1.nii"]
         page.next(mock_context)
         assert mock_context["selected_segmentation_files"] == ["file1.nii"]
 
-        # Seconda chiamata con file diversi
+        # Second call with different files
         page.file_selector_widget._selected_files = ["file2.nii", "file3.nii"]
         page.next(mock_context)
         assert mock_context["selected_segmentation_files"] == ["file2.nii", "file3.nii"]
 
 
 class TestFileSelectorIntegration:
-    """Test per l'integrazione con FileSelectorWidget."""
+    """Tests for FileSelectorWidget integration."""
 
     def test_file_selector_get_selected_files_called(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che get_selected_files sia chiamato."""
+        """Test that get_selected_files is called."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -790,7 +790,7 @@ class TestFileSelectorIntegration:
             mock_get.assert_called()
 
     def test_is_ready_to_advance_uses_file_selector(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che is_ready_to_advance usi il file selector."""
+        """Test that is_ready_to_advance uses the file selector."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -804,26 +804,26 @@ class TestFileSelectorIntegration:
             assert bool(result) is False
 
     def test_file_selector_receives_correct_parameters(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che FileSelectorWidget riceva i parametri corretti."""
+        """Test that FileSelectorWidget receives correct parameters."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
         call_kwargs = mock_file_selector_dl.call_args[1]
 
-        # Verifica parametri specifici per DL segmentation
+        # Verify specific parameters for DL segmentation
         assert call_kwargs['label'] == "seg"
         assert call_kwargs['allow_multiple'] is True
 
-        # Verifica che has_existing_function sia la funzione corretta
+        # Verify has_existing_function is the correct function
         has_existing_func = call_kwargs['has_existing_function']
         assert has_existing_func == page.has_existing_segmentation
 
 
 class TestPathHandling:
-    """Test per la gestione dei path."""
+    """Tests for path handling."""
 
     def test_path_normalization(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test normalizzazione path con separatori misti."""
+        """Test path normalization with mixed separators."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -838,7 +838,7 @@ class TestPathHandling:
         with open(os.path.join(seg_dir, "ok_seg.nii.gz"), "w") as f:
             f.write("seg")
 
-        # Path con separatori misti (se su Windows)
+        # Path with mixed separators (if on Windows)
         if os.sep == '\\':
             nifti_path = temp_workspace + "/sub-09/anat/file.nii"
         else:
@@ -849,7 +849,7 @@ class TestPathHandling:
         assert result is True
 
     def test_relative_vs_absolute_paths(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con path relativi vs assoluti."""
+        """Test with relative vs absolute paths."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -864,18 +864,18 @@ class TestPathHandling:
         with open(os.path.join(seg_dir, "ok_seg.nii.gz"), "w") as f:
             f.write("seg")
 
-        # Path assoluto
+        # Absolute path
         nifti_path = os.path.abspath(os.path.join(temp_workspace, "sub-10", "anat", "file.nii"))
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
         assert result is True
 
     def test_symlinks_in_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con symlink nel path (se supportati dal sistema)."""
+        """Test with symlinks in path (if supported by system)."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea segmentazione
+        # Create segmentation
         seg_dir = os.path.join(
             temp_workspace,
             "derivatives",
@@ -890,15 +890,15 @@ class TestPathHandling:
         nifti_path = os.path.join(temp_workspace, "sub-11", "anat", "file.nii")
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
-        # Dovrebbe funzionare anche con path reali
+        # Should also work with real paths
         assert result is True
 
 
 class TestUIInteraction:
-    """Test per l'interazione con l'UI."""
+    """Tests for UI interaction."""
 
     def test_title_styling(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che il titolo abbia lo stile corretto."""
+        """Test that the title has the correct style."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -908,91 +908,91 @@ class TestUIInteraction:
         assert font.weight() == QFont.Weight.Bold
 
     def test_status_label_alignment(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che lo status label sia centrato."""
+        """Test that the status label is centered."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
         assert page.status_label.alignment() == Qt.AlignmentFlag.AlignCenter
 
     def test_layout_structure(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test struttura del layout."""
+        """Test layout structure."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Verifica che il layout sia VBoxLayout
+        # Verify the layout is VBoxLayout
         assert page.layout is not None
 
-        # Verifica ordine elementi
+        # Verify element order
         assert page.layout.itemAt(0).widget() == page.title
         assert page.layout.itemAt(1).widget() == page.file_selector_widget
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori."""
+    """Tests for error handling."""
 
     def test_has_existing_segmentation_permission_error(self, qtbot, mock_context, temp_workspace,
                                                         mock_file_selector_dl):
-        """Test gestione errore permessi (simulato)."""
+        """Test permission error handling (simulated)."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Path che non esiste
+        # Path that doesn't exist
         nifti_path = "/nonexistent/path/sub-12/anat/file.nii"
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
         assert result is False
 
     def test_has_existing_segmentation_with_corrupted_directory(self, qtbot, mock_context, temp_workspace,
                                                                 mock_file_selector_dl):
-        """Test con directory corrotta (simulata con file al posto di directory)."""
+        """Test with corrupted directory (simulated with file instead of directory)."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea un file invece di una directory
+        # Create a file instead of a directory
         derivatives_path = os.path.join(temp_workspace, "derivatives")
         os.makedirs(derivatives_path, exist_ok=True)
 
-        # File invece di directory
+        # File instead of directory
         fake_dir = os.path.join(derivatives_path, "deep_learning_seg")
         with open(fake_dir, "w") as f:
             f.write("this is a file, not a directory")
 
         nifti_path = os.path.join(temp_workspace, "sub-13", "anat", "file.nii")
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         try:
             result = page.has_existing_segmentation(nifti_path, temp_workspace)
-            # Potrebbe essere True o False, l'importante è che non crashi
+            # Could be True or False, the important thing is it doesn't crash
             assert isinstance(result, bool)
         except (OSError, NotADirectoryError):
-            # Alcuni OS potrebbero lanciare eccezioni
+            # Some OSes might raise exceptions
             pass
 
 
 class TestBoundaryConditions:
-    """Test per condizioni limite."""
+    """Tests for boundary conditions."""
 
     def test_very_long_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con path molto lungo."""
+        """Test with very long path."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Crea path annidato molto profondo
+        # Create deeply nested path
         deep_path = temp_workspace
         for i in range(10):
             deep_path = os.path.join(deep_path, f"level{i}")
 
         nifti_path = os.path.join(deep_path, "sub-14", "anat", "file.nii")
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
         assert isinstance(result, bool)
 
     def test_many_files_in_directory(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test con molti file nella directory di segmentazione."""
+        """Test with many files in the segmentation directory."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -1005,7 +1005,7 @@ class TestBoundaryConditions:
         )
         os.makedirs(seg_dir, exist_ok=True)
 
-        # Crea molti file
+        # Create many files
         for i in range(100):
             filename = f"file{i}.nii" if i < 50 else f"file{i}_seg.nii.gz"
             with open(os.path.join(seg_dir, filename), "w") as f:
@@ -1014,11 +1014,11 @@ class TestBoundaryConditions:
         nifti_path = os.path.join(temp_workspace, "sub-15", "anat", "file.nii")
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
 
-        # Dovrebbe trovare almeno un file _seg
+        # Should find at least one _seg file
         assert result is True
 
     def test_subject_id_at_end_of_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test quando subject ID è alla fine del path."""
+        """Test when subject ID is at the end of the path."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -1033,7 +1033,7 @@ class TestBoundaryConditions:
         with open(os.path.join(seg_dir, "ok_seg.nii.gz"), "w") as f:
             f.write("seg")
 
-        # Subject ID nell'ultimo componente
+        # Subject ID in the last component
         nifti_path = os.path.join(temp_workspace, "data", "sub-16")
 
         result = page.has_existing_segmentation(nifti_path, temp_workspace)
@@ -1041,69 +1041,69 @@ class TestBoundaryConditions:
         assert result is True
 
     def test_workspace_path_equals_nifti_path(self, qtbot, mock_context, temp_workspace, mock_file_selector_dl):
-        """Test quando workspace_path è uguale a nifti_path."""
+        """Test when workspace_path equals nifti_path."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Stesso path
+        # Same path
         result = page.has_existing_segmentation(temp_workspace, temp_workspace)
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         assert isinstance(result, bool)
 
 
 class TestConcurrency:
-    """Test per situazioni concorrenti (simulati)."""
+    """Tests for concurrent situations (simulated)."""
 
     def test_multiple_pages_same_context(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test con multiple pagine che condividono lo stesso context."""
+        """Test with multiple pages sharing the same context."""
         page1 = DlNiftiSelectionPage(mock_context)
         page2 = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page1)
         qtbot.addWidget(page2)
 
-        # Modifica da page1
+        # Modify from page1
         page1.file_selector_widget._selected_files = ["file1.nii"]
         page1.next(mock_context)
 
-        # Verifica che page2 veda i cambiamenti
+        # Verify page2 sees the changes
         assert mock_context["selected_segmentation_files"] == ["file1.nii"]
 
-        # Reset da page2
+        # Reset from page2
         page2.reset_page()
 
-        # Verifica che il context sia aggiornato
+        # Verify the context is updated
         assert mock_context["selected_segmentation_files"] == []
 
     def test_rapid_next_back_navigation(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test navigazione rapida avanti-indietro."""
+        """Test rapid next-back navigation."""
         previous = Mock()
         page = DlNiftiSelectionPage(mock_context, previous_page=previous)
         qtbot.addWidget(page)
 
         page.file_selector_widget._selected_files = ["file1.nii"]
 
-        # Rapidi next e back
+        # Rapid next and back
         for _ in range(10):
             page.next(mock_context)
             page.back()
 
-        # Non dovrebbe crashare
+        # Shouldn't crash
         assert True
 
 
 class TestDocumentation:
-    """Test per verificare la documentazione e i commenti."""
+    """Tests to verify documentation and comments."""
 
     def test_has_existing_segmentation_docstring(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che has_existing_segmentation abbia docstring."""
+        """Test that has_existing_segmentation has a docstring."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
         assert page.has_existing_segmentation.__doc__ is not None
 
     def test_reset_page_docstring(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che reset_page abbia docstring."""
+        """Test that reset_page has a docstring."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
@@ -1111,14 +1111,14 @@ class TestDocumentation:
 
 
 class TestStateConsistency:
-    """Test per verificare la consistenza dello stato."""
+    """Tests to verify state consistency."""
 
     def test_state_after_multiple_operations(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test stato dopo multiple operazioni."""
+        """Test state after multiple operations."""
         page = DlNiftiSelectionPage(mock_context)
         qtbot.addWidget(page)
 
-        # Sequenza di operazioni
+        # Sequence of operations
         page.file_selector_widget._selected_files = ["file1.nii"]
         assert bool(page.is_ready_to_advance()) is True
 
@@ -1131,11 +1131,11 @@ class TestStateConsistency:
         page.reset_page()
         assert mock_context["selected_segmentation_files"] == []
 
-        # Stato dovrebbe essere consistente
+        # State should be consistent
         assert not bool(page.is_ready_to_advance())
 
     def test_state_independence_from_previous_page(self, qtbot, mock_context, mock_file_selector_dl):
-        """Test che lo stato sia indipendente dalla previous_page."""
+        """Test that state is independent of previous_page."""
         previous = Mock()
         page1 = DlNiftiSelectionPage(mock_context, previous_page=previous)
         page2 = DlNiftiSelectionPage(mock_context, previous_page=None)
@@ -1143,13 +1143,13 @@ class TestStateConsistency:
         qtbot.addWidget(page1)
         qtbot.addWidget(page2)
 
-        # Modifica page1
+        # Modify page1
         page1.status_label.setText("Status 1")
 
-        # page2 dovrebbe avere stato indipendente
+        # page2 should have independent state
         assert page2.status_label.text() == ""
 
-        # Reset page1 non dovrebbe influenzare page2
+        # Resetting page1 should not affect page2
         page1.reset_page()
         page2.status_label.setText("Status 2")
 
