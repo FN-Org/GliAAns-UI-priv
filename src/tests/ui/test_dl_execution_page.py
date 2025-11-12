@@ -9,7 +9,7 @@ from main.ui.dl_execution_page import DlExecutionPage
 
 @pytest.fixture
 def mock_dl_worker():
-    """Mock per DlWorker."""
+    """Mock for DlWorker."""
     with patch("main.ui.dl_execution_page.DlWorker") as mock:
         worker_instance = Mock()
         worker_instance.progressbar_update = Mock()
@@ -30,7 +30,7 @@ def mock_dl_worker():
 
 @pytest.fixture
 def mock_context_dl(temp_workspace):
-    """Context per DlExecutionPage."""
+    """Context for DlExecutionPage."""
     context = {
         "workspace_path": temp_workspace,
         "selected_segmentation_files": [
@@ -45,10 +45,10 @@ def mock_context_dl(temp_workspace):
 
 
 class TestDlExecutionPageInitialization:
-    """Test per l'inizializzazione della pagina."""
+    """Tests for page initialization."""
 
     def test_initialization_basic(self, qtbot, mock_context_dl):
-        """Test inizializzazione base."""
+        """Test basic initialization."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -61,7 +61,7 @@ class TestDlExecutionPageInitialization:
         assert page.processing_completed is False
 
     def test_initialization_with_previous_page(self, qtbot, mock_context_dl):
-        """Test inizializzazione con pagina precedente."""
+        """Test initialization with previous page."""
         previous = Mock()
         page = DlExecutionPage(mock_context_dl, previous_page=previous)
         qtbot.addWidget(page)
@@ -69,7 +69,7 @@ class TestDlExecutionPageInitialization:
         assert page.previous_page == previous
 
     def test_ui_elements_created(self, qtbot, mock_context_dl):
-        """Test che tutti gli elementi UI siano creati."""
+        """Test that all UI elements are created."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -84,7 +84,7 @@ class TestDlExecutionPageInitialization:
         assert page.cancel_button is not None
 
     def test_initial_button_visibility(self, qtbot, mock_context_dl):
-        """Test visibilità iniziale dei pulsanti."""
+        """Test initial button visibility."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -93,14 +93,13 @@ class TestDlExecutionPageInitialization:
 
 
 class TestOnEnter:
-    """Test per il metodo on_enter."""
+    """Tests for the on_enter method."""
 
     def test_on_enter_resets_state(self, qtbot, mock_context_dl):
-        """Test che on_enter resetti lo stato."""
+        """Test that on_enter resets the state."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Modifica stato
         page.processing = True
         page.processing_completed = True
 
@@ -110,16 +109,14 @@ class TestOnEnter:
         assert page.processing_completed is False
 
     def test_on_enter_populates_file_list(self, qtbot, mock_context_dl):
-        """Test che on_enter popoli la lista file."""
+        """Test that on_enter populates the file list."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.on_enter()
 
-        # Dovrebbero esserci 2 file nella lista
         assert page.files_list.count() == 2
 
-        # Verifica che i nomi siano presenti
         item0 = page.files_list.item(0).text()
         item1 = page.files_list.item(1).text()
 
@@ -129,11 +126,10 @@ class TestOnEnter:
         assert "Waiting" in item1 or "In attesa" in item1
 
     def test_on_enter_clears_previous_list(self, qtbot, mock_context_dl):
-        """Test che on_enter pulisca la lista precedente."""
+        """Test that on_enter clears the previous list."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Aggiungi item manualmente
         page.files_list.addItem("Old item 1")
         page.files_list.addItem("Old item 2")
 
@@ -141,22 +137,20 @@ class TestOnEnter:
 
         page.on_enter()
 
-        # Dovrebbe avere solo i 2 file del context
         assert page.files_list.count() == 2
 
     def test_on_enter_without_files_in_context(self, qtbot):
-        """Test on_enter senza file nel context."""
+        """Test on_enter without files in context."""
         context = {"workspace_path": "/fake/path"}
         page = DlExecutionPage(context)
         qtbot.addWidget(page)
 
         page.on_enter()
 
-        # Lista dovrebbe essere vuota
         assert page.files_list.count() == 0
 
     def test_on_enter_with_empty_file_list(self, qtbot, temp_workspace):
-        """Test on_enter con lista file vuota."""
+        """Test on_enter with an empty file list."""
         context = {
             "workspace_path": temp_workspace,
             "selected_segmentation_files": []
@@ -170,30 +164,27 @@ class TestOnEnter:
 
 
 class TestStartProcessing:
-    """Test per start_processing."""
+    """Tests for start_processing."""
 
     def test_start_processing_basic(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test avvio base del processamento."""
+        """Test basic processing start."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
 
-        # Verifica che il worker sia stato creato
         mock_dl_worker.assert_called_once()
         assert page.worker is not None
 
-        # Verifica che start sia stato chiamato
         page.worker.start.assert_called_once()
 
-        # Verifica stato UI
         assert page.processing is True
         assert not page.start_button.isVisibleTo(page)
         assert page.cancel_button.isVisibleTo(page)
         assert page.progress_bar.isVisibleTo(page)
 
     def test_start_processing_no_context(self, qtbot):
-        """Test start senza context."""
+        """Test start without context."""
         page = DlExecutionPage(context=None)
         qtbot.addWidget(page)
 
@@ -204,7 +195,7 @@ class TestStartProcessing:
             assert page.worker is None
 
     def test_start_processing_no_files_in_context(self, qtbot, temp_workspace):
-        """Test start senza file nel context."""
+        """Test start without files in context."""
         context = {"workspace_path": temp_workspace}
         page = DlExecutionPage(context)
         qtbot.addWidget(page)
@@ -216,7 +207,7 @@ class TestStartProcessing:
             assert page.worker is None
 
     def test_start_processing_empty_file_list(self, qtbot, temp_workspace):
-        """Test start con lista file vuota."""
+        """Test start with an empty file list."""
         context = {
             "workspace_path": temp_workspace,
             "selected_segmentation_files": []
@@ -231,32 +222,30 @@ class TestStartProcessing:
             assert page.worker is None
 
     def test_start_processing_connects_signals(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che i signal siano connessi correttamente."""
+        """Test that signals are connected correctly."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
 
-        # Verifica che i signal siano stati connessi
         page.worker.progressbar_update.connect.assert_called_once()
         page.worker.file_update.connect.assert_called_once()
         page.worker.log_update.connect.assert_called_once()
         page.worker.finished.connect.assert_called_once()
 
     def test_start_processing_worker_parameters(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che il worker riceva i parametri corretti."""
+        """Test that the worker receives correct parameters."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
 
-        # Verifica parametri
         call_kwargs = mock_dl_worker.call_args[1]
         assert call_kwargs['input_files'] == mock_context_dl["selected_segmentation_files"]
         assert call_kwargs['workspace_path'] == mock_context_dl["workspace_path"]
 
     def test_start_processing_clears_log(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che il log venga pulito all'avvio."""
+        """Test that the log is cleared on start."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -264,16 +253,15 @@ class TestStartProcessing:
 
         page.start_processing()
 
-        # Log dovrebbe essere vuoto (o contenere solo il messaggio di avvio)
         log_content = page.log_text.toPlainText()
         assert "Old log content" not in log_content
 
 
 class TestUpdateProgress:
-    """Test per update_progress."""
+    """Tests for update_progress."""
 
     def test_update_progress_basic(self, qtbot, mock_context_dl):
-        """Test aggiornamento progresso base."""
+        """Test basic progress update."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -282,7 +270,7 @@ class TestUpdateProgress:
         assert page.progress_bar.value == 50
 
     def test_update_progress_multiple_values(self, qtbot, mock_context_dl):
-        """Test aggiornamenti multipli."""
+        """Test multiple updates."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -291,7 +279,7 @@ class TestUpdateProgress:
             assert page.progress_bar.value == i
 
     def test_update_progress_zero(self, qtbot, mock_context_dl):
-        """Test con valore 0."""
+        """Test with value 0."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -299,7 +287,7 @@ class TestUpdateProgress:
         assert page.progress_bar.value == 0
 
     def test_update_progress_hundred(self, qtbot, mock_context_dl):
-        """Test con valore 100."""
+        """Test with value 100."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -308,10 +296,10 @@ class TestUpdateProgress:
 
 
 class TestAddLogMessage:
-    """Test per add_log_message."""
+    """Tests for add_log_message."""
 
     def test_add_log_message_info(self, qtbot, mock_context_dl, mock_logger):
-        """Test aggiunta messaggio info."""
+        """Test adding info message."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -323,7 +311,7 @@ class TestAddLogMessage:
             mock_logger.info.assert_called_once()
 
     def test_add_log_message_error(self, qtbot, mock_context_dl, mock_logger):
-        """Test aggiunta messaggio errore."""
+        """Test adding error message."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -335,7 +323,7 @@ class TestAddLogMessage:
             mock_logger.error.assert_called_once()
 
     def test_add_log_message_warning(self, qtbot, mock_context_dl, mock_logger):
-        """Test aggiunta messaggio warning."""
+        """Test adding warning message."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -347,7 +335,7 @@ class TestAddLogMessage:
             mock_logger.warning.assert_called_once()
 
     def test_add_log_message_debug(self, qtbot, mock_context_dl, mock_logger):
-        """Test aggiunta messaggio debug."""
+        """Test adding debug message."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -359,7 +347,7 @@ class TestAddLogMessage:
             mock_logger.debug.assert_called_once()
 
     def test_add_log_message_includes_timestamp(self, qtbot, mock_context_dl):
-        """Test che il messaggio includa timestamp."""
+        """Test that the message includes a timestamp."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -371,11 +359,10 @@ class TestAddLogMessage:
         assert ":" in log_content  # Timestamp format
 
     def test_add_log_message_autoscroll(self, qtbot, mock_context_dl):
-        """Test auto-scroll dopo aggiunta messaggio."""
+        """Test auto-scroll after adding a message."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Aggiungi molti messaggi
         for i in range(50):
             page.add_log_message(f"Message {i}", 'i')
 
@@ -383,7 +370,7 @@ class TestAddLogMessage:
         assert scrollbar.value() == scrollbar.maximum()
 
     def test_add_log_message_multiple(self, qtbot, mock_context_dl):
-        """Test messaggi multipli."""
+        """Test multiple messages."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -397,10 +384,10 @@ class TestAddLogMessage:
 
 
 class TestUpdateFileStatus:
-    """Test per update_file_status."""
+    """Tests for update_file_status."""
 
     def test_update_file_status_basic(self, qtbot, mock_context_dl):
-        """Test aggiornamento stato file."""
+        """Test file status update."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
@@ -412,7 +399,7 @@ class TestUpdateFileStatus:
         assert "sub-01_T1w.nii" in item.text()
 
     def test_update_file_status_completed(self, qtbot, mock_context_dl):
-        """Test stato completato."""
+        """Test completed status."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
@@ -423,7 +410,7 @@ class TestUpdateFileStatus:
         assert "Completed" in item.text()
 
     def test_update_file_status_error(self, qtbot, mock_context_dl):
-        """Test stato errore."""
+        """Test error status."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
@@ -434,21 +421,19 @@ class TestUpdateFileStatus:
         assert "Error" in item.text()
 
     def test_update_file_status_nonexistent_file(self, qtbot, mock_context_dl):
-        """Test aggiornamento file non esistente nella lista."""
+        """Test updating a file not in the list."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
 
         initial_count = page.files_list.count()
 
-        # Non dovrebbe crashare
         page.update_file_status("nonexistent.nii", "Processing")
 
-        # Count non dovrebbe cambiare
         assert page.files_list.count() == initial_count
 
     def test_update_file_status_multiple_updates(self, qtbot, mock_context_dl):
-        """Test aggiornamenti multipli stesso file."""
+        """Test multiple updates for the same file."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
@@ -466,10 +451,10 @@ class TestUpdateFileStatus:
 
 
 class TestCancelProcessing:
-    """Test per cancel_processing."""
+    """Tests for cancel_processing."""
 
     def test_cancel_processing_with_worker(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test cancellazione con worker attivo."""
+        """Test cancellation with an active worker."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -477,21 +462,19 @@ class TestCancelProcessing:
 
         page.cancel_processing()
 
-        # Verifica che cancel_requested sia stato emesso
         page.worker.cancel_requested.emit.assert_called_once()
 
     def test_cancel_processing_without_worker(self, qtbot, mock_context_dl):
-        """Test cancellazione senza worker."""
+        """Test cancellation without a worker."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Non dovrebbe crashare
         page.cancel_processing()
 
         assert page.worker is None
 
     def test_cancel_processing_adds_log(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che la cancellazione aggiunga un log."""
+        """Test that cancellation adds a log entry."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -503,10 +486,10 @@ class TestCancelProcessing:
 
 
 class TestProcessingFinished:
-    """Test per processing_finished."""
+    """Tests for processing_finished."""
 
     def test_processing_finished_success(self, qtbot, mock_context_dl):
-        """Test completamento con successo."""
+        """Test successful completion."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -523,7 +506,7 @@ class TestProcessingFinished:
             mock_context_dl["update_main_buttons"].assert_called_once()
 
     def test_processing_finished_failure(self, qtbot, mock_context_dl):
-        """Test completamento con fallimento."""
+        """Test completion with failure."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -536,7 +519,7 @@ class TestProcessingFinished:
             mock_critical.assert_called_once()
 
     def test_processing_finished_updates_context(self, qtbot, mock_context_dl):
-        """Test che il context venga aggiornato."""
+        """Test that the context is updated."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -546,7 +529,7 @@ class TestProcessingFinished:
             assert "processing_output_dir" in mock_context_dl
 
     def test_processing_finished_current_operation_text(self, qtbot, mock_context_dl):
-        """Test aggiornamento testo operazione corrente."""
+        """Test current operation text update."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -564,7 +547,7 @@ class TestProcessingFinished:
             assert "failed" in page2.current_operation.text().lower() or "✗" in page2.current_operation.text()
 
     def test_processing_finished_reprocess_button(self, qtbot, mock_context_dl):
-        """Test che il pulsante diventi 'Reprocess' dopo successo."""
+        """Test that the button becomes 'Reprocess' after success."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -575,14 +558,13 @@ class TestProcessingFinished:
 
 
 class TestResetProcessingState:
-    """Test per reset_processing_state."""
+    """Tests for reset_processing_state."""
 
     def test_reset_processing_state_basic(self, qtbot, mock_context_dl):
-        """Test reset stato base."""
+        """Test basic state reset."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Modifica stato
         page.processing = True
         page.processing_completed = True
         page.worker = Mock()
@@ -597,7 +579,7 @@ class TestResetProcessingState:
         assert not page.progress_bar.isVisibleTo(page)
 
     def test_reset_processing_state_button_text(self, qtbot, mock_context_dl):
-        """Test reset testo pulsante."""
+        """Test button text reset."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -609,10 +591,10 @@ class TestResetProcessingState:
 
 
 class TestBackNavigation:
-    """Test per navigazione indietro."""
+    """Tests for back navigation."""
 
     def test_back_not_processing(self, qtbot, mock_context_dl):
-        """Test back quando non sta processando."""
+        """Test back when not processing."""
         previous = Mock()
         page = DlExecutionPage(mock_context_dl, previous_page=previous)
         qtbot.addWidget(page)
@@ -623,7 +605,7 @@ class TestBackNavigation:
         previous.on_enter.assert_called_once()
 
     def test_back_while_processing_cancelled(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test back durante processamento con cancellazione."""
+        """Test back during processing with cancellation."""
         previous = Mock()
         page = DlExecutionPage(mock_context_dl, previous_page=previous)
         qtbot.addWidget(page)
@@ -637,7 +619,7 @@ class TestBackNavigation:
             assert result == previous
 
     def test_back_while_processing_not_cancelled(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test back durante processamento senza cancellazione."""
+        """Test back during processing without cancellation."""
         previous = Mock()
         page = DlExecutionPage(mock_context_dl, previous_page=previous)
         qtbot.addWidget(page)
@@ -651,7 +633,7 @@ class TestBackNavigation:
             previous.on_enter.assert_not_called()
 
     def test_back_no_previous_page(self, qtbot, mock_context_dl):
-        """Test back senza previous_page."""
+        """Test back without previous_page."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -661,10 +643,10 @@ class TestBackNavigation:
 
 
 class TestNextNavigation:
-    """Test per navigazione avanti."""
+    """Tests for next navigation."""
 
     def test_next_returns_none(self, qtbot, mock_context_dl):
-        """Test che next ritorni sempre None."""
+        """Test that next always returns None."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -674,40 +656,40 @@ class TestNextNavigation:
 
 
 class TestReadyToAdvance:
-    """Test per is_ready_to_advance."""
+    """Tests for is_ready_to_advance."""
 
     def test_is_ready_to_advance_always_false(self, qtbot, mock_context_dl):
-        """Test che is_ready_to_advance ritorni sempre False."""
+        """Test that is_ready_to_advance always returns False."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.is_ready_to_advance() is False
 
-        # Anche dopo completamento
+        # Even after completion
         page.processing_completed = True
         assert page.is_ready_to_advance() is False
 
 
 class TestReadyToGoBack:
-    """Test per is_ready_to_go_back."""
+    """Tests for is_ready_to_go_back."""
 
     def test_is_ready_to_go_back_always_true(self, qtbot, mock_context_dl):
-        """Test che is_ready_to_go_back ritorni sempre True."""
+        """Test that is_ready_to_go_back always returns True."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.is_ready_to_go_back() is True
 
-        # Anche durante processamento
+        # Even during processing
         page.processing = True
         assert page.is_ready_to_go_back() is True
 
 
 class TestTranslation:
-    """Test per le traduzioni."""
+    """Tests for translations."""
 
     def test_translate_ui_called_on_init(self, qtbot, mock_context_dl):
-        """Test che _translate_ui sia chiamato durante init."""
+        """Test that _translate_ui is called during init."""
         with patch.object(DlExecutionPage, '_translate_ui') as mock_translate:
             page = DlExecutionPage(mock_context_dl)
             qtbot.addWidget(page)
@@ -715,7 +697,7 @@ class TestTranslation:
             mock_translate.assert_called()
 
     def test_translate_ui_updates_labels(self, qtbot, mock_context_dl):
-        """Test che _translate_ui aggiorni i label."""
+        """Test that _translate_ui updates labels."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -729,7 +711,7 @@ class TestTranslation:
         assert page.cancel_button.text() is not None
 
     def test_translate_ui_repopulates_file_list(self, qtbot, mock_context_dl):
-        """Test che _translate_ui ripopoli la lista file."""
+        """Test that _translate_ui repopulates the file list."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -738,15 +720,14 @@ class TestTranslation:
 
         page._translate_ui()
 
-        # Lista dovrebbe essere ripopolata
         assert page.files_list.count() == initial_count
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_rapid_start_cancel(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test avvio e cancellazione rapidi."""
+        """Test rapid start and cancel."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -754,11 +735,10 @@ class TestEdgeCases:
             page.start_processing()
             page.cancel_processing()
 
-        # Non dovrebbe crashare
         assert True
 
     def test_multiple_processing_finished_calls(self, qtbot, mock_context_dl):
-        """Test chiamate multiple a processing_finished."""
+        """Test multiple calls to processing_finished."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -769,17 +749,16 @@ class TestEdgeCases:
         assert page.processing_completed is True
 
     def test_update_file_status_empty_list(self, qtbot, mock_context_dl):
-        """Test update_file_status con lista vuota."""
+        """Test update_file_status with an empty list."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Lista vuota, non dovrebbe crashare
         page.update_file_status("file.nii", "Processing")
 
         assert page.files_list.count() == 2
 
     def test_very_long_log_messages(self, qtbot, mock_context_dl):
-        """Test con messaggi di log molto lunghi."""
+        """Test with very long log messages."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -790,7 +769,7 @@ class TestEdgeCases:
         assert long_message in log_content
 
     def test_unicode_in_filenames(self, qtbot, temp_workspace):
-        """Test con caratteri unicode nei nomi file."""
+        """Test with unicode characters in filenames."""
         context = {
             "workspace_path": temp_workspace,
             "selected_segmentation_files": [
@@ -805,41 +784,36 @@ class TestEdgeCases:
 
         page.on_enter()
 
-        # Non dovrebbe crashare
         assert page.files_list.count() == 2
 
     def test_progress_value_out_of_range(self, qtbot, mock_context_dl):
-        """Test con valori di progresso fuori range."""
+        """Test with progress values out of range."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Valori estremi (potrebbero essere gestiti internamente dalla progress bar)
         page.update_progress(-10)
         page.update_progress(150)
 
-        # Non dovrebbe crashare
         assert True
 
     def test_concurrent_file_updates(self, qtbot, mock_context_dl):
-        """Test aggiornamenti concorrenti di file."""
+        """Test concurrent file updates."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
 
-        # Aggiorna rapidamente tutti i file
         for i in range(100):
             page.update_file_status("sub-01_T1w.nii", f"Status {i}")
             page.update_file_status("sub-02_T1w.nii", f"Status {i}")
 
-        # Non dovrebbe crashare
         assert True
 
 
 class TestUIInteraction:
-    """Test per l'interazione con l'UI."""
+    """Tests for UI interaction."""
 
     def test_button_styling(self, qtbot, mock_context_dl):
-        """Test che i pulsanti abbiano lo stile corretto."""
+        """Test that buttons have the correct style."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -850,35 +824,35 @@ class TestUIInteraction:
         assert "background-color" in cancel_style
 
     def test_log_text_readonly(self, qtbot, mock_context_dl):
-        """Test che il log sia read-only."""
+        """Test that the log is read-only."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.log_text.isReadOnly()
 
     def test_files_list_max_height(self, qtbot, mock_context_dl):
-        """Test che la lista file abbia altezza massima."""
+        """Test that the file list has a maximum height."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.files_list.maximumHeight() == 150
 
     def test_log_text_max_height(self, qtbot, mock_context_dl):
-        """Test che il log abbia altezza massima."""
+        """Test that the log has a maximum height."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.log_text.maximumHeight() == 200
 
     def test_header_alignment(self, qtbot, mock_context_dl):
-        """Test che l'header sia centrato."""
+        """Test that the header is centered."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         assert page.header.alignment() == Qt.AlignmentFlag.AlignCenter
 
     def test_current_operation_alignment(self, qtbot, mock_context_dl):
-        """Test che current_operation sia centrata."""
+        """Test that current_operation is centered."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -886,23 +860,22 @@ class TestUIInteraction:
 
 
 class TestWorkerIntegration:
-    """Test per l'integrazione con il worker."""
+    """Tests for worker integration."""
 
     def test_worker_signals_connected(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che tutti i signal del worker siano connessi."""
+        """Test that all worker signals are connected."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
 
-        # Verifica connessioni
         assert page.worker.progressbar_update.connect.called
         assert page.worker.file_update.connect.called
         assert page.worker.log_update.connect.called
         assert page.worker.finished.connect.called
 
     def test_worker_created_with_correct_parameters(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che il worker sia creato con parametri corretti."""
+        """Test that the worker is created with correct parameters."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -915,7 +888,7 @@ class TestWorkerIntegration:
         assert call_kwargs['workspace_path'] == mock_context_dl['workspace_path']
 
     def test_worker_start_called(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che worker.start() sia chiamato."""
+        """Test that worker.start() is called."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -925,31 +898,29 @@ class TestWorkerIntegration:
 
 
 class TestContextHandling:
-    """Test per la gestione del context."""
+    """Tests for context handling."""
 
     def test_context_none_handling(self, qtbot):
-        """Test gestione context None."""
+        """Test handling None context."""
         page = DlExecutionPage(context=None)
         qtbot.addWidget(page)
 
-        # Non dovrebbe crashare
         page.on_enter()
 
         with patch.object(QMessageBox, 'warning'):
             page.start_processing()
 
     def test_context_without_workspace_path(self, qtbot):
-        """Test context senza workspace_path."""
+        """Test context without workspace_path."""
         context = {"selected_segmentation_files": ["file.nii"]}
         page = DlExecutionPage(context)
         qtbot.addWidget(page)
 
-        # Dovrebbe gestire gracefully
         with patch.object(QMessageBox, 'information'):
             page.processing_finished(True, "Success")
 
     def test_context_without_update_main_buttons(self, qtbot, temp_workspace):
-        """Test context senza update_main_buttons."""
+        """Test context without update_main_buttons."""
         context = {
             "workspace_path": temp_workspace,
             "selected_segmentation_files": ["file.nii"]
@@ -957,12 +928,11 @@ class TestContextHandling:
         page = DlExecutionPage(context)
         qtbot.addWidget(page)
 
-        # Non dovrebbe crashare
         with patch.object(QMessageBox, 'information'):
             page.processing_finished(True, "Success")
 
     def test_processing_output_dir_set(self, qtbot, mock_context_dl):
-        """Test che processing_output_dir sia settato nel context."""
+        """Test that processing_output_dir is set in the context."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -975,27 +945,23 @@ class TestContextHandling:
 
 
 class TestStateTransitions:
-    """Test per le transizioni di stato."""
+    """Tests for state transitions."""
 
     def test_state_idle_to_processing(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test transizione da idle a processing."""
+        """Test transition from idle to processing."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Stato iniziale
         assert page.processing is False
-        # assert page.start_button.isVisible()
 
-        # Avvia processing
         page.start_processing()
 
-        # Stato processing
         assert page.processing is True
         assert not page.start_button.isVisibleTo(page)
         assert page.cancel_button.isVisibleTo(page)
 
     def test_state_processing_to_completed(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test transizione da processing a completed."""
+        """Test transition from processing to completed."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1010,21 +976,20 @@ class TestStateTransitions:
         assert page.start_button.isVisibleTo(page)
 
     def test_state_processing_to_cancelled(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test transizione da processing a cancelled."""
+        """Test transition from processing to cancelled."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
         page.cancel_processing()
 
-        # Simula fine processamento dopo cancellazione
         with patch.object(QMessageBox, 'critical'):
             page.processing_finished(False, "Cancelled")
 
         assert page.processing is False
 
     def test_state_completed_to_reset(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test transizione da completed a reset."""
+        """Test transition from completed to reset."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1042,23 +1007,20 @@ class TestStateTransitions:
 
 
 class TestIntegration:
-    """Test di integrazione per flussi completi."""
+    """Integration tests for complete flows."""
 
     def test_full_processing_flow_success(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test flusso completo: avvio -> processing -> successo."""
+        """Test full flow: start -> processing -> success."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # On enter
         page.on_enter()
         assert page.files_list.count() == 2
 
-        # Avvia processing
         page.start_processing()
         assert page.processing is True
         assert page.worker is not None
 
-        # Simula aggiornamenti
         page.update_progress(25)
         page.update_file_status("sub-01_T1w.nii", "Processing")
         page.add_log_message("Processing file 1", 'i')
@@ -1068,9 +1030,8 @@ class TestIntegration:
         page.update_file_status("sub-02_T1w.nii", "Processing")
 
         page.update_progress(100)
-        page.update_file_status("sub-02_T1w.nii", "Completed")
+        page.update_file_status("sub-02_T1nii", "Completed")
 
-        # Completa
         with patch.object(QMessageBox, 'information'):
             page.processing_finished(True, "All files processed")
 
@@ -1078,7 +1039,7 @@ class TestIntegration:
         assert not page.processing
 
     def test_full_processing_flow_with_cancel(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test flusso con cancellazione."""
+        """Test flow with cancellation."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1088,10 +1049,8 @@ class TestIntegration:
         page.update_progress(30)
         page.add_log_message("Processing...", 'i')
 
-        # Cancella
         page.cancel_processing()
 
-        # Simula fine con errore
         with patch.object(QMessageBox, 'critical'):
             page.processing_finished(False, "Cancelled by user")
 
@@ -1099,7 +1058,7 @@ class TestIntegration:
         assert page.processing_completed
 
     def test_full_processing_flow_with_error(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test flusso con errore."""
+        """Test flow with error."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1117,11 +1076,10 @@ class TestIntegration:
         assert page.processing_completed
 
     def test_reprocess_flow(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test flusso: processing -> completato -> reprocess."""
+        """Test flow: processing -> completed -> reprocess."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Primo processing
         page.on_enter()
         page.start_processing()
 
@@ -1130,11 +1088,9 @@ class TestIntegration:
 
         assert "Reprocess" in page.start_button.text()
 
-        # Reset e secondo processing
         page.reset_processing_state()
         page.on_enter()
 
-        # Dovrebbe poter riprocessare
         mock_dl_worker.reset_mock()
         page.start_processing()
 
@@ -1143,38 +1099,36 @@ class TestIntegration:
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori."""
+    """Tests for error handling."""
 
     def test_start_processing_handles_worker_creation_error(self, qtbot, mock_context_dl):
-        """Test gestione errore creazione worker."""
+        """Test worker creation error handling."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         with patch("main.ui.dl_execution_page.DlWorker") as mock_worker:
             mock_worker.side_effect = Exception("Worker creation failed")
 
-            # Dovrebbe gestire l'errore gracefully
             try:
                 page.start_processing()
             except Exception:
                 pass
 
     def test_processing_finished_without_workspace_path(self, qtbot):
-        """Test processing_finished senza workspace_path."""
+        """Test processing_finished without workspace_path."""
         context = {"selected_segmentation_files": ["file.nii"]}
         page = DlExecutionPage(context)
         qtbot.addWidget(page)
 
-        # Non dovrebbe crashare
         with patch.object(QMessageBox, 'information'):
             page.processing_finished(True, "Success")
 
 
 class TestBoundaryConditions:
-    """Test per condizioni limite."""
+    """Tests for boundary conditions."""
 
     def test_many_files_in_list(self, qtbot, temp_workspace):
-        """Test con molti file nella lista."""
+        """Test with many files in the list."""
         files = [os.path.join(temp_workspace, f"sub-{i:03d}", "anat", "file.nii")
                  for i in range(100)]
 
@@ -1192,16 +1146,15 @@ class TestBoundaryConditions:
         assert page.files_list.count() == 100
 
     def test_empty_filename(self, qtbot, mock_context_dl):
-        """Test con filename vuoto."""
+        """Test with empty filename."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
         page.on_enter()
 
-        # Non dovrebbe crashare
         page.update_file_status("", "Processing")
 
     def test_very_long_filename(self, qtbot, temp_workspace):
-        """Test con filename molto lungo."""
+        """Test with very long filename."""
         long_name = "a" * 500 + ".nii"
         context = {
             "workspace_path": temp_workspace,
@@ -1217,35 +1170,32 @@ class TestBoundaryConditions:
         assert page.files_list.count() == 1
 
     def test_rapid_log_messages(self, qtbot, mock_context_dl):
-        """Test con messaggi di log molto rapidi."""
+        """Test with very rapid log messages."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
-        # Aggiungi 1000 messaggi rapidamente
         for i in range(1000):
             page.add_log_message(f"Message {i}", 'i')
 
-        # Non dovrebbe crashare
         assert "Message 999" in page.log_text.toPlainText()
 
 
 class TestMemoryAndCleanup:
-    """Test per gestione memoria e cleanup."""
+    """Tests for memory management and cleanup."""
 
     def test_worker_cleanup_after_finish(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test che il worker venga pulito dopo finish."""
+        """Test that the worker is cleaned up after finish."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
         page.start_processing()
         assert page.worker is not None
 
-        # Reset dovrebbe pulire il worker
         page.reset_processing_state()
         assert page.worker is None
 
     def test_multiple_processing_cycles(self, qtbot, mock_context_dl, mock_dl_worker):
-        """Test cicli multipli di processing."""
+        """Test multiple processing cycles."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1258,19 +1208,18 @@ class TestMemoryAndCleanup:
 
             page.reset_processing_state()
 
-        # Non dovrebbe avere memory leak
         assert True
 
 
 class TestDocumentation:
-    """Test per la documentazione."""
+    """Tests for documentation."""
 
     def test_class_docstring(self):
-        """Test che la classe abbia docstring."""
+        """Test that the class has a docstring."""
         assert DlExecutionPage.__doc__ is not None
 
     def test_on_enter_docstring(self, qtbot, mock_context_dl):
-        """Test che on_enter abbia docstring."""
+        """Test that on_enter has a docstring."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1278,10 +1227,10 @@ class TestDocumentation:
 
 
 class TestAccessibility:
-    """Test per l'accessibilità."""
+    """Tests for accessibility."""
 
     def test_buttons_have_text(self, qtbot, mock_context_dl):
-        """Test che i pulsanti abbiano testo."""
+        """Test that buttons have text."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 
@@ -1289,7 +1238,7 @@ class TestAccessibility:
         assert len(page.cancel_button.text()) > 0
 
     def test_labels_have_text(self, qtbot, mock_context_dl):
-        """Test che i label abbiano testo."""
+        """Test that labels have text."""
         page = DlExecutionPage(mock_context_dl)
         qtbot.addWidget(page)
 

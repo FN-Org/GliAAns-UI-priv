@@ -20,35 +20,38 @@ log = get_logger()
 
 
 class DlExecutionPage(Page):
-    """Pagina per SynthStrip + Coregistrazione dei file NIfTI selezionati"""
+    """Page for SynthStrip + Coregistration of selected NIfTI files."""
 
     def __init__(self, context=None, previous_page=None):
         super().__init__()
-        self.worker = None
-        self.current_file = None
-        self.context = context
-        self.previous_page = previous_page
-        self.next_page = None
+        self.worker = None  # Worker thread instance
+        self.current_file = None  # Currently processing file (if needed)
+        self.context = context  # Shared application context (settings, file lists)
+        self.previous_page = previous_page  # Reference to the previous page for navigation
+        self.next_page = None  # Reference to the next page
 
-        self.processing = False
-        self.processing_completed = False
+        # State flags
+        self.processing = False  # Flag to indicate if processing is active
+        self.processing_completed = False  # Flag to indicate if processing has finished
 
-        self._setup_ui()
+        self._setup_ui()  # Initialize the user interface elements
 
-        self._translate_ui()
+        self._translate_ui()  # Apply initial translations
         if context and "language_changed" in context:
+            # Connect to the global language change signal if it exists
             context["language_changed"].connect(self._translate_ui)
 
     def _setup_ui(self):
-        """Configura l'interfaccia utente"""
+        """Sets up the user interface layout and widgets."""
         main_layout = QVBoxLayout(self)
 
-        # Header
+        # --- Header ---
         self.header = QLabel("Deep Learning Segmentation")
         self.header.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.header)
 
+        # --- Info Label (Tool detection) ---
         self.info_label = QLabel("")
         self.info_label.setOpenExternalLinks(True)
         self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
@@ -64,15 +67,17 @@ class DlExecutionPage(Page):
         main_layout.addWidget(self.info_label)
 
         try:
-            # esegue il comando con --help per verificare che esista e funzioni
+            # Run the command with --help to check if it exists and works
             subprocess.run(
                 ['mri_synthstrip', '--help'],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stdout=subprocess.DEVNULL,  # Discard standard output
+                stderr=subprocess.DEVNULL  # Discard standard error
             )
             self.has_freesurfer = True
-            self.info_label.setText("Using tool: <a href='https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/'>SynthStrip from Free Surfer</a>")
+            self.info_label.setText(
+                "Using tool: <a href='https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/'>SynthStrip from Free Surfer</a>")
         except (FileNotFoundError, subprocess.CalledProcessError):
+            # Handle case where FreeSurfer version is not found
             self.has_freesurfer = False
             self.info_label.setText(
                 'Using tool: <a href="https://github.com/nipreps/synthstrip">SynthStrip (nipreps)</a><br>'
@@ -80,11 +85,11 @@ class DlExecutionPage(Page):
                 '<a href="https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/">SynthStrip official documentation</a>'
             )
 
-        self.info_label.setOpenExternalLinks(True)  # abilita apertura link nel browser
+        self.info_label.setOpenExternalLinks(True)  # Enable opening links in browser
         self.info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
         self.info_label.setToolTip("Open link")
 
-        # Current operation
+        # --- Current Operation Status ---
         self.current_operation = QLabel("Ready to start")
         self.current_operation.setStyleSheet("""
             font-size: 13px;
@@ -94,17 +99,17 @@ class DlExecutionPage(Page):
         self.current_operation.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.current_operation)
 
-        # --- Content area ---
+        # --- Content area (Grid) ---
         content_layout = QGridLayout()
         main_layout.addLayout(content_layout, stretch=1)
 
-        # --- Left: Circular progress bar ---
+        # --- Left Column (Row 0, Col 0): Progress Display ---
         left_layout = QVBoxLayout()
-        self.progress_bar = CircularProgress()
+        self.progress_bar = CircularProgress()  # Custom circular progress widget
         left_layout.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
         content_layout.addLayout(left_layout, 0, 0)
 
-        # === SEZIONE FILE SELEZIONATI ===
+        # --- Right Column (Row 0, Col 1): File List ---
         self.files_group = QGroupBox("Files to process")
         files_layout = QVBoxLayout(self.files_group)
 
@@ -112,19 +117,15 @@ class DlExecutionPage(Page):
         self.files_list.setMaximumHeight(150)
         files_layout.addWidget(self.files_list)
 
+        # Add the file list (QListWidget) directly to the grid
         content_layout.addWidget(self.files_list, 0, 1)
 
-        # === SEZIONE PROGRESSO ===
-        left_layout = QVBoxLayout()
-        self.progress_bar = CircularProgress()
-        left_layout.addWidget(self.progress_bar, alignment=Qt.AlignmentFlag.AlignCenter)
-        content_layout.addLayout(left_layout, 0, 0)
-
+        # --- Grid Layout Stretch ---
         # Columns: 1/3 for progress bar, 2/3 for scroll area
-        content_layout.setColumnStretch(0, 1)  # left column (progress bar)
-        content_layout.setColumnStretch(1, 2)  # right column (folder list)
+        content_layout.setColumnStretch(0, 1)  # Left column (progress bar)
+        content_layout.setColumnStretch(1, 2)  # Right column (folder list)
 
-        # === SEZIONE LOG ===
+        # --- Bottom Row (Rows 1 & 2): Log Display ---
         self.log_label = QLabel("Execution Log:")
         self.log_label.setStyleSheet("""
                     font-size: 16px;
@@ -133,6 +134,7 @@ class DlExecutionPage(Page):
                     margin-top: 15px;
                     margin-bottom: 5px;
                 """)
+        # Add log label, spanning both columns (Row 1, Col 0, 1 row span, 2 col span)
         content_layout.addWidget(self.log_label, 1, 0, 1, 2)
 
         self.log_text = QTextEdit()
@@ -149,17 +151,18 @@ class DlExecutionPage(Page):
                 """)
         self.log_text.setMaximumHeight(200)
         self.log_text.setReadOnly(True)
+        # Add log text area, spanning both columns (Row 2, Col 0, 1 row span, 2 col span)
         content_layout.addWidget(self.log_text, 2, 0, 1, 2)
 
-        # === PULSANTI CONTROLLO ===
+        # === Control Buttons ===
 
-        # --- Stop button (centered) ---
-        button_frame = QFrame()
+        # --- Button Layout (Start/Stop) ---
+        button_frame = QFrame()  # Frame to hold the centered buttons
         button_layout = QHBoxLayout(button_frame)
         button_layout.setContentsMargins(0, 15, 0, 0)
 
         self.start_button = QPushButton("Start deep learning")
-        button_layout.addStretch()
+        button_layout.addStretch()  # Center the buttons
         self.start_button.clicked.connect(self.start_processing)
         self.start_button.setStyleSheet("""
             QPushButton {
@@ -201,51 +204,55 @@ class DlExecutionPage(Page):
             }
         """)
         self.cancel_button.clicked.connect(self.cancel_processing)
+        self.cancel_button.setVisible(False)  # Initially hidden
 
         button_layout.addWidget(self.cancel_button)
-        button_layout.addStretch()
+        button_layout.addStretch()  # Center the buttons
 
         main_layout.addWidget(button_frame)
 
     def on_enter(self):
-        """Chiamata quando si entra nella pagina"""
-        self.reset_processing_state()
+        """Called when this page becomes active."""
+        self.reset_processing_state()  # Ensure UI is in a clean, default state
 
-        # Popoliamo la lista dei file se disponibile
+        # Populate the file list if available from context
         if self.context and "selected_segmentation_files" in self.context:
             self.files_list.clear()
             for file_path in self.context["selected_segmentation_files"]:
                 filename = os.path.basename(file_path)
-                self.files_list.addItem(QCoreApplication.translate("DlExecutionPage", "📄 {filename} - Waiting...").format(filename=filename))
+                # Add item with "Waiting..." status
+                self.files_list.addItem(
+                    QCoreApplication.translate("DlExecutionPage", "📄 {filename} - Waiting...").format(
+                        filename=filename))
 
     def start_processing(self):
-        """Avvia il processamento"""
+        """Starts the deep learning processing workflow."""
         if not self.context or "selected_segmentation_files" not in self.context:
-            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"), QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
+            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"),
+                                QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
             return
 
         selected_files = self.context["selected_segmentation_files"]
         if not selected_files:
-            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"), QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
+            QMessageBox.warning(self, QCoreApplication.translate("DlExecutionPage", "Error"),
+                                QCoreApplication.translate("DlExecutionPage", "No files selected for processing."))
             return
 
-        # Avvia worker thread
+        # --- Setup Worker Thread ---
         self.worker = DlWorker(
             input_files=selected_files,
             workspace_path=self.context["workspace_path"],
             has_freesurfer=self.has_freesurfer
         )
-        # self.worker.moveToThread(self.thread)
 
-        # Connects signals
+        # --- Connect Worker Signals ---
         self.worker.progressbar_update.connect(self.update_progress)
         self.worker.file_update.connect(self.update_file_status)
         self.worker.log_update.connect(self.add_log_message)
         self.worker.finished.connect(self.processing_finished)
+        # self.worker.finished.connect(self.worker.deleteLater) # Option to auto-delete worker
 
-        # self.worker.finished.connect(self.worker.deleteLater)
-
-        # Update UI
+        # --- Update UI for Processing State ---
         self.processing = True
         self.start_button.setVisible(False)
         self.cancel_button.setVisible(True)
@@ -254,22 +261,24 @@ class DlExecutionPage(Page):
         self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "Processing..."))
         self.log_text.clear()
 
-        # Start worker on thread
-        # self.thread.start()
-        self.worker.start()
+        # --- Start Worker ---
+        self.worker.start()  # Start the QThread
 
-        self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Deep learning processing started for {0} file").format(len(selected_files)), 'i')
+        self.add_log_message(
+            QCoreApplication.translate("DlExecutionPage", "Deep learning processing started for {0} file").format(
+                len(selected_files)), 'i')
         log.info(f"Deep learning processing started for {len(selected_files)} file")
 
     def update_progress(self, value):
-        """Aggiorna la barra di progresso"""
+        """Updates the circular progress bar value."""
         self.progress_bar.setValue(value)
 
     def add_log_message(self, message, type):
-        """Aggiunge un messaggio al log"""
+        """Appends a message to the UI log text area."""
         timestamp = QtCore.QDateTime.currentDateTime().toString("hh:mm:ss")
         self.log_text.append(f"[{timestamp}] {message}")
 
+        # Log to external file based on message type
         if type == 'e':
             log.error(f"[{timestamp}] {message}")
         elif type == 'i':
@@ -279,31 +288,31 @@ class DlExecutionPage(Page):
         else:
             log.debug(f"[{timestamp}] {message}")
 
-        # Scrolla automaticamente verso il basso
+        # Auto-scroll to the bottom
         scrollbar = self.log_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
     def update_file_status(self, filename, status):
-        """Aggiorna lo stato di un file nella lista"""
+        """Updates the status of a specific file in the QListWidget."""
         for i in range(self.files_list.count()):
             item = self.files_list.item(i)
-            if filename in item.text():
+            if filename in item.text():  # Find the matching item
                 item.setText(f"📄 {filename} - {status}")
-                break
+                break  # Stop searching once found
 
     def cancel_processing(self):
-        """Cancella il processamento in corso"""
+        """Requests the worker thread to cancel processing."""
         if self.worker:
-            self.worker.cancel_requested.emit()
-            # self.worker.cancel()
+            self.worker.cancel_requested.emit()  # Emit the signal to request cancellation
+            # self.worker.cancel() # If you have a hard cancel method
             self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Cancellation requested..."), 'i')
 
     def processing_finished(self, success, message):
-        """Chiamata quando il processamento termina"""
+        """Slot called when the worker thread finishes."""
         self.processing = False
         self.processing_completed = True
 
-        # Aggiorna UI
+        # --- Update UI to Reflect Finished State ---
         self.start_button.setVisible(True)
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
@@ -311,86 +320,104 @@ class DlExecutionPage(Page):
         if success:
             self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "✓ Processing completed!"))
             self.current_operation.setStyleSheet("color: green; font-weight: bold;")
-            self.start_button.setText("Reprocess")
+            self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Reprocess"))
         else:
             self.current_operation.setText("✗ Processing failed!")
             self.current_operation.setStyleSheet("color: #c0392b; font-weight: bold;")
 
-        self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Final: {message}").format(message=message), 'i')
+        self.add_log_message(QCoreApplication.translate("DlExecutionPage", "Final: {message}").format(message=message),
+                             'i')
 
-        # Aggiorna context con risultati
+        # --- Update Context with Results ---
         if success and "workspace_path" in self.context:
+            # If successful, store the output directory in the context
             output_dir = os.path.join(self.context["workspace_path"], "outputs")
             self.context["processing_output_dir"] = output_dir
 
-        # Notifica cambio stato
+        # Notify main window to update its buttons (e.g., 'Next')
         if "update_main_buttons" in self.context:
             self.context["update_main_buttons"]()
 
-        # Mostra messaggio finale
+        # --- Show Final Message Box ---
         if success:
             QMessageBox.information(self, QCoreApplication.translate("DlExecutionPage", "Completed"), message)
         else:
             QMessageBox.critical(self, QCoreApplication.translate("DlExecutionPage", "Error"), message)
 
     def reset_processing_state(self):
-        """Resetta lo stato del processamento"""
+        """Resets the page to its initial state."""
         self.processing = False
         self.processing_completed = False
         self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Start deep learning"))
         self.start_button.setVisible(True)
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
-        self.current_operation.setStyleSheet("")
+        self.current_operation.setStyleSheet("")  # Reset color
+        self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "Ready to start"))
 
         if self.worker:
-            self.worker = None
+            self.worker = None  # Clear worker reference
 
     def back(self):
-        """Torna alla pagina precedente"""
+        """Handles the 'Back' navigation request."""
         if self.processing:
+            # Ask user for confirmation to stop
             reply = QMessageBox.question(
                 self,
                 QCoreApplication.translate("DlExecutionPage", "Processing in progress"),
-                QCoreApplication.translate("DlExecutionPage", "Processing is in progress. Do you really want to go back?\nProcessing will be interrupted."),
+                QCoreApplication.translate("DlExecutionPage",
+                                           "Processing is in progress. Do you really want to go back?\nProcessing will be interrupted."),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.No:
-                return None
+                return None  # Abort navigation
 
-            # Interrompi processamento
+            # --- Stop Processing ---
             if self.worker:
                 self.worker.cancel_requested.emit()
                 # self.worker.cancel()
 
         if self.previous_page:
-            self.previous_page.on_enter()
+            self.previous_page.on_enter()  # Call on_enter of the previous page
             return self.previous_page
-        return None
+        return None  # No previous page
 
     def next(self, context):
-        """Avanza alla pagina successiva"""
-        return None
+        """Handles the 'Next' navigation request."""
+        return None  # This page is a terminal step
 
     def is_ready_to_advance(self):
-        """Controlla se è possibile andare alla pagina successiva"""
-        return False
+        """Checks if the page is in a state to advance."""
+        return False  # Cannot advance from this page
 
     def is_ready_to_go_back(self):
-        """Controlla se è possibile tornare indietro"""
-        return True
+        """Checks if the page is in a state to go back."""
+        return True  # Can always go back (with a warning if processing)
 
     def _translate_ui(self):
+        """Updates all user-visible strings for translation."""
         self.header.setText(QCoreApplication.translate("DlExecutionPage", "Deep Learning Segmentation"))
-        self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "Ready to start"))
+
+        # Only reset 'Ready to start' if not processing or completed
+        if not self.processing and not self.processing_completed:
+            self.current_operation.setText(QCoreApplication.translate("DlExecutionPage", "Ready to start"))
+
         self.files_group.setTitle(QCoreApplication.translate("DlExecutionPage", "Files to process"))
         self.log_label.setText(QCoreApplication.translate("DlExecutionPage", "Execution Log:"))
-        self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Start deep learning"))
+
+        if not self.processing_completed:
+            self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Start deep learning"))
+        else:
+            self.start_button.setText(QCoreApplication.translate("DlExecutionPage", "Reprocess"))
+
         self.cancel_button.setText(QCoreApplication.translate("DlExecutionPage", "Stop processing"))
 
-        if self.context and "selected_segmentation_files" in self.context:
+        # Repopulate the file list with translated "Waiting..." string
+        if self.context and "selected_segmentation_files" in self.context and not self.processing:
             self.files_list.clear()
             for file_path in self.context["selected_segmentation_files"]:
                 filename = os.path.basename(file_path)
-                self.files_list.addItem(QCoreApplication.translate("DlExecutionPage", "📄 {filename} - Waiting...").format(filename=filename))
+                self.files_list.addItem(
+                    QCoreApplication.translate("DlExecutionPage", "📄 {filename} - Waiting...").format(
+                        filename=filename))
