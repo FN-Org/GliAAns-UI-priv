@@ -13,9 +13,9 @@ log = get_logger()
 
 
 class DlWorker(QObject):
-    progressbar_update = pyqtSignal(int)  # Progresso generale (0-100)
+    progressbar_update = pyqtSignal(int)  # Overall progress (0-100)
     file_update = pyqtSignal(str, str)  # (filename, status)
-    log_update = pyqtSignal(str, str)  # Messaggi di log
+    log_update = pyqtSignal(str, str)  # Log messages
     finished = pyqtSignal(bool, str)  # (success, message)
     cancel_requested = pyqtSignal()
 
@@ -34,7 +34,7 @@ class DlWorker(QObject):
         self.is_cancelled = False
 
         # Progress tracking
-        self.total_phases = 6  # Numero totale di fasi per file
+        self.total_phases = 6  # Total number of phases per file
         self.current_file_index = 0
         self.current_phase = 0
 
@@ -58,62 +58,27 @@ class DlWorker(QObject):
         except FileNotFoundError:
             log.error(str(FileNotFoundError))
             raise RuntimeError
-        log.debug(f"Percorso binario nipreps synthstrip: {self.nipreps_synthstrip_bin_path}")
+        log.debug(f"nipreps synthstrip binary path: {self.nipreps_synthstrip_bin_path}")
 
         self.python_executable = get_dl_python_executable()
-
-        # try:
-        #     self.coregistration_bin_path = get_bin_path("coregistration")
-        # except FileNotFoundError:
-        #     log.error(str(FileNotFoundError))
-        #     raise RuntimeError
-        # log.debug(f"Percorso binario coregistration: {self.coregistration_bin_path}")
-        #
-        # try:
-        #     self.reorientation_bin_path = get_bin_path("reorientation")
-        # except FileNotFoundError:
-        #     log.error(str(FileNotFoundError))
-        #     raise RuntimeError
-        # log.debug(f"Percorso binario reorientation: {self.reorientation_bin_path}")
-        #
-        # try:
-        #     self.preprocess_bin_path = get_bin_path("preprocess")
-        # except FileNotFoundError:
-        #     log.error(str(FileNotFoundError))
-        #     raise RuntimeError
-        # log.debug(f"Percorso binario preprocess: {self.preprocess_bin_path}")
-        #
-        # try:
-        #     self.dl_bin_path = get_bin_path("deep_learning_runner")
-        # except FileNotFoundError:
-        #     log.error(str(FileNotFoundError))
-        #     raise RuntimeError
-        # log.debug(f"Percorso binario deep learning: {self.dl_bin_path}")
-        #
-        # try:
-        #     self.postprocess_bin_path = get_bin_path("postprocess")
-        # except FileNotFoundError:
-        #     log.error(str(FileNotFoundError))
-        #     raise RuntimeError
-        # log.debug(f"Percorso binario postprocess: {self.postprocess_bin_path}")
 
         self.cancel_requested.connect(self.cancel)
 
     def update_progress(self):
-        """Calcola e aggiorna la progress bar basata su file e fasi"""
+        """Calculates and updates the progress bar based on files and phases"""
         if self.total_files == 0:
             return
 
-        # Calcola il progresso: (file completati * 6 + fasi del file corrente) / (totale file * 6) * 100
+        # Calculate progress: (completed files * 6 + current file phases) / (total files * 6) * 100
         total_phases_completed = (self.current_file_index * self.total_phases) + self.current_phase
         total_phases_overall = self.total_files * self.total_phases
 
         progress = int((total_phases_completed / total_phases_overall) * 100)
-        progress = min(progress, 100)  # Assicurati che non superi 100
+        progress = min(progress, 100)  # Ensure it doesn't exceed 100
 
         self.progressbar_update.emit(progress)
 
-        # Log di debug (opzionale)
+        # Debug log (optional)
         self.log_update.emit(
             QCoreApplication.translate("DlWorker", "Progress: {0}% (File {1}/{2}, "
             "Phase {3}/{4})").format(progress, self.current_file_index + 1, self.total_files, self.current_phase, self.total_phases),
@@ -121,14 +86,14 @@ class DlWorker(QObject):
         )
 
     def start(self):
-        """Processa tutti i file NIfTI con la Deep Learning pipeline"""
+        """Processes all NIfTI files with the Deep Learning pipeline"""
 
         self.total_files = len(self.input_files)
         log.debug(self.input_files)
         self.processed_files = 0
         self.failed_files = []
 
-        # Inizializza progress bar
+        # Initialize progress bar
         self.current_file_index = 0
         self.current_phase = 0
         self.update_progress()
@@ -148,7 +113,7 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "=== PROCESSING: {0} ===").format(self.current_input_file_basename), 'i')
 
-        # FASE 1: SynthStrip
+        # PHASE 1: SynthStrip
         self.current_phase = 1
         self.run_synthstrip()
 
@@ -160,7 +125,7 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "SynthStrip started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
-        # Nome file skull stripped
+        # Skull stripped file name
         base_name = self.current_input_file_basename.replace(".nii.gz", "").replace(".nii", "")
         self.current_synthstrip_file = os.path.join(self.output_dir, f"{base_name}_skull_stripped.nii.gz")
 
@@ -202,12 +167,12 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Skull stripping completed"), 'i')
         self.update_progress()
-        # FASE 2: Coregistration
+        # PHASE 2: Coregistration
         self.current_phase = 2
         self.run_coregistration()  # Start the next phase
 
     def run_coregistration(self):
-        """Esegue coregistrazione con atlas"""
+        """Performs coregistration with atlas"""
         phase = "Coregistration"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 2/6: Coregistration..."))
@@ -215,7 +180,7 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "Coregistration started: {0}").format(os.path.basename(self.current_input_file)), 'i')
 
-        # Crea directory per coregistrazione
+        # Create directory for coregistration
         coreg_dir = os.path.join(self.output_dir, "coregistration")
         os.makedirs(coreg_dir, exist_ok=True)
 
@@ -250,12 +215,12 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Coregistration completed"), 'i')
         self.update_progress()
-        # FASE 3: Reorientation
+        # PHASE 3: Reorientation
         self.current_phase = 3
         self.run_reorientation()  # Start the next phase
 
     def run_reorientation(self):
-        """Esegue la riorientazione del file brain_in_atlas usando la matrice affine di BraTS"""
+        """Performs reorientation of the brain_in_atlas file using the BraTS affine matrix"""
         phase = "Reorientation"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 3/6: Reorientation..."))
@@ -303,12 +268,12 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Reorientation completed"), 'i')
         self.update_progress()
-        # FASE 4: Preprocess
+        # PHASE 4: Preprocess
         self.current_phase = 4
         self.run_preprocess()  # Start the next phase
 
     def run_preprocess(self):
-        """Esegue FASE 4: PREPARE & FASE 5: PREPROCESS"""
+        """Runs PHASE 4: PREPARE and PREPROCESS"""
         phase = "Preprocessing"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 4/6: Preparing and preprocessing..."))
@@ -347,12 +312,12 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Preprocess completed"), 'i')
         self.update_progress()
-        # FASE 5: Deep learning execution
+        # PHASE 5: Deep learning execution
         self.current_phase = 5
         self.run_deep_learning()  # Start the next phase
 
     def run_deep_learning(self):
-        """Esegue FASE 5: DEEP LEARNING"""
+        """Runs PHASE 5: DEEP LEARNING"""
         phase = "Deep Learning execution"
 
         self.file_update.emit(self.current_input_file_basename, QCoreApplication.translate("DlWorker", "Phase 5/6: Deep Learning..."))
@@ -396,7 +361,7 @@ class DlWorker(QObject):
 
         self.log_update.emit(QCoreApplication.translate("DlWorker", "✓ Deep learning execution completed"), 'i')
         self.update_progress()
-        # FASE 6: Postprocess
+        # PHASE 6: Postprocess
         self.current_phase = 6
         self.run_postprocess()  # Start the next phase
 
@@ -466,10 +431,10 @@ class DlWorker(QObject):
             if process is not None and process.state() != QProcess.ProcessState.NotRunning:
                 self.log_update.emit(QCoreApplication.translate("DlWorker", "Stopping {name}...").format(name=name), 'w')
 
-                # Non serve disconnettere i segnali manualmente!
+                # No need to disconnect signals manually!
                 process.terminate()
 
-                # fai un kill solo se dopo un timeout non risponde
+                # only kill if it doesn't respond after a timeout
                 if not process.waitForFinished(2000):
                     self.log_update.emit(QCoreApplication.translate("DlWorker", "Forcing {name} to quit...").format(name=name), 'e')
                     process.kill()
@@ -478,33 +443,33 @@ class DlWorker(QObject):
         self.finished.emit(False, QCoreApplication.translate("DlWorker", "Processing cancelled by user"))
 
     def on_stdout(self, phase, data):
-        """Handler corretto per stdout di QProcess"""
+        """Correct handler for QProcess stdout"""
         try:
-            # Decodifica correttamente i dati da QByteArray
+            # Correctly decode data from QByteArray
             text = data.data().decode("utf-8", errors='replace').strip()
             if text:
-                # Splitta per linee e logga ciascuna
+                # Split by lines and log each one
                 for line in text.splitlines():
-                    if line.strip():  # Evita linee vuote
+                    if line.strip():  # Avoid empty lines
                         self.log_update.emit(f"[{phase}] {line.strip()}", 'i')
         except Exception as e:
             self.log_update.emit(f"[{phase}] Error decoding stdout: {str(e)}", 'e')
 
     def on_stderr(self, phase, data):
-        """Handler corretto per stderr di QProcess"""
+        """Correct handler for QProcess stderr"""
         try:
-            # Decodifica correttamente i dati da QByteArray
+            # Correctly decode data from QByteArray
             text = data.data().decode("utf-8", errors='replace').strip()
             if text:
-                # Splitta per linee e logga ciascuna
+                # Split by lines and log each one
                 for line in text.splitlines():
-                    if line.strip():  # Evita linee vuote
+                    if line.strip():  # Avoid empty lines
                         self.log_update.emit(f"[{phase}] {line.strip()}", 'e')
         except Exception as e:
             self.log_update.emit(f"[{phase}] Error decoding stderr: {str(e)}", 'e')
 
     def on_error(self, phase, error):
-        """Handler per errori di QProcess"""
+        """Handler for QProcess errors"""
         try:
             error_messages = {
                 QProcess.ProcessError.FailedToStart: QCoreApplication.translate("DlWorker", "Failed to start process"),
