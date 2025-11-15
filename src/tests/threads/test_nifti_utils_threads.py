@@ -1,11 +1,11 @@
 """
-test_save_load_threads.py - Test Suite per SaveNiftiThread e ImageLoadThread
+test_save_load_threads.py - Test Suite for SaveNiftiThread and ImageLoadThread
 
-Questa suite testa tutte le funzionalità dei thread di salvataggio e caricamento:
-- SaveNiftiThread: salvataggio NIfTI + JSON con metadata BIDS
-- ImageLoadThread: caricamento e normalizzazione NIfTI 3D/4D
-- Gestione errori e progress tracking
-- Normalizzazione intensità con percentili
+This suite tests all functionalities of the saving and loading threads:
+- SaveNiftiThread: NIfTI saving + JSON with BIDS metadata
+- ImageLoadThread: loading and normalization of 3D/4D NIfTI
+- Error handling and progress tracking
+- Intensity normalization with percentiles
 """
 
 import json
@@ -21,10 +21,10 @@ from main.threads.nifti_utils_threads import SaveNiftiThread, ImageLoadThread
 
 
 class TestSaveNiftiThreadInitialization:
-    """Test per l'inizializzazione di SaveNiftiThread"""
+    """Tests for SaveNiftiThread initialization"""
 
     def test_init_with_all_parameters(self, temp_workspace):
-        """Test inizializzazione con tutti i parametri"""
+        """Test initialization with all parameters"""
         data = np.random.rand(10, 10, 10)
         affine = np.eye(4)
         path = os.path.join(temp_workspace, "output.nii.gz")
@@ -52,7 +52,7 @@ class TestSaveNiftiThreadInitialization:
         assert thread.source_dict["difference"] == difference
 
     def test_signals_exist(self, temp_workspace):
-        """Verifica che i signal siano definiti correttamente"""
+        """Verify that the signals are correctly defined"""
         data = np.zeros((5, 5, 5))
         affine = np.eye(4)
         source_dict = {"radius": 1.0, "difference": 0.1}
@@ -65,11 +65,11 @@ class TestSaveNiftiThreadInitialization:
 
 
 class TestSaveNiftiThreadExecution:
-    """Test per l'esecuzione di SaveNiftiThread"""
+    """Tests for SaveNiftiThread execution"""
 
     def test_successful_save(self, temp_workspace):
-        """Test salvataggio riuscito di NIfTI e JSON"""
-        # Dati di test
+        """Test successful saving of NIfTI and JSON"""
+        # Test data
         data = np.random.randint(0, 255, (10, 10, 10), dtype=np.uint8)
         affine = np.eye(4)
         affine[0, 0] = 2.0  # Voxel size
@@ -91,7 +91,7 @@ class TestSaveNiftiThreadExecution:
             source_dict=source_dict
         )
 
-        # Connetti signal
+        # Connect signal
         success_paths = []
 
         def on_success(path, json_p):
@@ -99,26 +99,26 @@ class TestSaveNiftiThreadExecution:
 
         thread.success.connect(on_success)
 
-        # Esegui
+        # Execute
         thread.run()
 
-        # Verifica signal emesso
+        # Verify signal emitted
         assert len(success_paths) == 1
         assert success_paths[0][0] == nifti_path
         assert success_paths[0][1] == json_path
 
-        # Verifica file NIfTI creato
+        # Verify NIfTI file created
         assert os.path.exists(nifti_path)
         loaded_img = nib.load(nifti_path)
         loaded_data = loaded_img.get_fdata()
         assert loaded_data.shape == data.shape
         np.testing.assert_array_almost_equal(loaded_data, data, decimal=0)
 
-        # Verifica affine
+        # Verify affine
         np.testing.assert_array_almost_equal(loaded_img.affine, affine)
 
     def test_json_metadata_structure(self, temp_workspace):
-        """Test struttura e contenuto del file JSON"""
+        """Test structure and content of the JSON file"""
         data = np.ones((5, 5, 5), dtype=np.uint8)
         affine = np.eye(4)
 
@@ -134,13 +134,13 @@ class TestSaveNiftiThreadExecution:
         )
         thread.run()
 
-        # Verifica JSON creato
+        # Verify JSON created
         assert os.path.exists(json_path)
 
         with open(json_path, 'r') as f:
             metadata = json.load(f)
 
-        # Verifica struttura
+        # Verify structure
         assert "Type" in metadata
         assert metadata["Type"] == "ROI"
 
@@ -158,7 +158,7 @@ class TestSaveNiftiThreadExecution:
         assert params["difference"] == difference
 
     def test_json_indentation(self, temp_workspace):
-        """Test che il JSON sia formattato con indentazione"""
+        """Test that the JSON is formatted with indentation"""
         data = np.zeros((3, 3, 3), dtype=np.uint8)
         affine = np.eye(4)
 
@@ -177,13 +177,13 @@ class TestSaveNiftiThreadExecution:
         with open(json_path, 'r') as f:
             content = f.read()
 
-        # Verifica indentazione (JSON formattato)
-        assert "    " in content  # 4 spazi di indentazione
-        assert "\n" in content  # Newline tra campi
+        # Verify indentation (formatted JSON)
+        assert "    " in content  # 4 spaces indentation
+        assert "\n" in content    # Newlines between fields
 
     def test_data_type_conversion_to_uint8(self, temp_workspace):
-        """Test conversione automatica dati a uint8"""
-        # Dati float
+        """Test automatic conversion of data to uint8"""
+        # Float data
         data = np.random.rand(5, 5, 5) * 255
         affine = np.eye(4)
 
@@ -197,22 +197,21 @@ class TestSaveNiftiThreadExecution:
         )
         thread.run()
 
-        # Verifica tipo dato salvato
+        # Verify saved data type
         loaded_img = nib.load(nifti_path)
         loaded_data = loaded_img.get_fdata()
 
-        # Dovrebbe essere convertito a uint8
+        # Should be converted to uint8
         assert loaded_data.dtype in [np.uint8, np.float32, np.float64]
-        # I valori dovrebbero essere nell'intervallo uint8
         assert loaded_data.min() >= 0
         assert loaded_data.max() <= 255
 
     def test_error_handling_invalid_path(self, temp_workspace):
-        """Test gestione errore con path non valido"""
+        """Test error handling with invalid path"""
         data = np.zeros((3, 3, 3))
         affine = np.eye(4)
 
-        # Path non valido (directory inesistente)
+        # Invalid path (nonexistent directory)
         invalid_path = os.path.join(temp_workspace, "nonexistent", "dir", "file.nii")
         json_path = os.path.join(temp_workspace, "nonexistent", "dir", "file.json")
 
@@ -227,13 +226,13 @@ class TestSaveNiftiThreadExecution:
 
         thread.run()
 
-        # Dovrebbe emettere errore
+        # Should emit an error
         assert len(error_msgs) == 1
         assert len(error_msgs[0]) > 0
 
     @patch('nibabel.save')
     def test_error_during_nifti_save(self, mock_save, temp_workspace):
-        """Test gestione errore durante salvataggio NIfTI"""
+        """Test error handling during NIfTI saving"""
         mock_save.side_effect = IOError("Disk full")
 
         data = np.zeros((3, 3, 3))
@@ -257,10 +256,10 @@ class TestSaveNiftiThreadExecution:
         assert "Disk full" in error_msgs[0]
 
     def test_different_affine_matrices(self, temp_workspace):
-        """Test con diverse matrici affine"""
+        """Test with different affine matrices"""
         data = np.ones((4, 4, 4), dtype=np.uint8)
 
-        # Affine con voxel size diversi
+        # Affine with different voxel sizes
         affine = np.diag([2.5, 3.0, 3.5, 1.0])
         affine[:3, 3] = [10, 20, 30]  # Offset
 
@@ -274,16 +273,16 @@ class TestSaveNiftiThreadExecution:
         )
         thread.run()
 
-        # Verifica affine salvata correttamente
+        # Verify affine saved correctly
         loaded_img = nib.load(nifti_path)
         np.testing.assert_array_almost_equal(loaded_img.affine, affine)
 
 
 class TestImageLoadThreadInitialization:
-    """Test per l'inizializzazione di ImageLoadThread"""
+    """Tests for ImageLoadThread initialization"""
 
     def test_init_regular_image(self, temp_workspace):
-        """Test inizializzazione per immagine regolare"""
+        """Test initialization for regular image"""
         file_path = os.path.join(temp_workspace, "test.nii")
         thread = ImageLoadThread(file_path, is_overlay=False)
 
@@ -291,7 +290,7 @@ class TestImageLoadThreadInitialization:
         assert thread.is_overlay is False
 
     def test_init_overlay_image(self, temp_workspace):
-        """Test inizializzazione per immagine overlay"""
+        """Test initialization for overlay image"""
         file_path = os.path.join(temp_workspace, "overlay.nii.gz")
         thread = ImageLoadThread(file_path, is_overlay=True)
 
@@ -299,7 +298,7 @@ class TestImageLoadThreadInitialization:
         assert thread.is_overlay is True
 
     def test_signals_exist(self, temp_workspace):
-        """Verifica che i signal siano definiti correttamente"""
+        """Verify that the signals are correctly defined"""
         thread = ImageLoadThread("dummy.nii", False)
 
         assert hasattr(thread, 'finished')
@@ -308,11 +307,11 @@ class TestImageLoadThreadInitialization:
 
 
 class TestImageLoadThread3D:
-    """Test per il caricamento di immagini NIfTI 3D"""
+    """Tests for loading 3D NIfTI images"""
 
     def test_load_3d_nifti_success(self, temp_workspace):
-        """Test caricamento riuscito di NIfTI 3D"""
-        # Crea immagine 3D di test
+        """Test successful loading of 3D NIfTI"""
+        # Create 3D test image
         data_3d = np.random.rand(20, 20, 20).astype(np.float32) * 100
         affine = np.eye(4)
         img = nib.Nifti1Image(data_3d, affine)
@@ -322,7 +321,7 @@ class TestImageLoadThread3D:
 
         thread = ImageLoadThread(nifti_path, is_overlay=False)
 
-        # Connetti signal
+        # Connect signal
         results = []
 
         def on_finished(img_data, dims, aff, is_4d, is_overlay):
@@ -336,10 +335,10 @@ class TestImageLoadThread3D:
 
         thread.finished.connect(on_finished)
 
-        # Esegui
+        # Execute
         thread.run()
 
-        # Verifica risultati
+        # Verify results
         assert len(results) == 1
         result = results[0]
 
@@ -349,13 +348,13 @@ class TestImageLoadThread3D:
         assert result['img_data'].shape == (20, 20, 20)
         assert result['img_data'].dtype == np.float32
 
-        # Verifica normalizzazione (valori tra 0 e 1)
+        # Verify normalization (values between 0 and 1)
         assert result['img_data'].min() >= 0
         assert result['img_data'].max() <= 1
 
     def test_load_3d_progress_emissions(self, temp_workspace):
-        """Test emissione progress durante caricamento 3D"""
-        # Crea immagine semplice
+        """Test progress emissions during 3D loading"""
+        # Create simple image
         data = np.ones((10, 10, 10))
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -369,22 +368,22 @@ class TestImageLoadThread3D:
 
         thread.run()
 
-        # Verifica progress emesso
+        # Verify progress emitted
         assert len(progress_values) > 0
         assert 10 in progress_values
         assert 100 in progress_values
 
-        # Verifica crescita monotonica
+        # Verify monotonic increase
         for i in range(1, len(progress_values)):
             assert progress_values[i] >= progress_values[i - 1]
 
 
 class TestImageLoadThread4D:
-    """Test per il caricamento di immagini NIfTI 4D"""
+    """Tests for loading 4D NIfTI images"""
 
     def test_load_4d_nifti_success(self, temp_workspace):
-        """Test caricamento riuscito di NIfTI 4D"""
-        # Crea immagine 4D (es. fMRI time series)
+        """Test successful loading of 4D NIfTI"""
+        # Create 4D image (e.g., fMRI time series)
         data_4d = np.random.rand(15, 15, 15, 10).astype(np.float32) * 50
         affine = np.eye(4)
         img = nib.Nifti1Image(data_4d, affine)
@@ -408,10 +407,10 @@ class TestImageLoadThread4D:
         assert img_data.shape == (15, 15, 15, 10)
 
     def test_anisotropic_voxels(self, temp_workspace):
-        """Test con voxel anisotropici"""
+        """Test with anisotropic voxels"""
         data = np.random.rand(10, 20, 30).astype(np.float32)
 
-        # Affine con voxel size diversi per ogni asse
+        # Affine with different voxel sizes for each axis
         affine = np.diag([0.5, 1.0, 2.0, 1.0])
 
         img = nib.Nifti1Image(data, affine)
@@ -431,12 +430,12 @@ class TestImageLoadThread4D:
         assert len(results) == 1
         img_data, loaded_affine = results[0]
 
-        # Dimensioni preservate (o riordinate da canonicalizzazione)
+        # Dimensions preserved (or reordered after canonicalization)
         assert img_data.ndim == 3
         assert isinstance(loaded_affine, np.ndarray)
 
     def test_different_data_types(self, temp_workspace):
-        """Test con diversi dtype di input"""
+        """Test with different input dtypes"""
         dtypes_to_test = [np.uint8, np.int16, np.float32, np.float64]
 
         for dtype in dtypes_to_test:
@@ -456,15 +455,15 @@ class TestImageLoadThread4D:
 
             thread.run()
 
-            # Dovrebbe sempre normalizzare a float32
+            # Should always normalize to float32
             assert len(results) == 1
             assert results[0].dtype == np.float32
             assert results[0].min() >= 0
             assert results[0].max() <= 1
 
     def test_negative_values_handling(self, temp_workspace):
-        """Test gestione valori negativi"""
-        # Dati con valori negativi (es. mappe parametriche)
+        """Test handling of negative values"""
+        # Data with negative values (e.g., parametric maps)
         data = np.random.randn(15, 15, 15).astype(np.float32)
 
         img = nib.Nifti1Image(data, np.eye(4))
@@ -483,22 +482,22 @@ class TestImageLoadThread4D:
 
         normalized = results[0]
 
-        # Anche con valori negativi, normalizzazione a [0, 1]
+        # Even with negative values, normalization must be in [0, 1]
         assert normalized.min() >= 0
         assert normalized.max() <= 1
 
 
 class TestSaveLoadThreadsIntegration:
-    """Test di integrazione tra SaveNiftiThread e ImageLoadThread"""
+    """Integration tests between SaveNiftiThread and ImageLoadThread"""
 
     def test_save_and_reload_cycle(self, temp_workspace):
-        """Test ciclo completo: salva e ricarica"""
-        # Dati originali
+        """Full cycle test: save and reload"""
+        # Original data
         original_data = np.random.randint(0, 255, (12, 12, 12), dtype=np.uint8)
         affine = np.eye(4)
         affine[0, 0] = 2.0
 
-        # Salva
+        # Save
         nifti_path = os.path.join(temp_workspace, "cycle_test.nii.gz")
         json_path = os.path.join(temp_workspace, "cycle_test.json")
 
@@ -523,7 +522,7 @@ class TestSaveLoadThreadsIntegration:
         save_thread.run()
         assert len(save_success) == 1
 
-        # Ricarica
+        # Reload
         load_thread = ImageLoadThread(nifti_path, is_overlay=False)
 
         loaded_results = []
@@ -537,14 +536,14 @@ class TestSaveLoadThreadsIntegration:
         assert len(loaded_results) == 1
         loaded_data, loaded_dims, loaded_affine = loaded_results[0]
 
-        # Verifica dimensioni
+        # Verify dimensions
         assert loaded_dims == (12, 12, 12)
 
-        # Verifica affine (può essere leggermente diversa dopo canonical)
-        # ma dovrebbe avere voxel size simile
+        # Verify affine (may slightly differ after canonicalization)
+        # but voxel size should be similar
         assert loaded_affine.shape == (4, 4)
 
-        # Verifica JSON
+        # Verify JSON
         assert os.path.exists(json_path)
         with open(json_path, 'r') as f:
             metadata = json.load(f)
@@ -552,7 +551,7 @@ class TestSaveLoadThreadsIntegration:
         assert metadata["Origin"]["radius"] == 2.5
 
     def test_save_load_multiple_files(self, temp_workspace):
-        """Test salvataggio e caricamento di più file"""
+        """Test saving and loading multiple files"""
         num_files = 5
         saved_paths = []
 
@@ -570,7 +569,7 @@ class TestSaveLoadThreadsIntegration:
             save_thread.run()
             saved_paths.append(nifti_path)
 
-        # Ricarica tutti
+        # Reload all
         for path in saved_paths:
             load_thread = ImageLoadThread(path, False)
 
@@ -584,8 +583,8 @@ class TestSaveLoadThreadsIntegration:
             assert len(results) == 1
 
     def test_save_4d_reload_as_4d(self, temp_workspace):
-        """Test salvataggio e ricarico di dati 4D"""
-        # Crea dati 4D
+        """Test saving and reloading 4D data"""
+        # Create 4D data
         data_4d = np.random.randint(0, 255, (10, 10, 10, 5), dtype=np.uint8)
         affine = np.eye(4)
 
@@ -594,7 +593,7 @@ class TestSaveLoadThreadsIntegration:
 
         source_dict = {"radius": 3.0, "difference": 0.15}
 
-        # SaveNiftiThread dovrebbe gestire anche 4D
+        # SaveNiftiThread should also handle 4D
         save_thread = SaveNiftiThread(
             data_4d, affine, nifti_path, json_path,
             "rel_4d.nii", source_dict
@@ -606,7 +605,7 @@ class TestSaveLoadThreadsIntegration:
 
         assert len(save_success) == 1
 
-        # Ricarica come 4D
+        # Reload as 4D
         load_thread = ImageLoadThread(nifti_path, False)
 
         results = []
@@ -623,10 +622,10 @@ class TestSaveLoadThreadsIntegration:
 
 
 class TestConcurrencyAndThreadSafety:
-    """Test per concorrenza e thread safety"""
+    """Tests for concurrency and thread safety"""
 
     def test_multiple_save_threads_concurrent(self, temp_workspace):
-        """Test esecuzione concorrente di più SaveNiftiThread"""
+        """Test concurrent execution of multiple SaveNiftiThread"""
         threads = []
         success_count = [0]
 
@@ -647,19 +646,19 @@ class TestConcurrencyAndThreadSafety:
             thread.success.connect(on_success)
             threads.append(thread)
 
-        # Avvia tutti i thread
+        # Start all threads
         for thread in threads:
             thread.run()
 
-        # Attendi completamento
+        # Wait for completion
         for thread in threads:
-            thread.wait(5000)  # 5 secondi timeout
+            thread.wait(5000)  # 5-second timeout
 
         assert success_count[0] == 3
 
     def test_multiple_load_threads_concurrent(self, temp_workspace):
-        """Test caricamento concorrente di più file"""
-        # Crea file di test
+        """Test concurrent loading of multiple files"""
+        # Create test files
         file_paths = []
         for i in range(3):
             data = np.random.rand(6, 6, 6).astype(np.float32)
@@ -679,11 +678,11 @@ class TestConcurrencyAndThreadSafety:
             thread.finished.connect(on_finished)
             threads.append(thread)
 
-        # Avvia tutti
+        # Start all
         for thread in threads:
             thread.run()
 
-        # Attendi
+        # Wait
         for thread in threads:
             thread.wait(5000)
 
@@ -691,10 +690,10 @@ class TestConcurrencyAndThreadSafety:
 
 
 class TestSpecialCases:
-    """Test per casi speciali e boundary conditions"""
+    """Tests for special cases and boundary conditions"""
 
     def test_save_zero_volume(self, temp_workspace):
-        """Test salvataggio volume con tutti zeri"""
+        """Test saving a volume with all zeros"""
         data = np.zeros((10, 10, 10), dtype=np.uint8)
         nifti_path = os.path.join(temp_workspace, "all_zeros.nii")
         json_path = os.path.join(temp_workspace, "all_zeros.json")
@@ -714,7 +713,7 @@ class TestSpecialCases:
         assert os.path.exists(nifti_path)
 
     def test_load_zero_volume(self, temp_workspace):
-        """Test caricamento volume con tutti zeri"""
+        """Test loading a volume with all zeros"""
         data = np.zeros((8, 8, 8))
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -731,14 +730,14 @@ class TestSpecialCases:
 
         thread.run()
 
-        # Dovrebbe gestire correttamente
+        # Should handle it correctly
         assert len(results) == 1
         normalized = results[0]
         assert not np.any(np.isnan(normalized))
 
     def test_save_binary_mask(self, temp_workspace):
-        """Test salvataggio maschera binaria"""
-        # Maschera binaria (0 e 1)
+        """Test saving a binary mask"""
+        # Binary mask (0 and 1)
         mask = np.random.randint(0, 2, (15, 15, 15), dtype=np.uint8)
 
         nifti_path = os.path.join(temp_workspace, "binary_mask.nii.gz")
@@ -757,28 +756,28 @@ class TestSpecialCases:
 
         assert len(success) == 1
 
-        # Verifica integrità
+        # Verify integrity
         loaded = nib.load(nifti_path)
         loaded_data = loaded.get_fdata()
 
-        # Dovrebbe preservare valori binari
+        # Should preserve binary values
         unique_vals = np.unique(loaded_data)
         assert len(unique_vals) <= 2
 
     def test_load_compressed_vs_uncompressed(self, temp_workspace):
-        """Test caricamento file compressi vs non compressi"""
+        """Test loading compressed vs uncompressed files"""
         data = np.random.rand(10, 10, 10).astype(np.float32)
         img = nib.Nifti1Image(data, np.eye(4))
 
-        # Salva versione compressa
+        # Save compressed version
         compressed_path = os.path.join(temp_workspace, "compressed.nii.gz")
         nib.save(img, compressed_path)
 
-        # Salva versione non compressa
+        # Save uncompressed version
         uncompressed_path = os.path.join(temp_workspace, "uncompressed.nii")
         nib.save(img, uncompressed_path)
 
-        # Carica entrambi
+        # Load both
         results_compressed = []
         thread_compressed = ImageLoadThread(compressed_path, False)
         thread_compressed.finished.connect(
@@ -795,7 +794,7 @@ class TestSpecialCases:
         )
         thread_uncompressed.run()
 
-        # Dovrebbero dare risultati equivalenti
+        # They should produce equivalent results
         assert len(results_compressed) == 1
         assert len(results_uncompressed) == 1
 
@@ -806,10 +805,10 @@ class TestSpecialCases:
         )
 
     def test_save_with_special_characters_in_path(self, temp_workspace):
-        """Test salvataggio con caratteri speciali nel path"""
+        """Test saving with special characters in the path"""
         data = np.ones((5, 5, 5), dtype=np.uint8)
 
-        # Nome file con spazi e caratteri speciali
+        # Filename with spaces and special characters
         nifti_path = os.path.join(temp_workspace, "test file (copy) #1.nii")
         json_path = os.path.join(temp_workspace, "test file (copy) #1.json")
 
@@ -829,10 +828,10 @@ class TestSpecialCases:
 
 
 class TestParameterValidation:
-    """Test validazione parametri"""
+    """Tests for parameter validation"""
 
     def test_save_with_extreme_radius_values(self, temp_workspace):
-        """Test con valori estremi per radius"""
+        """Test with extreme values for radius"""
         data = np.ones((5, 5, 5), dtype=np.uint8)
 
         extreme_radii = [0.0, 100.0, 1e6, -5.0]
@@ -853,16 +852,16 @@ class TestParameterValidation:
             thread.success.connect(lambda p, j: success.append(True))
             thread.run()
 
-            # Dovrebbe salvare anche con valori estremi
+            # Should still save even with extreme values
             assert len(success) == 1
 
-            # Verifica JSON contiene il valore
+            # Verify JSON contains the value
             with open(json_path, 'r') as f:
                 metadata = json.load(f)
             assert metadata["Origin"]["radius"] == radius
 
     def test_save_with_extreme_difference_values(self, temp_workspace):
-        """Test con valori estremi per difference"""
+        """Test with extreme values for difference"""
         data = np.ones((5, 5, 5), dtype=np.uint8)
 
         extreme_diffs = [0.0, 1.0, 10.0, -1.0]
@@ -890,11 +889,11 @@ class TestParameterValidation:
 
 
 class TestPerformanceAndScalability:
-    """Test per performance e scalabilità"""
+    """Tests for performance and scalability"""
 
     def test_large_4d_dataset(self, temp_workspace):
-        """Test con dataset 4D grande"""
-        # Dataset 4D simulato (non troppo grande per CI)
+        """Test with a large 4D dataset"""
+        # Simulated 4D dataset (not too large for CI)
         data_4d = np.random.rand(40, 40, 40, 20).astype(np.float32)
         img = nib.Nifti1Image(data_4d, np.eye(4))
 
@@ -917,12 +916,12 @@ class TestPerformanceAndScalability:
         assert len(results) == 1
         assert results[0] == (40, 40, 40, 20)
 
-        # Progress dovrebbe essere emesso
+        # Progress should be emitted
         assert len(progress_updates) > 0
         assert 100 in progress_updates
 
     def test_progress_tracking_accuracy(self, temp_workspace):
-        """Test accuratezza tracking progress"""
+        """Test accuracy of progress tracking"""
         data = np.random.rand(25, 25, 25).astype(np.float32)
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -936,18 +935,18 @@ class TestPerformanceAndScalability:
 
         thread.run()
 
-        # Verifica sequenza progress
+        # Verify progress sequence
         expected_milestones = [10, 30, 50, 70, 80, 100]
         for milestone in expected_milestones:
             assert milestone in progress_values
 
-        # Verifica ordine crescente
+        # Verify increasing order
         for i in range(1, len(progress_values)):
             assert progress_values[i] >= progress_values[i - 1]
 
 
 class TestNiftiThreadParameterized:
-    """Test parametrizzati e di normalizzazione per i thread NIfTI"""
+    """Parameterized tests and normalization tests for NIfTI threads"""
 
     @pytest.mark.parametrize("shape", [
         (5, 5, 5),
@@ -956,7 +955,7 @@ class TestNiftiThreadParameterized:
         (50, 50, 50)
     ])
     def test_save_various_shapes(self, shape, temp_workspace):
-        """Test parametrizzato per diverse forme di volumi"""
+        """Parameterized test for different volume shapes"""
         data = np.random.randint(0, 255, shape, dtype=np.uint8)
         nifti_path = os.path.join(temp_workspace, f"shape_{'x'.join(map(str, shape))}.nii")
         json_path = nifti_path.replace('.nii', '.json')
@@ -974,13 +973,13 @@ class TestNiftiThreadParameterized:
 
         assert len(success) == 1
 
-        # Verifica caricamento
+        # Verify loading
         loaded = nib.load(nifti_path)
         assert loaded.shape == shape
 
     @pytest.mark.parametrize("is_overlay", [True, False])
     def test_load_overlay_flag(self, is_overlay, temp_workspace):
-        """Test parametrizzato per flag overlay"""
+        """Parameterized test for the overlay flag"""
         data = np.random.rand(8, 8, 8).astype(np.float32)
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -1001,10 +1000,10 @@ class TestNiftiThreadParameterized:
         assert results[0] == is_overlay
 
     def test_load_4d_normalization_per_volume(self, temp_workspace):
-        """Test normalizzazione indipendente per ogni volume 4D"""
-        # Crea 4D con volumi a intensità diverse (con variabilità per evitare volumi costanti)
+        """Test independent normalization for each 4D volume"""
+        # Create 4D with different intensities per volume (add variability to avoid constant volumes)
         volume1 = np.ones((10, 10, 10)) * 100
-        volume1[0, 0, 0] = 101  # Aggiungi variabilità
+        volume1[0, 0, 0] = 101  # Add variability
         volume2 = np.ones((10, 10, 10)) * 200
         volume2[0, 0, 0] = 201
         volume3 = np.ones((10, 10, 10)) * 50
@@ -1028,7 +1027,7 @@ class TestNiftiThreadParameterized:
 
         normalized_data = results[0]
 
-        # Ogni volume dovrebbe essere normalizzato indipendentemente
+        # Each volume should be normalized independently
         for i in range(3):
             vol = normalized_data[..., i]
             assert vol.min() >= 0
@@ -1037,14 +1036,14 @@ class TestNiftiThreadParameterized:
 
 
 class TestImageLoadThreadNormalization:
-    """Test per la normalizzazione basata su percentili"""
+    """Tests for percentile-based normalization"""
 
     def test_normalize_data_matplotlib_style(self, temp_workspace):
-        """Test normalizzazione con percentili"""
-        # Crea dati con outlier
+        """Test normalization using percentiles"""
+        # Create data with outliers
         data = np.random.randn(30, 30, 30).astype(np.float32) * 100
-        data[0, 0, 0] = 10000  # Outlier alto
-        data[1, 1, 1] = -5000  # Outlier basso
+        data[0, 0, 0] = 10000  # High outlier
+        data[1, 1, 1] = -5000  # Low outlier
 
         img = nib.Nifti1Image(data, np.eye(4))
         nifti_path = os.path.join(temp_workspace, "outliers.nii")
@@ -1062,20 +1061,20 @@ class TestImageLoadThreadNormalization:
 
         normalized = results[0]
 
-        # Verifica che outlier non dominino la normalizzazione
-        # La maggior parte dei valori dovrebbe essere ben distribuita
+        # Verify that outliers do not dominate normalization
+        # Most values should be reasonably distributed
         assert normalized.min() >= 0
         assert normalized.max() <= 1
 
-        # Percentili intermedi dovrebbero essere ben distribuiti
+        # Intermediate percentiles should be well distributed
         p25 = np.percentile(normalized, 25)
         p75 = np.percentile(normalized, 75)
         assert 0.1 < p25 < 0.9
         assert 0.1 < p75 < 0.9
 
     def test_normalize_uniform_data(self, temp_workspace):
-        """Test normalizzazione con dati uniformi"""
-        # Tutti i voxel hanno lo stesso valore
+        """Test normalization with uniform data"""
+        # All voxels have the same value
         data = np.ones((10, 10, 10)) * 42.0
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -1094,14 +1093,14 @@ class TestImageLoadThreadNormalization:
 
         normalized = results[0]
 
-        # Con dati uniformi, la normalizzazione dovrebbe gestire gracefully
+        # With uniform data, normalization should handle it gracefully
         assert not np.any(np.isnan(normalized))
         assert not np.any(np.isinf(normalized))
         assert normalized.min() >= 0
         assert normalized.max() <= 1
 
     def test_normalize_with_nan_values(self, temp_workspace):
-        """Test normalizzazione con valori NaN"""
+        """Test normalization with NaN values"""
         data = np.random.rand(10, 10, 10).astype(np.float32)
         data[5, 5, 5] = np.nan
         data[3, 3, 3] = np.inf
@@ -1122,42 +1121,42 @@ class TestImageLoadThreadNormalization:
 
         normalized = results[0]
 
-        # Dovrebbe gestire NaN/Inf senza propagarli
+        # Should handle NaN/Inf without propagating them
         finite_count = np.isfinite(normalized).sum()
-        assert finite_count > 0  # Almeno alcuni valori finiti
+        assert finite_count > 0  # At least some finite values
 
     def test_normalize_empty_volume(self):
-        """Test normalizzazione volume vuoto"""
+        """Test normalization of an empty volume"""
         thread = ImageLoadThread("dummy.nii", False)
 
-        # Test diretto del metodo
+        # Direct test of the method
         empty_data = np.array([])
         result = thread.normalize_data_matplotlib_style(empty_data)
 
         assert result.size == 0
 
     def test_normalize_volume_all_invalid(self):
-        """Test normalizzazione con tutti valori invalidi"""
+        """Test normalization with all invalid values"""
         thread = ImageLoadThread("dummy.nii", False)
 
-        # Volume con solo NaN
+        # Volume with only NaN values
         nan_volume = np.full((5, 5, 5), np.nan)
         result = thread.normalize_data_matplotlib_style(nan_volume)
 
-        # Dovrebbe restituire zeri
+        # Should return zeros
         assert result.shape == nan_volume.shape
         assert np.all(result == 0)
 
 
 class TestImageLoadThreadCanonicalOrientation:
-    """Test per la conversione a orientamento canonico RAS+"""
+    """Tests for conversion to canonical RAS+ orientation"""
 
     def test_canonical_orientation_applied(self, temp_workspace):
-        """Test che l'immagine venga convertita a RAS+"""
-        # Crea immagine con orientamento non-canonico
+        """Test that the image is converted to RAS+ orientation"""
+        # Create an image with non-canonical orientation
         data = np.random.rand(10, 12, 8).astype(np.float32)
 
-        # Affine con orientamento diverso (es. LAS)
+        # Affine with a different orientation (e.g., LAS)
         affine = np.array([
             [-2, 0, 0, 10],
             [0, 2, 0, 20],
@@ -1181,22 +1180,21 @@ class TestImageLoadThreadCanonicalOrientation:
 
         img_data, loaded_affine = results[0]
 
-        # L'immagine dovrebbe essere in orientamento canonico
-        # (potrebbe cambiare dimensioni se riordinata)
+        # The image should now be in canonical orientation
         assert img_data.shape[0] > 0
         assert img_data.shape[1] > 0
         assert img_data.shape[2] > 0
 
-        # Affine dovrebbe essere modificata
+        # Affine should be updated
         assert isinstance(loaded_affine, np.ndarray)
         assert loaded_affine.shape == (4, 4)
 
 
 class TestImageLoadThreadErrorHandling:
-    """Test per la gestione degli errori"""
+    """Tests for error handling"""
 
     def test_error_file_not_found(self, temp_workspace):
-        """Test errore con file inesistente"""
+        """Test error when file does not exist"""
         nonexistent_path = os.path.join(temp_workspace, "does_not_exist.nii")
         thread = ImageLoadThread(nonexistent_path, False)
 
@@ -1209,8 +1207,8 @@ class TestImageLoadThreadErrorHandling:
         assert len(error_msgs[0]) > 0
 
     def test_error_invalid_nifti_file(self, temp_workspace):
-        """Test errore con file non-NIfTI"""
-        # Crea file di testo invece di NIfTI
+        """Test error with a non-NIfTI file"""
+        # Create a text file instead of a NIfTI
         invalid_path = os.path.join(temp_workspace, "invalid.nii")
         with open(invalid_path, 'w') as f:
             f.write("This is not a NIfTI file")
@@ -1225,10 +1223,10 @@ class TestImageLoadThreadErrorHandling:
         assert len(error_msgs) == 1
 
     def test_error_corrupted_nifti(self, temp_workspace):
-        """Test errore con NIfTI corrotto"""
+        """Test error with a corrupted NIfTI file"""
         corrupted_path = os.path.join(temp_workspace, "corrupted.nii.gz")
 
-        # Crea file parzialmente valido ma corrotto
+        # Create a partially valid but corrupted file
         with open(corrupted_path, 'wb') as f:
             f.write(b'corrupted data that looks like gzip')
 
@@ -1243,7 +1241,7 @@ class TestImageLoadThreadErrorHandling:
 
     @patch('nibabel.load')
     def test_error_during_load(self, mock_load, temp_workspace):
-        """Test gestione errore generico durante caricamento"""
+        """Test generic load error handling"""
         mock_load.side_effect = RuntimeError("Memory error")
 
         nifti_path = os.path.join(temp_workspace, "test.nii")
@@ -1259,11 +1257,10 @@ class TestImageLoadThreadErrorHandling:
 
 
 class TestImageLoadThreadNifti2Support:
-    """Test per il supporto NIfTI-2"""
+    """Tests for NIfTI-2 support"""
 
     def test_nifti2_image_loads(self, temp_workspace):
-        """Test caricamento immagine NIfTI-2"""
-        # Crea immagine NIfTI-2
+        """Test loading a NIfTI-2 image"""
         data = np.random.rand(8, 8, 8).astype(np.float32)
         affine = np.eye(4)
         img = nib.Nifti2Image(data, affine)
@@ -1281,18 +1278,17 @@ class TestImageLoadThreadNifti2Support:
 
         thread.run()
 
-        # Dovrebbe caricare correttamente
         assert len(results) == 1
         assert results[0].shape == (8, 8, 8)
 
 
 class TestImageLoadThreadMemoryMapping:
-    """Test per memory mapping"""
+    """Tests for memory mapping"""
 
     @patch('nibabel.load')
     def test_memory_mapping_used(self, mock_load, temp_workspace):
-        """Test che memory mapping sia utilizzato"""
-        # Mock per verificare parametro mmap
+        """Test that memory mapping is used"""
+        # Mock to check mmap argument
         mock_img = Mock(spec=nib.Nifti1Image)
         mock_img.header.get_data_shape.return_value = (10, 10, 10)
         mock_img.affine = np.eye(4)
@@ -1309,17 +1305,17 @@ class TestImageLoadThreadMemoryMapping:
             thread = ImageLoadThread("dummy.nii", False)
             thread.run()
 
-            # Verifica che load sia stato chiamato con mmap
+            # Verify mmap was used
             mock_load.assert_called_once()
             call_args = mock_load.call_args
             assert call_args[1].get('mmap') == 'c'
 
 
 class TestEdgeCasesAndIntegration:
-    """Test per casi limite e scenari di integrazione"""
+    """Tests for edge cases and integration scenarios"""
 
     def test_very_small_image(self, temp_workspace):
-        """Test con immagine molto piccola (1x1x1)"""
+        """Test with a very small image (1×1×1)"""
         data = np.array([[[42.0]]])
         img = nib.Nifti1Image(data, np.eye(4))
 
@@ -1341,10 +1337,10 @@ class TestEdgeCasesAndIntegration:
         assert np.isclose(results[0][0, 0, 0], 0.0) or np.isclose(results[0][0, 0, 0], 1.0)
 
     def test_large_dimensions(self, temp_workspace):
-        """Test con immagine di grandi dimensioni"""
-        # Simula un volume grande, ma gestibile
+        """Test with a large image"""
+        # Simulate a large but manageable volume
         data = np.zeros((100, 100, 100), dtype=np.float32)
-        data[50, 50, 50] = 100  # aggiunge un punto ad alta intensità
+        data[50, 50, 50] = 100  # add high-intensity point
 
         img = nib.Nifti1Image(data, np.eye(4))
         nifti_path = os.path.join(temp_workspace, "large.nii.gz")
@@ -1366,14 +1362,14 @@ class TestEdgeCasesAndIntegration:
         assert dims == (100, 100, 100)
         assert not is_4d
         assert img_data.shape == (100, 100, 100)
-        assert np.all((img_data >= 0) & (img_data <= 1)), "I valori normalizzati devono stare tra 0 e 1"
+        assert np.all((img_data >= 0) & (img_data <= 1)), "Normalized values must be between 0 and 1"
         assert np.isclose(img_data[50, 50, 50], 1.0, atol=1e-3)
 
     def test_invalid_file_emits_error(self, temp_workspace):
-        """Test che un file non NIfTI emetta il segnale di errore"""
+        """Test that a non-NIfTI file emits an error signal"""
         invalid_path = os.path.join(temp_workspace, "not_nifti.txt")
         with open(invalid_path, "w") as f:
-            f.write("questa non è un'immagine")
+            f.write("this is not an image")
 
         thread = ImageLoadThread(invalid_path, False)
 
@@ -1390,7 +1386,7 @@ class TestEdgeCasesAndIntegration:
         ])
 
     def test_save_nifti_thread_success(self, temp_workspace):
-        """Test d’integrazione: salvataggio NIfTI + JSON"""
+        """Integration test: NIfTI + JSON save"""
         data = np.ones((5, 5, 5), dtype=np.uint8)
         affine = np.eye(4)
         nifti_path = os.path.join(temp_workspace, "roi.nii.gz")
@@ -1414,7 +1410,7 @@ class TestEdgeCasesAndIntegration:
 
         thread.run()
 
-        # Controlla che i file siano stati creati
+        # Check that files were created
         assert os.path.exists(nifti_path)
         assert os.path.exists(json_path)
 
@@ -1423,7 +1419,7 @@ class TestEdgeCasesAndIntegration:
         assert npath.endswith(".nii.gz")
         assert jpath.endswith(".json")
 
-        # Controlla che il JSON contenga i campi corretti
+        # Check JSON contains correct fields
         import json
         with open(json_path) as f:
             meta = json.load(f)
@@ -1432,7 +1428,7 @@ class TestEdgeCasesAndIntegration:
         assert meta["Origin"]["radius"] == 2.0
 
     def test_save_nifti_thread_error(self, tmp_path):
-        """Test di errore: percorso non scrivibile"""
+        """Error test: unwritable path"""
         bad_path = "/invalid/path/roi.nii.gz"
         json_path = os.path.join(tmp_path, "roi.json")
 
@@ -1456,6 +1452,7 @@ class TestEdgeCasesAndIntegration:
 
         assert len(errors) == 1
         assert isinstance(errors[0], str)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
