@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch, MagicMock
 from main.ui.pipeline_patient_selection_page import PipelinePatientSelectionPage
 
 class TestPipelinePatientSelectionPageSetup:
-    """Test per l'inizializzazione"""
+    """Tests for initialization"""
 
     @pytest.fixture
     def temp_workspace(self):
@@ -23,25 +23,25 @@ class TestPipelinePatientSelectionPageSetup:
         return page
 
     def test_page_initialization(self, pipeline_page):
-        """Verifica inizializzazione corretta"""
+        """Verify correct initialization"""
         assert pipeline_page.context is not None
         assert pipeline_page.workspace_path is not None
         assert pipeline_page.selected_patients == set()
         assert pipeline_page.patient_status == {}
 
     def test_title_created(self, pipeline_page):
-        """Verifica creazione titolo"""
+        """Verify title creation"""
         assert pipeline_page.title is not None
         assert pipeline_page.title.text() != ""
 
     def test_buttons_created(self, pipeline_page):
-        """Verifica creazione pulsanti"""
+        """Verify button creation"""
         assert pipeline_page.select_eligible_btn is not None
         assert pipeline_page.deselect_all_btn is not None
         assert pipeline_page.refresh_btn is not None
 
     def test_summary_widget_created(self, pipeline_page):
-        """Verifica creazione widget riassunto"""
+        """Verify summary widget creation"""
         assert pipeline_page.summary_widget is not None
         assert pipeline_page.total_label is not None
         assert pipeline_page.eligible_label is not None
@@ -49,12 +49,12 @@ class TestPipelinePatientSelectionPageSetup:
 
 
 class TestPipelinePatientRequirements:
-    """Test per verifica requisiti pazienti"""
+    """Tests for verifying patient requirements"""
 
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
-        # Crea struttura paziente eligible
+        # Create eligible patient structure
         patient_dir = os.path.join(temp_dir, "sub-01")
         os.makedirs(os.path.join(patient_dir, "anat"))
 
@@ -84,7 +84,7 @@ class TestPipelinePatientRequirements:
         return page
 
     def test_check_patient_eligible(self, pipeline_page, temp_workspace):
-        """Verifica paziente con tutti i requisiti"""
+        """Verify patient with all requirements"""
         patient_path = os.path.join(temp_workspace, "sub-01")
 
         status = pipeline_page._check_patient_requirements(patient_path, "sub-01")
@@ -95,8 +95,8 @@ class TestPipelinePatientRequirements:
         assert status['requirements']['segmentation'] == True
 
     def test_check_patient_missing_flair(self, pipeline_page, temp_workspace):
-        """Verifica paziente senza FLAIR"""
-        # Crea paziente senza FLAIR
+        """Verify patient without FLAIR"""
+        # Create patient without FLAIR
         patient_dir = os.path.join(temp_workspace, "sub-02")
         os.makedirs(os.path.join(patient_dir, "anat"))
 
@@ -107,7 +107,7 @@ class TestPipelinePatientRequirements:
         assert "FLAIR" in str(status['missing_files'])
 
     def test_check_patient_missing_skull_stripping(self, pipeline_page, temp_workspace):
-        """Verifica paziente senza skull stripping"""
+        """Verify patient without skull stripping"""
         patient_dir = os.path.join(temp_workspace, "sub-03")
         os.makedirs(os.path.join(patient_dir, "anat"))
         with open(os.path.join(patient_dir, "anat", "sub-03_flair.nii.gz"), "w") as f:
@@ -119,7 +119,7 @@ class TestPipelinePatientRequirements:
         assert status['requirements']['skull_stripping'] == False
 
     def test_check_patient_missing_segmentation(self, pipeline_page, temp_workspace):
-        """Verifica paziente senza segmentazione"""
+        """Verify patient without segmentation"""
         patient_dir = os.path.join(temp_workspace, "sub-04")
         os.makedirs(os.path.join(patient_dir, "anat"))
         with open(os.path.join(patient_dir, "anat", "sub-04_flair.nii.gz"), "w") as f:
@@ -137,12 +137,12 @@ class TestPipelinePatientRequirements:
 
 
 class TestPipelinePatientSelection:
-    """Test per selezione pazienti"""
+    """Tests for patient selection"""
 
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
-        # Crea 2 pazienti eligible
+        # Create 2 eligible patients
         for i in range(1, 3):
             patient_id = f"sub-{i:02d}"
             patient_dir = os.path.join(temp_dir, patient_id)
@@ -171,7 +171,7 @@ class TestPipelinePatientSelection:
         return page
 
     def test_select_all_eligible(self, pipeline_page):
-        """Verifica selezione di tutti i pazienti eligible"""
+        """Verify selection of all eligible patients"""
         pipeline_page._select_all_eligible_patients()
 
         assert len(pipeline_page.selected_patients) == 2
@@ -179,7 +179,7 @@ class TestPipelinePatientSelection:
         assert "sub-02" in pipeline_page.selected_patients
 
     def test_deselect_all(self, pipeline_page):
-        """Verifica deselezione di tutti i pazienti"""
+        """Verify deselection of all patients"""
         pipeline_page._select_all_eligible_patients()
         assert len(pipeline_page.selected_patients) == 2
 
@@ -188,14 +188,14 @@ class TestPipelinePatientSelection:
         assert len(pipeline_page.selected_patients) == 0
 
     def test_toggle_patient_select(self, pipeline_page):
-        """Verifica selezione singolo paziente"""
+        """Verify single patient selection"""
         button = Mock()
         pipeline_page._toggle_patient("sub-01", True, button)
 
         assert "sub-01" in pipeline_page.selected_patients
 
     def test_toggle_patient_deselect(self, pipeline_page):
-        """Verifica deselezione singolo paziente"""
+        """Verify single patient deselection"""
         pipeline_page.selected_patients.add("sub-01")
         button = Mock()
 
@@ -204,7 +204,7 @@ class TestPipelinePatientSelection:
         assert "sub-01" not in pipeline_page.selected_patients
 
 class TestPipelinePatientLoading:
-    """Test per caricamento pazienti"""
+    """Tests for patient loading"""
 
     @pytest.fixture
     def pipeline_page(self, qtbot, mock_context):
@@ -213,7 +213,7 @@ class TestPipelinePatientLoading:
         return page
 
     def test_find_patient_dirs(self, pipeline_page):
-        """Verifica ricerca directory pazienti"""
+        """Verify patient directory search"""
         patient_dirs = pipeline_page._find_patient_dirs()
 
         assert len(patient_dirs) == 2
@@ -222,16 +222,16 @@ class TestPipelinePatientLoading:
         assert "sub-02" in patient_ids
 
     def test_load_patients_creates_buttons(self, pipeline_page):
-        """Verifica creazione pulsanti per pazienti"""
+        """Verify patient button creation"""
         assert len(pipeline_page.patient_buttons) == 2
 
     def test_load_patients_updates_status(self, pipeline_page):
-        """Verifica aggiornamento stato pazienti"""
+        """Verify patient status update"""
         assert len(pipeline_page.patient_status) == 2
 
 
 class TestPipelineConfigGeneration:
-    """Test per generazione configurazione pipeline"""
+    """Tests for pipeline configuration generation"""
 
     @pytest.fixture
     def temp_workspace(self):
@@ -240,7 +240,7 @@ class TestPipelineConfigGeneration:
         os.makedirs(os.path.join(patient_dir, "anat"))
         os.makedirs(os.path.join(patient_dir, "ses-01", "pet"))
 
-        # File necessari
+        # Necessary files
         with open(os.path.join(patient_dir, "anat", "sub-01_flair.nii.gz"), "w") as f:
             f.write("flair")
         with open(os.path.join(patient_dir, "ses-01", "pet", "sub-01_pet.nii.gz"), "w") as f:
@@ -267,14 +267,14 @@ class TestPipelineConfigGeneration:
         return page
 
     def test_build_pipeline_config_creates_file(self, pipeline_page, temp_workspace):
-        """Verifica creazione file configurazione"""
+        """Verify configuration file creation"""
         config_path = pipeline_page._build_pipeline_config()
 
         assert os.path.exists(config_path)
         assert config_path.endswith("_config.json")
 
     def test_build_pipeline_config_content(self, pipeline_page):
-        """Verifica contenuto configurazione"""
+        """Verify configuration content"""
         config_path = pipeline_page._build_pipeline_config()
 
         with open(config_path, 'r') as f:
@@ -286,7 +286,7 @@ class TestPipelineConfigGeneration:
         assert "tumor_mri" in config["sub-01"]
 
     def test_get_next_config_id_first(self, pipeline_page, temp_workspace):
-        """Verifica ID configurazione prima volta"""
+        """Verify configuration ID first time"""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
 
@@ -295,11 +295,11 @@ class TestPipelineConfigGeneration:
         assert config_id == 1
 
     def test_get_next_config_id_existing(self, pipeline_page, temp_workspace):
-        """Verifica ID configurazione con file esistenti"""
+        """Verify configuration ID with existing files"""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
 
-        # Crea file esistenti
+        # Create existing files
         with open(os.path.join(pipeline_dir, "01_config.json"), "w") as f:
             f.write("{}")
         with open(os.path.join(pipeline_dir, "02_config.json"), "w") as f:
@@ -310,7 +310,7 @@ class TestPipelineConfigGeneration:
         assert config_id == 3
 
 class TestPipelinePatientRefresh:
-    """Test per refresh stato pazienti"""
+    """Tests for refreshing patient status"""
 
     @pytest.fixture
     def pipeline_page(self, qtbot, mock_context):
@@ -319,18 +319,18 @@ class TestPipelinePatientRefresh:
         return page
 
     def test_refresh_maintains_valid_selections(self, pipeline_page):
-        """Verifica che refresh mantenga selezioni valide"""
-        # Simula selezione
+        """Verify that refresh maintains valid selections"""
+        # Simulate selection
         pipeline_page.selected_patients.add("sub-01")
 
         pipeline_page._refresh_patient_status()
 
-        # Le selezioni dovrebbero essere validate
+        # Selections should be validated
         assert isinstance(pipeline_page.selected_patients, set)
 
 
 class TestPipelinePatientNavigation:
-    """Test per navigazione"""
+    """Tests for navigation"""
 
     @pytest.fixture
     def pipeline_page(self, qtbot, mock_context):
@@ -340,27 +340,27 @@ class TestPipelinePatientNavigation:
         return page
 
     def test_is_ready_to_advance_with_selection(self, pipeline_page):
-        """Verifica pronto ad avanzare con selezioni"""
+        """Verify ready to advance with selections"""
         pipeline_page.selected_patients.add("sub-01")
         assert pipeline_page.is_ready_to_advance()
 
     def test_is_ready_to_advance_without_selection(self, pipeline_page):
-        """Verifica non pronto senza selezioni"""
+        """Verify not ready without selections"""
         assert not pipeline_page.is_ready_to_advance()
 
     def test_is_ready_to_go_back(self, pipeline_page):
-        """Verifica può tornare indietro"""
+        """Verify can go back"""
         assert pipeline_page.is_ready_to_go_back()
 
     def test_back_returns_previous_page(self, pipeline_page):
-        """Verifica ritorno a pagina precedente"""
+        """Verify return to previous page"""
         result = pipeline_page.back()
         assert result == pipeline_page.previous_page
         pipeline_page.previous_page.on_enter.assert_called_once()
 
     @patch('main.ui.pipeline_patient_selection_page.PipelineReviewPage')
     def test_next_creates_review_page(self, MockPage, pipeline_page):
-        """Verifica creazione pagina review"""
+        """Verify review page creation"""
         mock_page = Mock()
         MockPage.return_value = mock_page
         pipeline_page.selected_patients.add("sub-01")
@@ -371,7 +371,7 @@ class TestPipelinePatientNavigation:
         mock_page.on_enter.assert_called_once()
 
 class TestPipelinePatientSummary:
-    """Test per funzioni di riepilogo"""
+    """Tests for summary functions"""
 
     @pytest.fixture
     def pipeline_page(self, qtbot, mock_context):
@@ -380,7 +380,7 @@ class TestPipelinePatientSummary:
         return page
 
     def test_get_selected_patients(self, pipeline_page):
-        """Verifica recupero pazienti selezionati"""
+        """Verify retrieval of selected patients"""
         pipeline_page.selected_patients = {"sub-01", "sub-02"}
 
         selected = pipeline_page.get_selected_patients()
@@ -389,7 +389,7 @@ class TestPipelinePatientSummary:
         assert len(selected) == 2
 
     def test_get_eligible_patients(self, pipeline_page):
-        """Verifica recupero pazienti eligible"""
+        """Verify retrieval of eligible patients"""
         pipeline_page.patient_status = {
             "sub-01": {"eligible": True},
             "sub-02": {"eligible": False}
@@ -401,7 +401,7 @@ class TestPipelinePatientSummary:
         assert "sub-01" in eligible
 
     def test_get_patient_status_summary(self, pipeline_page):
-        """Verifica riepilogo stato"""
+        """Verify status summary"""
         pipeline_page.patient_status = {
             "sub-01": {"eligible": True},
             "sub-02": {"eligible": False}
@@ -417,7 +417,7 @@ class TestPipelinePatientSummary:
 
 
 class TestPipelinePatientReset:
-    """Test per reset pagina"""
+    """Tests for page reset"""
 
     @pytest.fixture
     def pipeline_page(self, qtbot, mock_context):
@@ -426,7 +426,7 @@ class TestPipelinePatientReset:
         return page
 
     def test_reset_clears_selections(self, pipeline_page):
-        """Verifica che reset pulisca selezioni"""
+        """Verify that reset clears selections"""
         pipeline_page.selected_patients = {"sub-01", "sub-02"}
 
         pipeline_page.reset_page()
@@ -434,22 +434,22 @@ class TestPipelinePatientReset:
         assert len(pipeline_page.selected_patients) == 0
 
     def test_reset_clears_status(self, pipeline_page):
-        """Verifica che reset pulisca stato"""
+        """Verify that reset clears status"""
         pipeline_page.patient_status = {"sub-01": {"eligible": True}}
 
         pipeline_page.reset_page()
 
-        # Stato dovrebbe essere ricaricato
+        # Status should be reloaded
         assert isinstance(pipeline_page.patient_status, dict)
 
-# Test di integrazione
+# Integration tests
 class TestPipelinePatientIntegration:
-    """Test di integrazione"""
+    """Integration tests"""
 
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
-        # Crea paziente completo
+        # Create complete patient
         patient_dir = os.path.join(temp_dir, "sub-01")
         os.makedirs(os.path.join(patient_dir, "anat"))
         os.makedirs(os.path.join(patient_dir, "ses-01", "pet"))
@@ -477,22 +477,22 @@ class TestPipelinePatientIntegration:
         return page
 
     def test_full_workflow(self, pipeline_page, temp_workspace):
-        """Test flusso completo"""
-        # Verifica caricamento
+        """Test full workflow"""
+        # Verify loading
         assert len(pipeline_page.patient_status) == 1
 
-        # Paziente dovrebbe essere eligible
+        # Patient should be eligible
         assert pipeline_page.patient_status["sub-01"]["eligible"]
 
-        # Seleziona
+        # Select
         pipeline_page._select_all_eligible_patients()
         assert len(pipeline_page.selected_patients) == 1
 
-        # Genera config
+        # Generate config
         config_path = pipeline_page._build_pipeline_config()
         assert os.path.exists(config_path)
 
-        # Verifica config
+        # Verify config
         with open(config_path, 'r') as f:
             config = json.load(f)
         assert "sub-01" in config

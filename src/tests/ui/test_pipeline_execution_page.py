@@ -11,7 +11,7 @@ from main.ui.pipeline_execution_page import PipelineExecutionPage
 
 @pytest.fixture
 def mock_get_bin_path():
-    """Mock per get_bin_path."""
+    """Mock for get_bin_path."""
     with patch("main.ui.pipeline_execution_page.get_bin_path") as mock:
         mock.return_value = "/fake/path/pipeline_runner"
         yield mock
@@ -19,7 +19,7 @@ def mock_get_bin_path():
 
 @pytest.fixture
 def pipeline_config_exec(temp_workspace):
-    """Crea un config per l'esecuzione della pipeline."""
+    """Create a config for pipeline execution."""
     config = {
         "sub-01": {
             "mri": os.path.join(temp_workspace, "sub-01", "anat", "T1w.nii"),
@@ -42,7 +42,7 @@ def pipeline_config_exec(temp_workspace):
 
 @pytest.fixture
 def mock_tree_view():
-    """Mock per tree_view."""
+    """Mock for tree_view."""
     tree_view = Mock()
     tree_view._open_in_explorer = Mock()
     return tree_view
@@ -50,7 +50,7 @@ def mock_tree_view():
 
 @pytest.fixture
 def mock_context_exec(temp_workspace, signal_emitter, mock_tree_view):
-    """Context per PipelineExecutionPage."""
+    """Context for PipelineExecutionPage."""
     context = {
         "language_changed": signal_emitter.language_changed,
         "workspace_path": temp_workspace,
@@ -63,10 +63,10 @@ def mock_context_exec(temp_workspace, signal_emitter, mock_tree_view):
 
 
 class TestPipelineExecutionPageInitialization:
-    """Test per l'inizializzazione della pagina."""
+    """Tests for page initialization."""
 
     def test_initialization_basic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test inizializzazione base."""
+        """Test basic initialization."""
         config_path, config = pipeline_config_exec
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
@@ -81,7 +81,7 @@ class TestPipelineExecutionPageInitialization:
         assert page.config_path == config_path
 
     def test_initialization_with_previous_page(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test inizializzazione con pagina precedente."""
+        """Test initialization with previous page."""
         previous = Mock()
         page = PipelineExecutionPage(mock_context_exec, previous_page=previous)
         qtbot.addWidget(page)
@@ -89,7 +89,7 @@ class TestPipelineExecutionPageInitialization:
         assert page.previous_page == previous
 
     def test_pipeline_output_dir_created(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che venga creata la directory di output."""
+        """Test that the output directory is created."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -97,7 +97,7 @@ class TestPipelineExecutionPageInitialization:
         assert "01_output" in page.pipeline_output_dir
 
     def test_ui_elements_created(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che tutti gli elementi UI siano creati."""
+        """Test that all UI elements are created."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -110,7 +110,7 @@ class TestPipelineExecutionPageInitialization:
         assert isinstance(page.folder_cards, dict)
 
     def test_folder_cards_created(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test creazione folder cards per ogni paziente."""
+        """Test folder cards creation for each patient."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -119,7 +119,7 @@ class TestPipelineExecutionPageInitialization:
         assert len(page.folder_cards) == 2
 
     def test_get_bin_path_called(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che get_bin_path sia chiamato."""
+        """Test that get_bin_path is called."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -127,7 +127,7 @@ class TestPipelineExecutionPageInitialization:
         assert page.pipeline_bin_path == "/fake/path/pipeline_runner"
 
     def test_get_bin_path_error(self, qtbot, mock_context_exec, pipeline_config_exec):
-        """Test gestione errore quando get_bin_path fallisce."""
+        """Test error handling when get_bin_path fails."""
         with patch("main.ui.pipeline_execution_page.get_bin_path") as mock:
             mock.side_effect = FileNotFoundError("Binary not found")
 
@@ -136,10 +136,10 @@ class TestPipelineExecutionPageInitialization:
 
 
 class TestConfigFileDetection:
-    """Test per il rilevamento del file config."""
+    """Tests for config file detection."""
 
     def test_find_latest_config_single(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test rilevamento con un solo config."""
+        """Test detection with a single config."""
         config_path, _ = pipeline_config_exec
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
@@ -147,13 +147,13 @@ class TestConfigFileDetection:
         assert page.config_path == config_path
 
     def test_find_latest_config_multiple(self, qtbot, mock_context_exec, temp_workspace, mock_get_bin_path):
-        """Test rilevamento con più config (deve prendere l'ultimo)."""
+        """Test detection with multiple configs (should take the last one)."""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
 
-        # Crea più config
+        # Create multiple configs
         configs = []
-        for i in [1, 2, 5, 3]:  # Ordine non sequenziale
+        for i in [1, 2, 5, 3]:  # Non-sequential order
             config_path = os.path.join(pipeline_dir, f"{i:02d}_config.json")
             config = {f"sub-{i:02d}": {"mri": "path.nii"}}
             with open(config_path, "w") as f:
@@ -163,11 +163,11 @@ class TestConfigFileDetection:
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Deve prendere 05_config.json
+        # Should take 05_config.json
         assert "05_config.json" in page.config_path
 
     def test_find_latest_config_no_files(self, qtbot, mock_context_exec, temp_workspace, mock_get_bin_path):
-        """Test quando non ci sono file config."""
+        """Test when there are no config files."""
 
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
@@ -181,10 +181,10 @@ class TestConfigFileDetection:
 
 
 class TestGetSubList:
-    """Test per il metodo get_sub_list."""
+    """Tests for the get_sub_list method."""
 
     def test_get_sub_list_basic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test estrazione lista pazienti."""
+        """Test patient list extraction."""
         config_path, config = pipeline_config_exec
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
@@ -196,7 +196,7 @@ class TestGetSubList:
         assert "sub-02" in sub_list
 
     def test_get_sub_list_filters_non_sub(self, qtbot, mock_context_exec, temp_workspace, mock_get_bin_path):
-        """Test che filtri correttamente solo i sub-XX."""
+        """Test that it correctly filters only sub-XX."""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         config_path = os.path.join(pipeline_dir, "01_config.json")
 
@@ -221,10 +221,10 @@ class TestGetSubList:
 
 
 class TestPipelineExecution:
-    """Test per l'esecuzione della pipeline."""
+    """Tests for pipeline execution."""
 
     def test_start_pipeline_basic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test avvio base della pipeline."""
+        """Test basic pipeline start."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -237,11 +237,11 @@ class TestPipelineExecution:
             assert page.stop_button.isEnabled()
 
     def test_start_pipeline_already_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che non avvii la pipeline se già in esecuzione."""
+        """Test that it does not start the pipeline if already running."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Simula processo già in esecuzione
+        # Simulate process already running
         page.pipeline_process = Mock()
 
         with patch.object(QProcess, 'start') as mock_start:
@@ -250,7 +250,7 @@ class TestPipelineExecution:
             mock_start.assert_not_called()
 
     def test_start_pipeline_arguments(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che vengano passati i parametri corretti."""
+        """Test that correct parameters are passed."""
         config_path, _ = pipeline_config_exec
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
@@ -259,7 +259,7 @@ class TestPipelineExecution:
                 patch.object(QProcess, 'waitForStarted', return_value=True):
             page._start_pipeline()
 
-            # Verifica gli argomenti passati
+            # Verify passed arguments
             call_args = mock_start.call_args
             assert '--config' in call_args[0][1]
             assert config_path in call_args[0][1]
@@ -267,7 +267,7 @@ class TestPipelineExecution:
             assert '--out-dir' in call_args[0][1]
 
     def test_start_pipeline_failed_to_start(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test gestione errore avvio processo."""
+        """Test process start error handling."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -280,10 +280,10 @@ class TestPipelineExecution:
 
 
 class TestProcessOutput:
-    """Test per la gestione dell'output del processo."""
+    """Tests for process output handling."""
 
     def test_process_pipeline_output_log(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test processamento linea LOG."""
+        """Test processing LOG line."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -295,7 +295,7 @@ class TestProcessOutput:
             mock_update.assert_called_once_with("Processing started")
 
     def test_process_pipeline_output_error(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test processamento linea ERROR."""
+        """Test processing ERROR line."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -306,7 +306,7 @@ class TestProcessOutput:
             assert "ERROR:" in mock_log.call_args[0][0]
 
     def test_process_pipeline_output_progress(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test processamento linea PROGRESS."""
+        """Test processing PROGRESS line."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -316,7 +316,7 @@ class TestProcessOutput:
             mock_progress.assert_called_once_with("5/10")
 
     def test_process_pipeline_output_finished(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test processamento linea FINISHED."""
+        """Test processing FINISHED line."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -326,7 +326,7 @@ class TestProcessOutput:
             mock_log.assert_called_once()
 
     def test_process_pipeline_output_generic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test processamento linea generica."""
+        """Test processing generic line."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -336,7 +336,7 @@ class TestProcessOutput:
             mock_log.assert_called_once_with("Some generic output")
 
     def test_on_stdout_ready(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test lettura stdout."""
+        """Test stdout reading."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -352,7 +352,7 @@ class TestProcessOutput:
             assert mock_process_output.call_count == 2
 
     def test_on_stderr_ready(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test lettura stderr."""
+        """Test stderr reading."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -370,10 +370,10 @@ class TestProcessOutput:
 
 
 class TestProgressUpdates:
-    """Test per gli aggiornamenti di progresso."""
+    """Tests for progress updates."""
 
     def test_update_progress_valid(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamento progresso valido."""
+        """Test valid progress update."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -385,7 +385,7 @@ class TestProgressUpdates:
 
     def test_update_progress_invalid(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path,
                                      mock_logger):
-        """Test aggiornamento progresso con formato non valido."""
+        """Test progress update with invalid format."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -393,11 +393,11 @@ class TestProgressUpdates:
 
         with patch("main.ui.pipeline_execution_page.log", mock_logger):
             page._update_progress("invalid")
-            # Il valore non dovrebbe cambiare
+            # The value should not change
             assert page.progress_bar.value == initial_value
 
     def test_update_current_operation_starting(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamento operazione: starting."""
+        """Test operation update: starting."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -406,7 +406,7 @@ class TestProgressUpdates:
         assert "Initializing" in page.current_operation.text()
 
     def test_update_current_operation_patient(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamento operazione: processing patient."""
+        """Test operation update: processing patient."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -415,7 +415,7 @@ class TestProgressUpdates:
         assert "sub-01" in page.current_operation.text()
 
     def test_update_current_operation_analysis(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamento operazione: analysis."""
+        """Test operation update: analysis."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -424,7 +424,7 @@ class TestProgressUpdates:
         assert "analysis" in page.current_operation.text().lower()
 
     def test_update_current_operation_saving(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamento operazione: saving."""
+        """Test operation update: saving."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -433,7 +433,7 @@ class TestProgressUpdates:
         assert "Saving" in page.current_operation.text()
 
     def test_extract_patient_id_from_log(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test estrazione ID paziente dal log."""
+        """Test patient ID extraction from log."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -448,10 +448,10 @@ class TestProgressUpdates:
 
 
 class TestProcessCompletion:
-    """Test per il completamento del processo."""
+    """Tests for process completion."""
 
     def test_on_process_finished_success(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test completamento con successo."""
+        """Test successful completion."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -461,7 +461,7 @@ class TestProcessCompletion:
             mock_finished.assert_called_once()
 
     def test_on_process_finished_error(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test completamento con errore."""
+        """Test completion with error."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -471,7 +471,7 @@ class TestProcessCompletion:
             mock_error.assert_called_once()
 
     def test_on_pipeline_finished(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test gestione pipeline completata."""
+        """Test pipeline finished handling."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -484,7 +484,7 @@ class TestProcessCompletion:
         mock_context_exec["update_main_buttons"].assert_called_once()
 
     def test_on_pipeline_error(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test gestione errore pipeline."""
+        """Test pipeline error handling."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -496,7 +496,7 @@ class TestProcessCompletion:
         mock_context_exec["update_main_buttons"].assert_called_once()
 
     def test_on_process_error(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test gestione diversi tipi di errori processo."""
+        """Test handling of different process errors."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -510,10 +510,10 @@ class TestProcessCompletion:
 
 
 class TestStopButton:
-    """Test per il pulsante Stop."""
+    """Tests for the Stop button."""
 
     def test_stop_button_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test stop mentre processo è in esecuzione."""
+        """Test stop while process is running."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -530,13 +530,13 @@ class TestStopButton:
         mock_context_exec["update_main_buttons"].assert_called_once()
 
     def test_stop_button_forced_kill(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test stop con kill forzato se terminate non funziona."""
+        """Test stop with forced kill if terminate fails."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
         mock_process = Mock()
         mock_process.state.return_value = QProcess.ProcessState.Running
-        mock_process.waitForFinished.side_effect = [False, True]  # Prima False, poi True
+        mock_process.waitForFinished.side_effect = [False, True]  # First False, then True
         page.pipeline_process = mock_process
 
         page._on_stop_clicked()
@@ -545,7 +545,7 @@ class TestStopButton:
         mock_process.kill.assert_called_once()
 
     def test_stop_button_not_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test stop quando processo non è in esecuzione."""
+        """Test stop when process is not running."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -559,10 +559,10 @@ class TestStopButton:
 
 
 class TestLogMessages:
-    """Test per il logging."""
+    """Tests for logging."""
 
     def test_log_message_basic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test log messaggio base."""
+        """Test basic log message."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -575,7 +575,7 @@ class TestLogMessages:
         assert "[" in log_content  # Timestamp
 
     def test_log_message_multiple(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test messaggi multipli."""
+        """Test multiple messages."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -588,37 +588,37 @@ class TestLogMessages:
             assert msg in log_content
 
     def test_log_message_autoscroll(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test auto-scroll al fondo del log."""
+        """Test autoscroll to the bottom of the log."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Aggiungi molti messaggi per forzare lo scroll
+        # Add many messages to force scrolling
         for i in range(50):
             page._log_message(f"Message {i}")
 
         scrollbar = page.log_text.verticalScrollBar()
-        # Dovrebbe essere scrollato al massimo
+        # Should be scrolled to the bottom
         assert scrollbar.value() == scrollbar.maximum()
 
 
 class TestNavigation:
-    """Test per la navigazione."""
+    """Tests for navigation."""
 
     def test_on_enter_starts_pipeline(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che on_enter avvii automaticamente la pipeline."""
+        """Test that on_enter automatically starts the pipeline."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
         with patch.object(page, '_start_pipeline') as mock_start:
             page.on_enter()
 
-            # Aspetta che QTimer chiami il metodo
+            # Wait for QTimer to call the method
             qtbot.wait(600)
 
             mock_start.assert_called_once()
 
     def test_on_enter_not_started_twice(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che on_enter non avvii due volte se già completato."""
+        """Test that on_enter does not start twice if already completed."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -631,7 +631,7 @@ class TestNavigation:
             mock_start.assert_not_called()
 
     def test_back_calls_reset(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che back chiami reset_page."""
+        """Test that back calls reset_page."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -645,7 +645,7 @@ class TestNavigation:
             assert result == previous
 
     def test_back_no_previous_page(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test back senza previous_page."""
+        """Test back without previous page."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -654,7 +654,7 @@ class TestNavigation:
         assert result is None
 
     def test_next_with_confirmation(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test next con conferma utente."""
+        """Test next with user confirmation."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -664,7 +664,7 @@ class TestNavigation:
             mock_context_exec["return_to_import"].assert_called()
 
     def test_next_cancelled(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test next con cancellazione utente."""
+        """Test next with user cancellation."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -675,7 +675,7 @@ class TestNavigation:
             mock_context_exec["return_to_import"].assert_not_called()
 
     def test_is_ready_to_go_back_completed(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test is_ready_to_go_back quando completato."""
+        """Test is_ready_to_go_back when completed."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -683,7 +683,7 @@ class TestNavigation:
         assert page.is_ready_to_go_back() is True
 
     def test_is_ready_to_go_back_error(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test is_ready_to_go_back quando c'è un errore."""
+        """Test is_ready_to_go_back when there is an error."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -691,7 +691,7 @@ class TestNavigation:
         assert page.is_ready_to_go_back() is True
 
     def test_is_ready_to_go_back_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test is_ready_to_go_back durante esecuzione."""
+        """Test is_ready_to_go_back during execution."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -713,14 +713,14 @@ class TestNavigation:
 
 
 class TestResetPage:
-    """Test per il reset della pagina."""
+    """Tests for page reset."""
 
     def test_reset_page_basic(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test reset base della pagina."""
+        """Test basic page reset."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Modifica stato
+        # Modify state
         page.progress_bar.setValue(50)
         page.pipeline_error = "Some error"
         page.pipeline_completed = True
@@ -737,7 +737,7 @@ class TestResetPage:
         assert not page.stop_button.isEnabled()
 
     def test_reset_page_color(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che reset ripristini il colore della progress bar."""
+        """Test that reset restores the progress bar color."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -745,11 +745,11 @@ class TestResetPage:
 
         page.reset_page()
 
-        # Verifica che sia tornato al colore di default
+        # Verify it returned to default color
         assert page.progress_bar.color.name() == "#3498db"
 
     def test_reset_page_current_operation(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che reset ripristini il testo dell'operazione corrente."""
+        """Test that reset restores the current operation text."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -761,29 +761,29 @@ class TestResetPage:
 
 
 class TestCheckNewFiles:
-    """Test per check_new_files."""
+    """Tests for check_new_files."""
 
     def test_check_new_files(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che check_new_files chiami il metodo su tutte le card."""
+        """Test that check_new_files calls the method on all cards."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Mock delle folder cards
+        # Mock folder cards
         for card in page.folder_cards.values():
             card.check_new_files = Mock()
 
         page.check_new_files()
 
-        # Verifica che sia stato chiamato su tutte le card
+        # Verify it was called on all cards
         for card in page.folder_cards.values():
             card.check_new_files.assert_called_once()
 
 
 class TestDestructor:
-    """Test per il distruttore."""
+    """Tests for the destructor."""
 
     def test_destructor_kills_process(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che il distruttore uccida il processo se in esecuzione."""
+        """Test that the destructor kills the process if running."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -792,28 +792,28 @@ class TestDestructor:
         mock_process.waitForFinished.return_value = True
         page.pipeline_process = mock_process
 
-        # Simula distruzione
+        # Simulate destruction
         page.__del__()
 
         mock_process.kill.assert_called_once()
         mock_process.waitForFinished.assert_called_once()
 
     def test_destructor_no_process(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che il distruttore non crashI se non c'è processo."""
+        """Test that the destructor does not crash if there is no process."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
         page.pipeline_process = None
 
-        # Non deve crashare
+        # Should not crash
         page.__del__()
 
 
 class TestTranslation:
-    """Test per le traduzioni."""
+    """Tests for translations."""
 
     def test_translate_ui_called_on_init(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che _translate_ui sia chiamato durante init."""
+        """Test that _translate_ui is called during init."""
         with patch.object(PipelineExecutionPage, '_translate_ui') as mock_translate:
             page = PipelineExecutionPage(mock_context_exec)
             qtbot.addWidget(page)
@@ -821,7 +821,7 @@ class TestTranslation:
             mock_translate.assert_called()
 
     def test_translate_ui_updates_labels(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che _translate_ui aggiorni i label."""
+        """Test that _translate_ui updates labels."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -833,7 +833,7 @@ class TestTranslation:
 
     def test_language_changed_signal(self, qtbot, mock_context_exec, signal_emitter, pipeline_config_exec,
                                      mock_get_bin_path):
-        """Test che il signal language_changed aggiorni l'UI."""
+        """Test that the language_changed signal updates the UI."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -844,22 +844,21 @@ class TestTranslation:
 
 
 class TestFolderCards:
-    """Test per le folder cards."""
+    """Tests for folder cards."""
 
     def test_folder_cards_connected_to_tree_view(self, qtbot, mock_context_exec, pipeline_config_exec,
                                                  mock_get_bin_path, mock_tree_view):
-        """Test che le folder cards siano connesse al tree_view."""
+        """Test that folder cards are connected to tree_view."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Simula richiesta di apertura cartella
+        # Simulate request to open folder
         for card in page.folder_cards.values():
-            # Verifica che il signal sia connesso
-            # (difficile testare direttamente, ma possiamo verificare che le card esistano)
+            # Difficult to test signal connection directly, but we can verify cards exist
             assert card is not None
 
     def test_folder_cards_paths(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che i path delle folder cards siano corretti."""
+        """Test that folder cards paths are correct."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -871,10 +870,10 @@ class TestFolderCards:
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_empty_config(self, qtbot, mock_context_exec, temp_workspace, mock_get_bin_path):
-        """Test con config vuoto."""
+        """Test with empty config."""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
         config_path = os.path.join(pipeline_dir, "01_config.json")
@@ -888,7 +887,7 @@ class TestEdgeCases:
         assert len(page.folder_cards) == 0
 
     def test_invalid_config_id(self, qtbot, mock_context_exec, temp_workspace, mock_get_bin_path, mock_logger):
-        """Test con ID config non valido."""
+        """Test with invalid config ID."""
         pipeline_dir = os.path.join(temp_workspace, "pipeline")
         os.makedirs(pipeline_dir, exist_ok=True)
         config_path = os.path.join(pipeline_dir, "invalid_config.json")
@@ -901,12 +900,12 @@ class TestEdgeCases:
             page = PipelineExecutionPage(mock_context_exec)
             qtbot.addWidget(page)
 
-            # Dovrebbe usare il default
+            # Should use default
             assert page.pipeline_output_dir == os.path.join(temp_workspace, "pipeline", "pipeline_output")
             mock_logger.debug.assert_called()
 
     def test_process_output_empty_lines(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che le linee vuote siano ignorate."""
+        """Test that empty lines are ignored."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -919,12 +918,12 @@ class TestEdgeCases:
         with patch.object(page, '_process_pipeline_output') as mock_process_output:
             page._on_stdout_ready()
 
-            # Solo la linea valida dovrebbe essere processata
+            # Only the valid line should be processed
             assert mock_process_output.call_count == 1
             mock_process_output.assert_called_with("LOG: Valid message")
 
     def test_multiple_progress_updates(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test aggiornamenti multipli di progresso."""
+        """Test multiple progress updates."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -934,7 +933,7 @@ class TestEdgeCases:
                 assert page.progress_bar.value == i*10
 
     def test_unicode_in_logs(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test con caratteri unicode nei log."""
+        """Test with unicode characters in logs."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -953,7 +952,7 @@ class TestEdgeCases:
             assert msg in log_content
 
     def test_very_long_log_messages(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test con messaggi di log molto lunghi."""
+        """Test with very long log messages."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -964,7 +963,7 @@ class TestEdgeCases:
         assert long_message in log_content
 
     def test_rapid_process_output(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test con output rapido e frequente del processo."""
+        """Test with rapid process output."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -974,11 +973,10 @@ class TestEdgeCases:
             for msg in messages:
                 page._process_pipeline_output(msg)
 
-        # Non dovrebbe crashare
         assert True
 
     def test_concurrent_stop_and_finish(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test stop e finish concorrenti."""
+        """Test concurrent stop and finish."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -987,22 +985,22 @@ class TestEdgeCases:
         mock_process.waitForFinished.return_value = True
         page.pipeline_process = mock_process
 
-        # Chiama stop
+        # Call stop
         page._on_stop_clicked()
 
-        # Poi finish (come se il processo finisse proprio mentre stoppiamo)
+        # Then finish (as if the process finished just as we were stopping)
         page._on_pipeline_finished()
 
-        # Dovrebbe gestire la situazione senza crashare
+        # Should handle the situation without crashing
         assert page.pipeline_completed is True
         assert page.pipeline_process is None
 
 
 class TestReturnToImport:
-    """Test per _return_to_import."""
+    """Tests for _return_to_import."""
 
     def test_return_to_import_not_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test return_to_import quando non è in esecuzione."""
+        """Test return_to_import when not running."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -1011,7 +1009,7 @@ class TestReturnToImport:
         mock_context_exec["return_to_import"].assert_called_once()
 
     def test_return_to_import_while_running(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test che return_to_import sia bloccato durante esecuzione."""
+        """Test that return_to_import is blocked during execution."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
@@ -1021,32 +1019,32 @@ class TestReturnToImport:
 
         page._return_to_import()
 
-        # Non dovrebbe chiamare return_to_import
+        # Should not call return_to_import
         mock_context_exec["return_to_import"].assert_not_called()
 
 
 class TestIntegration:
-    """Test di integrazione per flussi completi."""
+    """Integration tests for complete flows."""
 
     def test_full_pipeline_success_flow(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test flusso completo: avvio -> esecuzione -> successo."""
+        """Test full flow: start -> execution -> success."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Simula avvio
+        # Simulate start
         with patch.object(QProcess, 'start'), \
                 patch.object(QProcess, 'waitForStarted', return_value=True):
             page._start_pipeline()
             assert page.pipeline_process is not None
             assert page.stop_button.isEnabled()
 
-        # Simula output
+        # Simulate output
         page._process_pipeline_output("LOG: Starting pipeline")
         page._process_pipeline_output("PROGRESS: 5/10")
         page._process_pipeline_output("LOG: Processing sub-01")
         page._process_pipeline_output("PROGRESS: 10/10")
 
-        # Simula completamento
+        # Simulate completion
         page._on_pipeline_finished()
 
         assert page.pipeline_completed is True
@@ -1054,20 +1052,20 @@ class TestIntegration:
         assert not page.stop_button.isEnabled()
 
     def test_full_pipeline_error_flow(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test flusso completo: avvio -> esecuzione -> errore."""
+        """Test full flow: start -> execution -> error."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Simula avvio
+        # Simulate start
         with patch.object(QProcess, 'start'), \
                 patch.object(QProcess, 'waitForStarted', return_value=True):
             page._start_pipeline()
 
-        # Simula output
+        # Simulate output
         page._process_pipeline_output("LOG: Starting pipeline")
         page._process_pipeline_output("ERROR: File not found")
 
-        # Simula errore
+        # Simulate error
         page._on_pipeline_error("Fatal error occurred")
 
         assert page.pipeline_error == "Fatal error occurred"
@@ -1075,11 +1073,11 @@ class TestIntegration:
         assert page.pipeline_completed is False
 
     def test_full_pipeline_stop_flow(self, qtbot, mock_context_exec, pipeline_config_exec, mock_get_bin_path):
-        """Test flusso completo: avvio -> esecuzione -> stop utente."""
+        """Test full flow: start -> execution -> user stop."""
         page = PipelineExecutionPage(mock_context_exec)
         qtbot.addWidget(page)
 
-        # Simula avvio
+        # Simulate start
         with patch.object(QProcess, 'start'), \
                 patch.object(QProcess, 'waitForStarted', return_value=True):
             page._start_pipeline()
@@ -1089,7 +1087,7 @@ class TestIntegration:
         mock_process.waitForFinished.return_value = True
         page.pipeline_process = mock_process
 
-        # Simula stop
+        # Simulate stop
         page._on_stop_clicked()
 
         mock_process.terminate.assert_called_once()
