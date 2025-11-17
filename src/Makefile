@@ -168,8 +168,10 @@ all: setup-all app
 app: compile-pipeline compile-app
 
 .PHONY: app-dl
-app-dl: compile-app dl_python-setup
+app-dl: compile-app
 	cd main && cp -r deep_learning/ dist/GliAAns-UI
+	cd main/dist/GliAAns-UI && mv deep_learning/Makefile .
+	cd main/dist/GliAAns-UI && mv deep_learning/README.md .
 
 # -------------------------
 # Cleaning
