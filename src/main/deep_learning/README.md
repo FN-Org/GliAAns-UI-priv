@@ -8,7 +8,14 @@ You only need to run **one command** in the terminal to create the Python virtua
 
 ## Requirements
 
-You must use **Linux** or **Windows with WSL** (Windows Subsystem for Linux).
+### Operating System
+* **Linux** or **Windows with WSL** (Windows Subsystem for Linux).
+
+### Hardware & Drivers
+The model relies on CUDA. Please ensure your setup meets the requirements below.
+* **GPU:** NVIDIA GPU with at least **6GB** of VRAM (specifically tested on **NVIDIA GeForce GTX 1060 6GB**).
+* **NVIDIA Driver:** Version **560.94** or newer.
+* **CUDA Version:** Compatible with CUDA **12.x** (tested on CUDA **12.6**).
 
 ---
 
@@ -40,7 +47,3 @@ This command will automatically create a Python virtual environment in this fold
 You can now start the GUI application. The Deep Learning module will work automatically.
 
 If any error appears, please contact technical support.
-
----
-
-Let me know if you want an even shorter version.
