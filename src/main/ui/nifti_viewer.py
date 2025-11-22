@@ -3,6 +3,7 @@ import sys
 import os
 import gc
 import json
+
 import numpy as np
 import nibabel as nib
 
@@ -1200,10 +1201,11 @@ class NiftiViewer(QMainWindow):
         Returns:
             None
         """
+        log.debug("Loading NIfTI image...")
         # Disconnect progress dialog cancel signal and close it
         self.progress_dialog.canceled.disconnect()
         self.progress_dialog.close()
-
+        log.debug("Remove the finished thread")
         # Remove the finished thread from active threads list
         thread_to_cancel = self.sender()
         self.threads.remove(thread_to_cancel)
@@ -1234,18 +1236,21 @@ class NiftiViewer(QMainWindow):
                 QtCore.QCoreApplication.translate("NIfTIViewer", "Dimensions") +
                 f":{self.overlay_dims}"
             )
-
+            log.debug("Activate the UI")
             # Enable and activate overlay in UI
-            self.toggle_overlay(True)
+            self.toggle_overlay(True,update_all=False)
+            log.debug("Update overlay threshold")
+            self.update_overlay_threshold(self.overlay_threshold_slider.value(),update_all=False)
+            log.debug("Update display settings")
+            # Refresh display with updated overlay settings
+            self.update_overlay_settings(update_all=False)
+            log.debug("Update all displays")
+            self.update_all_displays()
+            log.debug("Finished loading NIfTI image, updating checkbox")
+
             self.overlay_checkbox.setChecked(True)
             self.overlay_checkbox.setEnabled(True)
-
-            self.update_overlay_threshold(self.overlay_threshold_slider.value())
-
-            # Refresh display with updated overlay settings
-            self.update_overlay_settings()
-            self.update_all_displays()
-
+            log.debug("Updating status bar")
             # Update status bar message
             self.status_bar.showMessage(
                 QtCore.QCoreApplication.translate("NIfTIViewer", "Overlay loaded") + f":{filename}"
@@ -1406,7 +1411,7 @@ class NiftiViewer(QMainWindow):
         # Enable overlay loading button after successful image load
         self.overlay_btn.setEnabled(True)
 
-    def toggle_overlay(self, enabled):
+    def toggle_overlay(self, enabled,update_all=True):
         """
         Enable or disable the overlay display on top of the base image.
 
@@ -1430,13 +1435,16 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_spin.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
         self.ROI_save_btn.setEnabled(enabled or self.automaticROI_overlay or self.incrementalROI_enabled)
 
-        # Redraw display if overlay data is available
-        self.update_all_displays()
 
-        # Update time series plot if available
-        self.update_time_series_plot()
+        if update_all:
+            # Redraw display if overlay data is available
+            log.debug("Update all display.")
+            self.update_all_displays()
+            log.debug("Update time series plot")
+            # Update time series plot if available
+            self.update_time_series_plot()
 
-    def update_overlay_alpha(self, value):
+    def update_overlay_alpha(self, value,update_all=True):
         """
         Update overlay transparency (alpha blending).
 
@@ -1448,10 +1456,10 @@ class NiftiViewer(QMainWindow):
             refreshes the display only if the overlay is active and data is loaded.
         """
         self.overlay_alpha = value / 100.0
-        if self.overlay_enabled or self.automaticROI_overlay or self.incrementalROI_enabled:
+        if (self.overlay_enabled or self.automaticROI_overlay or self.incrementalROI_enabled) and update_all:
             self.update_all_displays()
 
-    def update_overlay_threshold(self, value):
+    def update_overlay_threshold(self, value,update_all=True):
         """
         Update overlay intensity threshold.
 
@@ -1468,9 +1476,10 @@ class NiftiViewer(QMainWindow):
             threshold_value = self.overlay_threshold * self.overlay_max
             # Create boolean mask of overlay pixels above threshold
             self.overlay_thresholded_data = self.overlay_data > threshold_value
-            self.update_all_displays()
+            if update_all:
+                self.update_all_displays()
 
-    def update_overlay_settings(self):
+    def update_overlay_settings(self,update_all=True):
         """
         Synchronize overlay alpha and threshold values from the UI controls.
 
@@ -1484,7 +1493,7 @@ class NiftiViewer(QMainWindow):
             self.overlay_threshold = self.overlay_threshold_slider.value() / 100.0
 
             # Update visualization only if overlay is active and available
-            if self.overlay_enabled and hasattr(self, 'overlay_data') and self.overlay_data is not None:
+            if self.overlay_enabled and hasattr(self, 'overlay_data') and self.overlay_data is not None and update_all:
                 self.update_all_displays()
 
     def slice_changed(self, plane_idx, value):
@@ -1518,7 +1527,7 @@ class NiftiViewer(QMainWindow):
         self.update_coordinate_displays()
         self.update_cross_view_lines()
 
-    def time_changed(self, value):
+    def time_changed(self, value,update_all=True):
         """
         Handle time slider or spinbox change for 4D data.
 
@@ -1531,7 +1540,8 @@ class NiftiViewer(QMainWindow):
         self.current_time = value
         self.time_slider.setValue(value)
         self.time_spin.setValue(value)
-        self.update_all_displays()
+        if update_all:
+            self.update_all_displays()
 
     def toggle_time_controls(self, enabled):
         """
@@ -1551,7 +1561,7 @@ class NiftiViewer(QMainWindow):
         self.time_spin.setEnabled(value)
         self.time_point_label.setVisible(value)
 
-    def colormap_changed(self, colormap_name):
+    def colormap_changed(self, colormap_name,update_all=True):
         """
         Handle colormap selection change from the dropdown.
 
@@ -1562,7 +1572,8 @@ class NiftiViewer(QMainWindow):
             Updates the active colormap for display and refreshes all views.
         """
         self.colormap = colormap_name
-        self.update_all_displays()
+        if update_all:
+            self.update_all_displays()
 
     def handle_click_coordinates(self, view_idx, x, y):
         """
@@ -1754,6 +1765,7 @@ class NiftiViewer(QMainWindow):
             return
 
         try:
+            log.debug(f"Update display: {plane_idx}")
             # Select current 3D volume (for 4D data, use the selected time frame)
             if self.is_4d:
                 current_data = self.img_data[..., self.current_time]
@@ -1997,10 +2009,12 @@ class NiftiViewer(QMainWindow):
                     # Retrieve overlay color from dictionary or default (green)
                     overlay_color = self.overlay_colors.get(colormap, np.array([0.0, 1.0, 0.0]))
 
+                    log.debug("Blending overlay color into base image")
                     # Blend overlay into base image using a numba-accelerated function
                     rgba_image_float = apply_overlay_numba(rgba_image, overlay_slice,
                                                            overlay_intensity, overlay_color)
-
+                    log.debug("Blended overlay color into base image")
+            log.debug("Clipping values to a valid range")
             # Clip values to valid range [0, 1]
             rgba_image_overlay = np.clip(rgba_image_float, 0, 1)
 
@@ -2076,7 +2090,7 @@ class NiftiViewer(QMainWindow):
         self.update_all_displays()
 
 
-    def toggle_automaticROI(self, enabled):
+    def toggle_automaticROI(self, enabled,update_all=True):
         """
         Enable or disable the overlay for the automatic ROI on top of the base image.
 
@@ -2103,11 +2117,13 @@ class NiftiViewer(QMainWindow):
 
         self.automaticROI_sliders_group.setEnabled(enabled)
         self.automaticROIbtn.setEnabled(enabled)
-        # Redraw display if overlay data is available
-        self.update_all_displays()
 
-        # Update time series plot if available
-        self.update_time_series_plot()
+        if update_all:
+            # Redraw display if overlay data is available
+            self.update_all_displays()
+
+            # Update time series plot if available
+            self.update_time_series_plot()
 
     def automaticROI_drawing(self):
         """Generate automatic ROI mask around selected seed voxel"""
@@ -2292,7 +2308,7 @@ class NiftiViewer(QMainWindow):
         # Mantieni lista incrementale
         self.incrementalROI_origins.append(new_params)
 
-    def toggle_incrementalROI(self,enabled):
+    def toggle_incrementalROI(self,enabled,update_all=True):
 
         self.incrementalROI_enabled = enabled
         self.incrementalROI_checkbox.setChecked(enabled)
@@ -2304,11 +2320,12 @@ class NiftiViewer(QMainWindow):
         self.overlay_threshold_spin.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
         self.ROI_save_btn.setEnabled(enabled or self.automaticROI_overlay or self.overlay_enabled)
 
-        # Redraw display if overlay data is available
-        self.update_all_displays()
+        if update_all:
+            # Redraw display if overlay data is available
+            self.update_all_displays()
 
-        # Update time series plot if available
-        self.update_time_series_plot()
+            # Update time series plot if available
+            self.update_time_series_plot()
 
     def closeEvent(self, event):
         """Clean up on application exit"""
@@ -2346,7 +2363,7 @@ class NiftiViewer(QMainWindow):
         self.automaticROI_sliders_group.setVisible(False)
         self.automaticROI_sliders_group.setEnabled(False)
         # Ensure overlay visualization is turned off
-        self.toggle_overlay(False)
+        self.toggle_overlay(False,update_all=False)
         # Disable and uncheck the overlay checkbox in UI
         self.overlay_checkbox.setChecked(False)
         self.overlay_checkbox.setEnabled(False)
@@ -2362,11 +2379,11 @@ class NiftiViewer(QMainWindow):
         self.cancelROI_btn.setEnabled(False)
         self.addOrigin_btn.setEnabled(False)
 
-        self.toggle_incrementalROI(False)
+        self.toggle_incrementalROI(False,update_all=False)
         self.incrementalROI_checkbox.setEnabled(False)
         self.incrementalROI_checkbox.setVisible(False)
 
-        self.toggle_automaticROI(False)
+        self.toggle_automaticROI(False,update_all=False)
         self.automaticROI_checkbox.setEnabled(False)
         self.automaticROI_checkbox.setVisible(False)
 

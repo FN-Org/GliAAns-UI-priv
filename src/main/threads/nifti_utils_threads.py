@@ -3,7 +3,10 @@ import nibabel as nib
 import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
+from src.main.logger import get_logger
 
+
+log = get_logger()
 
 class SaveNiftiThread(QThread):
     """
@@ -166,16 +169,17 @@ class ImageLoadThread(QThread):
             affine = canonical_img.affine
 
             self.progress.emit(70)
-
+            log.debug("Load voxel data")
             # Load voxel data
             img_data = np.asanyarray(canonical_img.dataobj, dtype=np.float32)
             self.progress.emit(80)
 
+            log.debug("Normalize image intensities")
             # Normalize image intensities
             img_data = self.normalize_data_matplotlib_style(img_data)
 
             self.progress.emit(100)
-
+            log.debug("Emit finished signal with image data and metadata.")
             # Emit the results to the main thread
             self.finished.emit(img_data, dims, affine, is_4d, self.is_overlay)
 
