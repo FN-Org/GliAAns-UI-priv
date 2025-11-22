@@ -36,7 +36,6 @@ if __name__ == "__main__":
     # Initialize and configure the logger
     # Logs to both console and compressed rotating file by default
     log = setup_logger(console=True)
-    log.info("Program started")
 
     # Extend PATH environment variable to include shell utilities
     os.environ["PATH"] = get_shell_path()
@@ -44,6 +43,7 @@ if __name__ == "__main__":
     # Create and start the main application controller
     controller = Controller()
     controller.start()
+    log.info("Program started")
 
     # Begin Qt event loop (blocking call)
     sys.exit(app.exec())

@@ -281,10 +281,15 @@ class PipelineExecutionPage(Page):
         if exit_code == 0 and exit_status == QProcess.ExitStatus.NormalExit:
             self._on_pipeline_finished()
         else:
-            self._on_pipeline_error(QCoreApplication.translate("PipelineExecutionPage", "Process exited with code {exit_code}").format(exit_code=exit_code))
+            self._on_pipeline_error(
+                QCoreApplication.translate(
+                    "PipelineExecutionPage",
+                    "Process exited with code {exit_code}"
+                ).format(exit_code=exit_code)
+            )
 
     def _on_process_error(self, error):
-        """Chiamato quando si verifica un errore nel processo."""
+        """Called when an error occurs in the process."""
         error_messages = {
             QProcess.ProcessError.FailedToStart: QCoreApplication.translate("PipelineExecutionPage",
                                                                             "Failed to start process"),
@@ -294,15 +299,18 @@ class PipelineExecutionPage(Page):
             QProcess.ProcessError.ReadError: QCoreApplication.translate("PipelineExecutionPage", "Read error"),
             QProcess.ProcessError.UnknownError: QCoreApplication.translate("PipelineExecutionPage", "Unknown error")
         }
-        error_msg = error_messages.get(error, QCoreApplication.translate("PipelineExecutionPage",
-                                                                         "Process error: {error}").format(error=error))
+        error_msg = error_messages.get(
+            error,
+            QCoreApplication.translate("PipelineExecutionPage",
+                                      "Process error: {error}").format(error=error)
+        )
         self._on_pipeline_error(error_msg)
 
     # ─────────────────────────────────────────────
     # STDOUT / STDERR MONITORING
     # ─────────────────────────────────────────────
     def _on_stdout_ready(self):
-        """Chiamato quando ci sono dati pronti su stdout."""
+        """Called when data is available on stdout."""
         if self.pipeline_process:
             data = self.pipeline_process.readAllStandardOutput()
             output = data.data().decode('utf-8').strip()
@@ -312,7 +320,7 @@ class PipelineExecutionPage(Page):
                     self._process_pipeline_output(line.strip())
 
     def _on_stderr_ready(self):
-        """Chiamato quando ci sono dati pronti su stderr."""
+        """Called when data is available on stderr."""
         if self.pipeline_process:
             data = self.pipeline_process.readAllStandardError()
             error_output = data.data().decode('utf-8').strip()
@@ -320,7 +328,6 @@ class PipelineExecutionPage(Page):
             for line in error_output.split('\n'):
                 if line.strip():
                     self._log_message(f"STDERR: {line.strip()}")
-
     # ─────────────────────────────────────────────
     # OUTPUT INTERPRETATION
     # ─────────────────────────────────────────────
@@ -368,7 +375,7 @@ class PipelineExecutionPage(Page):
         self.context["update_main_buttons"]()
 
     def _on_pipeline_error(self, error_message):
-        """Called when pipeline terminates due to error."""
+        """Called when the pipeline terminates due to an error."""
         self.pipeline_error = error_message
         self.current_operation.setText(
             QCoreApplication.translate("PipelineExecutionPage", "An error occurred during execution."))
@@ -392,7 +399,7 @@ class PipelineExecutionPage(Page):
         Expected format from pipeline: `"PROGRESS: X/Y"`
 
         Args:
-            progress_info (str): Progress data string (e.g. `"3/10"`).
+            progress_info (str): Progress data string (e.g., `"3/10"`).
         """
         try:
             if '/' in progress_info:
@@ -426,7 +433,7 @@ class PipelineExecutionPage(Page):
         Update the current operation label based on pipeline output message.
 
         Args:
-            message (str): Message received from pipeline log.
+            message (str): Message received from the pipeline log.
         """
         if "Starting pipeline" in message:
             self.current_operation.setText(
@@ -456,13 +463,13 @@ class PipelineExecutionPage(Page):
 
     def _extract_patient_id_from_log(self, message):
         """
-        Extract a patient ID (e.g. 'sub-001') from a log message.
+        Extract a patient ID (e.g., 'sub-001') from a log message.
 
         Args:
             message (str): Log message.
 
         Returns:
-            str | None: Extracted patient ID or None if not found.
+            str | None: The patient ID if extracted, otherwise None.
         """
         import re
         match = re.search(r'sub-(\w+)', message)
@@ -476,7 +483,7 @@ class PipelineExecutionPage(Page):
         Append a message to the on-screen log with a timestamp.
 
         Args:
-            message (str): Message text to append.
+            message (str): The message text to append.
         """
         from datetime import datetime
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -497,17 +504,17 @@ class PipelineExecutionPage(Page):
     # ─────────────────────────────────────────────
     def _on_stop_clicked(self):
         """
-        Handle user click on the "Stop Pipeline" button.
+        Handle a user click on the "Stop Pipeline" button.
 
-        Attempts a graceful termination, then a forced kill if needed.
+        Attempts graceful termination, followed by forced termination if necessary.
         """
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
             self._log_message(QCoreApplication.translate("PipelineExecutionPage", "Stopping pipeline..."))
 
-            # Try graceful termination first
+            # Attempt graceful termination first
             self.pipeline_process.terminate()
 
-            # Force-kill if not stopped within 5 seconds
+            # Force termination if not stopped within 5 seconds
             if not self.pipeline_process.waitForFinished(5000):
                 self.pipeline_process.kill()
                 self.pipeline_process.waitForFinished(3000)
@@ -527,10 +534,10 @@ class PipelineExecutionPage(Page):
         """
         Return to the import page if no pipeline is running.
 
-        Prevents navigation while the pipeline is active.
+        Prevents navigation while the pipeline is still active.
         """
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
-            return  # Navigation disabled while running
+            return  # Navigation disabled while pipeline is running
 
         if self.context and "return_to_import" in self.context:
             self.context["return_to_import"]()
@@ -576,7 +583,7 @@ class PipelineExecutionPage(Page):
         Navigate back to the previous page, resetting this page first.
 
         Returns:
-            Page | None: The previous page if available.
+            Page | None: The previous page, if available.
         """
         self.reset_page()
         if self.previous_page:
@@ -611,11 +618,11 @@ class PipelineExecutionPage(Page):
         return None
 
     def is_ready_to_go_back(self):
-        """Allow going back only when the pipeline has finished or failed."""
+        """Allow going back only when the pipeline has finished or encountered an error."""
         return self.pipeline_completed or self.pipeline_error is not None
 
     def is_ready_to_advance(self):
-        """Allow advancing only when the pipeline has finished or failed."""
+        """Allow advancing only when the pipeline has finished or encountered an error."""
         return self.pipeline_completed or self.pipeline_error is not None
 
     # ─────────────────────────────────────────────
@@ -629,7 +636,7 @@ class PipelineExecutionPage(Page):
             json_path (str): Path to the JSON configuration file.
 
         Returns:
-            list[str]: List of keys that start with `"sub-"`.
+            list[str]: A list of keys that begin with `"sub-"`.
         """
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -669,13 +676,13 @@ class PipelineExecutionPage(Page):
         self.pipeline_completed = False
 
     def __del__(self):
-        """Ensure that any running pipeline process is terminated on destruction."""
+        """Ensure that any running pipeline process is terminated when this object is destroyed."""
         if self.pipeline_process and self.pipeline_process.state() == QProcess.ProcessState.Running:
             self.pipeline_process.kill()
             self.pipeline_process.waitForFinished(1000)
 
     def _translate_ui(self):
-        """Update all translatable UI text (used for multi-language support)."""
+        """Update all translatable UI text (used for multilingual support)."""
         self.header.setText(QCoreApplication.translate("PipelineExecutionPage", "Pipeline Execution"))
         self.stop_button.setText(QCoreApplication.translate("PipelineExecutionPage", "Stop Pipeline"))
         self.log_text.setText(QCoreApplication.translate("PipelineExecutionPage", "Execution Log:"))
