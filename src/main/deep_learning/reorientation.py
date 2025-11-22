@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 import nibabel as nib
+import numpy as np
 from nibabel.orientations import io_orientation, ornt_transform, apply_orientation, aff2axcodes
 
 # === PARSER ===
@@ -61,8 +62,12 @@ if __name__ == "__main__":
         reoriented_data = my_img.get_fdata()
         sys.stdout.write("Orientamento già coerente con BraTS\n")
 
+
+    img_corrected = reoriented_data / 10.0
+    reoriented_img = nib.Nifti1Image(img_corrected, affine=brats_affine, header=brats_img.header)
+
     # Crea output
-    reoriented_img = nib.Nifti1Image(reoriented_data, affine=brats_affine)
+    # reoriented_img = nib.Nifti1Image(reoriented_data, affine=brats_affine)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_filename = f"{basename}_reoriented.nii.gz"

@@ -17,6 +17,8 @@ The model relies on CUDA. Please ensure your setup meets the requirements below.
 * **NVIDIA Driver:** Version **560.94** or newer.
 * **CUDA Version:** Compatible with CUDA **12.x** (tested on CUDA **12.6**).
 
+P.S. The model was also tested on a system equipped with 24GB of RAM. It is recommended to have at least this amount of memory for optimal performance.
+
 ---
 
 ## Steps

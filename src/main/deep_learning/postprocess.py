@@ -73,7 +73,7 @@ def extract_subject_id(filepath):
     filename = os.path.basename(filepath)
 
     # Pattern per match: sub-qualcosa_qualcosa_flair.nii(.gz)
-    pattern = r'(sub-[^_]+)_.*_flair\.nii(\.gz)?$'
+    pattern = r'^(sub-[^_]+).*_flair\.nii(\.gz)?$'
 
     match = re.match(pattern, filename)
     if match:
@@ -131,12 +131,10 @@ if __name__ == "__main__":
     mrib = save_preds[0]
     atlas_brats = args.atlas
 
-    # Estrai subject ID dal path della MRI
     subject_id = extract_subject_id(mri)
     if subject_id is None:
         raise ValueError(f"Cannot extract subject ID from filename: {os.path.basename(mri)}")
 
-    # Crea il prefix con subject ID
     prefix = f"{args.w}/derivatives/deep_learning_seg/{subject_id}/anat/"
     print(f"Final path: {prefix}")
     outprefix = f"{args.output}/{subject_id}_mrib2mri_Rigid_"
@@ -148,28 +146,33 @@ if __name__ == "__main__":
     os.makedirs(prefix, exist_ok=True)
 
     mri_space_mrib, mrib_space_mri, mrib2mri_tfm, mri2mrib_tfm = align(
-        mri, atlas_brats,
+        fx=mri,
+        mv=atlas_brats,
         transform_method='SyNAggro',
         outprefix=outprefix
     )
 
-    new_mri = transform(prefix, mri, mrib, mrib2mri_tfm)
-    new_mri = Path(new_mri)  # <--- converti la stringa in Path
+    new_mri = transform(
+        prefix=prefix,
+        fx=mri,
+        mv=mrib,
+        tfm=mrib2mri_tfm,
+        interpolator='nearestNeighbor'
+    )
 
-    # Costruisci il nuovo nome a partire dal file MRI
+    new_mri = Path(new_mri)
+
     mri_name = Path(mri).name
     if mri_name.endswith('.nii.gz'):
-        seg_name = mri_name[:-7] + '_seg.nii.gz'  # togli ".nii.gz" e aggiungi "_seg.nii.gz"
+        seg_name = mri_name[:-7] + '_seg.nii.gz'
     else:
         seg_name = Path(mri).stem + '_seg' + Path(mri).suffix
 
     seg_path = Path(prefix) / seg_name
 
-    # Se esiste già, lo sostituisci (opzionale)
     if seg_path.exists():
         seg_path.unlink()
 
-    # Usa move (più sicuro di rename se sei su WSL)
     shutil.move(str(new_mri), str(seg_path))
 
     new_mri = seg_path

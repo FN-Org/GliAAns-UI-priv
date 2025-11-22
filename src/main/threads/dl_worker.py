@@ -235,7 +235,13 @@ class DlWorker(QObject):
             self.log_update.emit(QCoreApplication.translate("DlWorker", "✗ No brain_in_atlas file found"), 'e')
             return False
 
-        brain_in_atlas_file = str(brain_in_atlas_files[0])
+        rsl_files = [f for f in brain_in_atlas_files if f.name.endswith("_rsl.nii") or f.name.endswith("_rsl.nii.gz")]
+
+        if rsl_files:
+            brain_in_atlas_file = str(rsl_files[0])
+        else:
+            # fallback
+            brain_in_atlas_file = str(brain_in_atlas_files[0])
 
         self.reorientation_process = QProcess()
         self.reorientation_process.finished.connect(self.on_reorientation_finished)
