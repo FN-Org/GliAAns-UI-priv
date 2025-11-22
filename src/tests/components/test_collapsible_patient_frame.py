@@ -1,9 +1,9 @@
 """
-test_collapsible_patient_frame.py - Test Suite per CollapsiblePatientFrame
+test_collapsible_patient_frame.py - Test Suite for CollapsiblePatientFrame
 
-Questa suite testa tutte le funzionalità del frame paziente collassabile:
-- Inizializzazione locked/unlocked
-- UI building e popolamento
+This suite tests all functionalities of the collapsible patient frame:
+- Locked/unlocked initialization
+- UI building and population
 - Expand/collapse animation
 - File selection (single/multiple)
 - PET4D JSON detection
@@ -24,34 +24,33 @@ from main.components.collapsible_patient_frame import ClickableFrame, Collapsibl
 
 
 class TestClickableFrame:
-    """Test per ClickableFrame helper"""
+    """Tests for ClickableFrame helper"""
 
     def test_clickable_frame_initialization(self, qtbot):
-        """Test inizializzazione ClickableFrame"""
+        """Test ClickableFrame initialization"""
         frame = ClickableFrame()
         qtbot.addWidget(frame)
 
         assert hasattr(frame, 'clicked')
 
     def test_clickable_frame_emits_signal(self, qtbot):
-        """Test che ClickableFrame emetta signal al click"""
+        """Test that ClickableFrame emits signal on click"""
         frame = ClickableFrame()
         qtbot.addWidget(frame)
 
         clicked_count = [0]
         frame.clicked.connect(lambda: clicked_count.__setitem__(0, clicked_count[0] + 1))
 
-        # Simula click
         QTest.mouseClick(frame, Qt.MouseButton.LeftButton)
 
         assert clicked_count[0] == 1
 
 
 class TestCollapsiblePatientFrameInitialization:
-    """Test per l'inizializzazione di CollapsiblePatientFrame"""
+    """Tests for CollapsiblePatientFrame initialization"""
 
     def test_init_locked_single_choice(self, qtbot, mock_context, temp_workspace):
-        """Test inizializzazione in modalità locked (single choice)"""
+        """Test initialization in locked mode (single choice)"""
         patient_id = "sub-01"
         files = {"ct": "sub-01/anat/ct.nii.gz"}
         patterns = {"ct": [os.path.join(temp_workspace, "sub-01/anat/ct*.nii.gz")]}
@@ -73,7 +72,7 @@ class TestCollapsiblePatientFrameInitialization:
         assert frame.is_expanded is False
 
     def test_init_unlocked_multiple_choice(self, qtbot, mock_context, temp_workspace):
-        """Test inizializzazione in modalità unlocked (multiple choice)"""
+        """Test initialization in unlocked mode (multiple choice)"""
         patient_id = "sub-02"
         files = {"pet4d": "sub-02/pet/pet4d.nii.gz"}
         patterns = {"pet4d": [os.path.join(temp_workspace, "sub-02/pet/*.nii.gz")]}
@@ -91,7 +90,7 @@ class TestCollapsiblePatientFrameInitialization:
         assert frame.locked is False
 
     def test_init_with_save_callback(self, qtbot, mock_context, temp_workspace):
-        """Test inizializzazione con callback di salvataggio"""
+        """Test initialization with save callback"""
         save_callback = Mock()
 
         frame = CollapsiblePatientFrame(
@@ -107,7 +106,7 @@ class TestCollapsiblePatientFrameInitialization:
         assert frame.save_callback is save_callback
 
     def test_workspace_path_assignment(self, qtbot, mock_context, temp_workspace):
-        """Test assegnazione workspace_path dal context"""
+        """Test workspace_path assignment from context"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-04",
@@ -120,7 +119,7 @@ class TestCollapsiblePatientFrameInitialization:
         assert frame.workspace_path == mock_context["workspace_path"]
 
     def test_category_widgets_initialized_empty(self, qtbot, mock_context, temp_workspace):
-        """Test che category_widgets sia inizializzato vuoto"""
+        """Test that category_widgets is initialized empty"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-05",
@@ -134,10 +133,10 @@ class TestCollapsiblePatientFrameInitialization:
 
 
 class TestUIBuilding:
-    """Test per la costruzione dell'interfaccia"""
+    """Tests for UI construction"""
 
     def test_header_widgets_created(self, qtbot, mock_context, temp_workspace):
-        """Test creazione widget header"""
+        """Test header widget creation"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-06",
@@ -152,7 +151,7 @@ class TestUIBuilding:
         assert isinstance(frame.subject_name, QLabel)
 
     def test_toggle_button_configuration(self, qtbot, mock_context, temp_workspace):
-        """Test configurazione toggle button"""
+        """Test toggle button configuration"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-07",
@@ -167,7 +166,7 @@ class TestUIBuilding:
         assert frame.toggle_button.arrowType() == Qt.ArrowType.RightArrow
 
     def test_content_frame_created(self, qtbot, mock_context, temp_workspace):
-        """Test creazione content frame"""
+        """Test creation of the content frame"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-08",
@@ -178,10 +177,10 @@ class TestUIBuilding:
         qtbot.addWidget(frame)
 
         assert hasattr(frame, 'content_frame')
-        assert frame.content_frame.maximumHeight() == 0  # Start collapsed
+        assert frame.content_frame.maximumHeight() == 0  # Starts collapsed
 
     def test_animation_setup(self, qtbot, mock_context, temp_workspace):
-        """Test setup animazione"""
+        """Test animation setup"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-09",
@@ -196,10 +195,10 @@ class TestUIBuilding:
 
 
 class TestStyleApplication:
-    """Test per l'applicazione degli stili"""
+    """Tests for style application"""
 
     def test_locked_style(self, qtbot, mock_context, temp_workspace):
-        """Test stile per frame locked"""
+        """Test style for locked frame"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-10",
@@ -214,7 +213,7 @@ class TestStyleApplication:
         assert "#4CAF50" in stylesheet  # Green border
 
     def test_unlocked_style(self, qtbot, mock_context, temp_workspace):
-        """Test stile per frame unlocked"""
+        """Test style for unlocked frame"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-11",
@@ -229,7 +228,7 @@ class TestStyleApplication:
         assert "#FFF8E1" in stylesheet  # Yellow background
 
     def test_style_changes_after_lock(self, qtbot, mock_context, temp_workspace):
-        """Test cambio stile dopo lock"""
+        """Test style update after locking"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-12",
@@ -239,24 +238,22 @@ class TestStyleApplication:
         )
         qtbot.addWidget(frame)
 
-        # Inizialmente unlocked (giallo)
+        # Initially unlocked (yellow)
         initial_style = frame.styleSheet()
         assert "#FFC107" in initial_style
 
-        # Lock manualmente
         frame.locked = True
         frame._apply_style()
 
-        # Dovrebbe diventare locked (bianco/verde)
         new_style = frame.styleSheet()
         assert "#4CAF50" in new_style
 
 
 class TestExpandCollapse:
-    """Test per funzionalità expand/collapse"""
+    """Tests for expand/collapse functionality"""
 
     def test_initial_state_collapsed(self, qtbot, mock_context, temp_workspace):
-        """Test stato iniziale collapsed"""
+        """Test initial collapsed state"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-13",
@@ -270,7 +267,7 @@ class TestExpandCollapse:
         assert frame.content_frame.maximumHeight() == 0
 
     def test_toggle_expand_programmatically(self, qtbot, mock_context, temp_workspace):
-        """Test expand programmatico"""
+        """Test programmatic expand"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-14",
@@ -280,14 +277,13 @@ class TestExpandCollapse:
         )
         qtbot.addWidget(frame)
 
-        # Expand
         frame._toggle_expand(True)
 
         assert frame.is_expanded is True
         assert frame.toggle_button.arrowType() == Qt.ArrowType.DownArrow
 
     def test_toggle_collapse_programmatically(self, qtbot, mock_context, temp_workspace):
-        """Test collapse programmatico"""
+        """Test programmatic collapse"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-15",
@@ -297,17 +293,14 @@ class TestExpandCollapse:
         )
         qtbot.addWidget(frame)
 
-        # Expand prima
         frame._toggle_expand(True)
-
-        # Poi collapse
         frame._toggle_expand(False)
 
         assert frame.is_expanded is False
         assert frame.toggle_button.arrowType() == Qt.ArrowType.RightArrow
 
     def test_header_click_toggles_expansion(self, qtbot, mock_context, temp_workspace):
-        """Test che il click sull'header espanda/collassi"""
+        """Test that clicking the header toggles expand/collapse"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-16",
@@ -317,24 +310,21 @@ class TestExpandCollapse:
         )
         qtbot.addWidget(frame)
 
-        # Trova header frame (primo figlio)
         header_frame = frame.findChild(ClickableFrame)
         assert header_frame is not None
 
-        # Click header
         initial_state = frame.is_expanded
         header_frame.clicked.emit()
 
-        # Stato dovrebbe cambiare
         assert frame.is_expanded != initial_state
 
 
 class TestContentPopulation:
-    """Test per il popolamento del contenuto"""
+    """Tests for content population"""
 
     @patch('glob.glob')
     def test_populate_single_file_locked(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test popolamento con singolo file in modalità locked"""
+        """Test population with a single file in locked mode"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-17/anat/ct.nii.gz")]
 
         files = {"ct": "sub-17/anat/ct.nii.gz"}
@@ -349,13 +339,12 @@ class TestContentPopulation:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe mostrare label con file
         assert hasattr(frame, 'file_label')
         assert frame.file_label.text() == "sub-17/anat/ct.nii.gz"
 
     @patch('glob.glob')
     def test_populate_multiple_files_unlocked(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test popolamento con file multipli in modalità unlocked"""
+        """Test population with multiple files in unlocked mode"""
         mock_glob.return_value = [
             os.path.join(temp_workspace, "sub-18/pet/pet1.nii.gz"),
             os.path.join(temp_workspace, "sub-18/pet/pet2.nii.gz"),
@@ -373,7 +362,6 @@ class TestContentPopulation:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe avere combobox
         assert "pet4d" in frame.category_widgets
         combo = frame.category_widgets["pet4d"]
         assert isinstance(combo, QComboBox)
@@ -381,7 +369,7 @@ class TestContentPopulation:
 
     @patch('glob.glob')
     def test_populate_no_files_found(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test popolamento senza file trovati"""
+        """Test population when no files are found"""
         mock_glob.return_value = []
 
         files = {}
@@ -396,13 +384,12 @@ class TestContentPopulation:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe mostrare "No file found"
         assert hasattr(frame, 'file_label')
         assert "no file" in frame.file_label.text().lower()
 
     @patch('glob.glob')
     def test_populate_saves_button_in_unlocked_mode(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test presenza pulsante Save in modalità unlocked"""
+        """Test presence of Save button in unlocked mode"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-20/anat/t1.nii.gz")]
 
         files = {}
@@ -417,18 +404,17 @@ class TestContentPopulation:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe avere pulsante Save
         assert hasattr(frame, 'save_btn')
         assert isinstance(frame.save_btn, QPushButton)
 
 
 class TestPET4DJSONDetection:
-    """Test per rilevamento JSON associato a PET4D"""
+    """Tests for detecting JSON associated with PET4D"""
 
     @patch('glob.glob')
     @patch('os.path.exists')
     def test_pet4d_json_found_locked_mode(self, mock_exists, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test rilevamento JSON in modalità locked"""
+        """Test JSON detection in locked mode"""
         pet_file = os.path.join(temp_workspace, "sub-21/pet/pet4d.nii.gz")
         json_file = os.path.join(temp_workspace, "sub-21/pet/pet4d.json")
 
@@ -447,18 +433,18 @@ class TestPET4DJSONDetection:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe aver rilevato JSON
+        # Should have detected JSON
         assert "pet4d_json" in frame.files
         assert "pet4d.json" in frame.files["pet4d_json"]
 
     @patch('glob.glob')
     @patch('os.path.exists')
     def test_pet4d_json_not_found_locked_mode(self, mock_exists, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test JSON non trovato in modalità locked"""
+        """Test JSON not found in locked mode"""
         pet_file = os.path.join(temp_workspace, "sub-22/pet/pet4d.nii.gz")
 
         mock_glob.return_value = [pet_file]
-        mock_exists.return_value = False  # JSON non esiste
+        mock_exists.return_value = False  # JSON does not exist
 
         files = {"pet4d": "sub-22/pet/pet4d.nii.gz"}
         patterns = {"pet4d": [os.path.join(temp_workspace, "sub-22/pet/*.nii.gz")]}
@@ -472,13 +458,13 @@ class TestPET4DJSONDetection:
         )
         qtbot.addWidget(frame)
 
-        # JSON dovrebbe essere vuoto
+        # JSON should be empty
         assert frame.files.get("pet4d_json", "") == ""
 
     @patch('glob.glob')
     @patch('os.path.exists')
     def test_pet4d_json_dynamic_update_unlocked(self, mock_exists, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test aggiornamento dinamico JSON in modalità unlocked"""
+        """Test dynamic JSON update in unlocked mode"""
         pet1 = os.path.join(temp_workspace, "sub-23/pet/pet1.nii.gz")
         pet2 = os.path.join(temp_workspace, "sub-23/pet/pet2.nii.gz")
         json1 = os.path.join(temp_workspace, "sub-23/pet/pet1.json")
@@ -498,20 +484,20 @@ class TestPET4DJSONDetection:
         )
         qtbot.addWidget(frame)
 
-        # Cambia selezione combo
+        # Change combo selection
         combo = frame.category_widgets["pet4d"]
         combo.setCurrentIndex(1)  # pet2
 
-        # JSON label dovrebbe aggiornarsi
+        # JSON label should update
         assert hasattr(frame, 'pet4d_json_label')
 
 
 class TestSaveConfiguration:
-    """Test per il salvataggio della configurazione"""
+    """Tests for configuration saving"""
 
     @patch('glob.glob')
     def test_save_patient_calls_callback(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che save chiami il callback"""
+        """Test that save calls the callback"""
         mock_glob.return_value = [
             os.path.join(temp_workspace, "sub-24/anat/t1.nii.gz"),
             os.path.join(temp_workspace, "sub-24/anat/t2.nii.gz")
@@ -531,10 +517,10 @@ class TestSaveConfiguration:
         )
         qtbot.addWidget(frame)
 
-        # Salva
+        # Save
         frame._save_patient()
 
-        # Callback dovrebbe essere chiamato
+        # Callback should be called
         save_callback.assert_called_once()
         args = save_callback.call_args[0]
         assert args[0] == "sub-24"  # patient_id
@@ -542,7 +528,7 @@ class TestSaveConfiguration:
 
     @patch('glob.glob')
     def test_save_patient_marks_not_needing_revision(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che save rimuova flag need_revision"""
+        """Test that save removes need_revision flag"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-25/anat/scan.nii.gz")]
 
         files = {"need_revision": True}
@@ -563,7 +549,7 @@ class TestSaveConfiguration:
 
     @patch('glob.glob')
     def test_save_patient_locks_frame(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che save locki il frame"""
+        """Test that save locks the frame"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-26/anat/data.nii.gz")]
 
         files = {}
@@ -586,7 +572,7 @@ class TestSaveConfiguration:
 
     @patch('glob.glob')
     def test_save_patient_updates_files_from_combos(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che save aggiorni files dai combo"""
+        """Test that save updates files from combo selections"""
         mock_glob.return_value = [
             os.path.join(temp_workspace, "sub-27/anat/file1.nii.gz"),
             os.path.join(temp_workspace, "sub-27/anat/file2.nii.gz")
@@ -604,21 +590,21 @@ class TestSaveConfiguration:
         )
         qtbot.addWidget(frame)
 
-        # Cambia selezione
+        # Change selection
         combo = frame.category_widgets["ct"]
         combo.setCurrentIndex(1)
 
         frame._save_patient()
 
-        # files dovrebbe essere aggiornato
+        # files should be updated
         assert "file2.nii.gz" in frame.files["ct"]
 
 
 class TestTranslation:
-    """Test per traduzione/localizzazione"""
+    """Tests for translation/localization"""
 
     def test_translate_ui_called_on_init(self, qtbot, mock_context, temp_workspace):
-        """Test che _translate_ui sia chiamato all'init"""
+        """Test that _translate_ui is called during init"""
         with patch.object(CollapsiblePatientFrame, '_translate_ui') as mock_translate:
             frame = CollapsiblePatientFrame(
                 context=mock_context,
@@ -629,11 +615,11 @@ class TestTranslation:
             )
             qtbot.addWidget(frame)
 
-            # Dovrebbe essere chiamato durante __init__
+            # Should be called during __init__
             assert mock_translate.called
 
     def test_language_changed_signal_connected(self, qtbot, signal_emitter, temp_workspace):
-        """Test connessione al signal language_changed"""
+        """Test connection to language_changed signal"""
         context = {
             "workspace_path": temp_workspace,
             "language_changed": signal_emitter.language_changed
@@ -648,16 +634,16 @@ class TestTranslation:
         )
         qtbot.addWidget(frame)
 
-        # Emetti signal
+        # Emit signal
         with patch.object(frame, '_translate_ui') as mock_translate:
             context["language_changed"].connect(mock_translate)
             context["language_changed"].emit("it")
 
-            # _translate_ui dovrebbe essere chiamato
+            # _translate_ui should be called
             mock_translate.assert_called()
 
     def test_patient_label_translation(self, qtbot, mock_context, temp_workspace):
-        """Test traduzione label paziente"""
+        """Test patient label translation"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-30",
@@ -667,12 +653,12 @@ class TestTranslation:
         )
         qtbot.addWidget(frame)
 
-        # Label dovrebbe contenere patient ID
+        # Label should contain patient ID
         assert "sub-30" in frame.subject_name.text()
 
     @patch('glob.glob')
     def test_save_button_translation(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test traduzione pulsante Save"""
+        """Test Save button translation"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-31/anat/scan.nii.gz")]
 
         frame = CollapsiblePatientFrame(
@@ -684,44 +670,44 @@ class TestTranslation:
         )
         qtbot.addWidget(frame)
 
-        # Save button dovrebbe avere testo
+        # Save button should have text
         assert len(frame.save_btn.text()) > 0
 
 
 class TestEdgeCases:
-    """Test per casi limite"""
+    """Tests for edge cases"""
 
     def test_empty_patterns_dict(self, qtbot, mock_context, temp_workspace):
-        """Test con dizionario patterns vuoto"""
+        """Test with empty patterns dict"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-32",
             files={},
-            patterns={},  # Vuoto
+            patterns={},  # Empty
             multiple_choice=False
         )
         qtbot.addWidget(frame)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert frame.category_widgets == {}
 
     def test_empty_files_dict(self, qtbot, mock_context, temp_workspace):
-        """Test con dizionario files vuoto"""
+        """Test with empty files dict"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-33",
-            files={},  # Vuoto
+            files={},  # Empty
             patterns={"ct": ["*.nii.gz"]},
             multiple_choice=False
         )
         qtbot.addWidget(frame)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert frame.files == {}
 
     @patch('glob.glob')
     def test_single_file_in_multiple_choice_mode(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test singolo file in modalità multiple choice"""
+        """Test single file in multiple-choice mode"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-34/anat/only_one.nii.gz")]
 
         files = {}
@@ -736,11 +722,11 @@ class TestEdgeCases:
         )
         qtbot.addWidget(frame)
 
-        # Con un solo file, dovrebbe trattare come locked
-        # (logica interna del _populate_content)
+        # With only one file, it should behave like locked
+        # (internal logic in _populate_content)
 
     def test_patient_id_with_special_characters(self, qtbot, mock_context, temp_workspace):
-        """Test patient ID con caratteri speciali"""
+        """Test patient ID containing special characters"""
         patient_id = "sub-01_session-2"
 
         frame = CollapsiblePatientFrame(
@@ -756,7 +742,7 @@ class TestEdgeCases:
         assert patient_id in frame.subject_name.text()
 
     def test_no_save_callback_provided(self, qtbot, mock_context, temp_workspace):
-        """Test senza callback di salvataggio"""
+        """Test when no save callback is provided"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-35",
@@ -767,11 +753,11 @@ class TestEdgeCases:
         )
         qtbot.addWidget(frame)
 
-        # _save_patient non dovrebbe crashare
+        # _save_patient should not crash
         frame._save_patient()
 
     def test_context_without_language_changed(self, qtbot, temp_workspace):
-        """Test context senza signal language_changed"""
+        """Test context without language_changed signal"""
         context = {"workspace_path": temp_workspace}
 
         frame = CollapsiblePatientFrame(
@@ -783,8 +769,7 @@ class TestEdgeCases:
         )
         qtbot.addWidget(frame)
 
-        # Non dovrebbe crashare
-
+        # Should not crash
 
 class TestFilePatternMatching:
     """Test per il matching dei pattern di file"""
@@ -894,7 +879,6 @@ class TestComboBoxBehavior:
         )
         qtbot.addWidget(frame)
 
-        # Combo dovrebbe avere file2 selezionato
         combo = frame.category_widgets["ct"]
         assert "file2" in combo.currentText()
 
@@ -906,7 +890,7 @@ class TestComboBoxBehavior:
             os.path.join(temp_workspace, "sub-41/anat/new2.nii.gz")
         ]
 
-        files = {"ct": "sub-41/anat/nonexistent.nii.gz"}  # Non esiste
+        files = {"ct": "sub-41/anat/nonexistent.nii.gz"}
         patterns = {"ct": [os.path.join(temp_workspace, "sub-41/anat/*.nii.gz")]}
 
         frame = CollapsiblePatientFrame(
@@ -918,7 +902,6 @@ class TestComboBoxBehavior:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe selezionare il primo
         combo = frame.category_widgets["ct"]
         assert combo.currentIndex() == 0
 
@@ -1007,8 +990,6 @@ class TestCategoryLabels:
         )
         qtbot.addWidget(frame)
 
-        # Category label dovrebbe avere underscore sostituiti da spazi e title case
-        # "pet_4d_dynamic" → "Pet 4d Dynamic"
         labels = frame.findChildren(QLabel)
         category_labels = [l for l in labels if "pet" in l.text().lower()]
         assert len(category_labels) > 0
@@ -1021,7 +1002,6 @@ class TestIntegrationScenarios:
     @patch('os.path.exists')
     def test_complete_workflow_locked_patient(self, mock_exists, mock_glob, qtbot, mock_context, temp_workspace):
         """Test workflow completo paziente locked"""
-        # Setup
         ct_file = os.path.join(temp_workspace, "sub-47/anat/CT.nii.gz")
         pet_file = os.path.join(temp_workspace, "sub-47/pet/PET4D.nii.gz")
         pet_json = os.path.join(temp_workspace, "sub-47/pet/PET4D.json")
@@ -1050,23 +1030,17 @@ class TestIntegrationScenarios:
             patient_id="sub-47",
             files=files,
             patterns=patterns,
-            multiple_choice=False  # locked
+            multiple_choice=False
         )
         qtbot.addWidget(frame)
 
-        # Verifica stato locked
         assert frame.locked is True
-
-        # Verifica file mostrati
         assert hasattr(frame, 'file_label')
-
-        # Verifica JSON rilevato
         assert "pet4d_json" in frame.files
 
     @patch('glob.glob')
     def test_complete_workflow_unlocked_patient(self, mock_glob, qtbot, mock_context, temp_workspace):
         """Test workflow completo paziente unlocked"""
-        # Setup file multipli
         ct_files = [
             os.path.join(temp_workspace, "sub-48/anat/CT1.nii.gz"),
             os.path.join(temp_workspace, "sub-48/anat/CT2.nii.gz")
@@ -1103,23 +1077,15 @@ class TestIntegrationScenarios:
         )
         qtbot.addWidget(frame)
 
-        # Verifica stato unlocked
         assert frame.locked is False
-
-        # Verifica combo presenti
         assert "ct" in frame.category_widgets
         assert "pet4d" in frame.category_widgets
 
-        # Simula selezione e salvataggio
         frame.category_widgets["ct"].setCurrentIndex(1)
         frame.category_widgets["pet4d"].setCurrentIndex(0)
-
         frame._save_patient()
 
-        # Verifica callback chiamato
         save_callback.assert_called_once()
-
-        # Verifica ora locked
         assert frame.locked is True
 
     @patch('glob.glob')
@@ -1141,28 +1107,23 @@ class TestIntegrationScenarios:
         )
         qtbot.addWidget(frame)
 
-        # 1. Expand
         frame._toggle_expand(True)
         assert frame.is_expanded is True
 
-        # 2. Select
         combo = frame.category_widgets["ct"]
         combo.setCurrentIndex(1)
 
-        # 3. Save
         frame._save_patient()
 
-        # Verifica risultato
         assert "scan2" in frame.files["ct"]
         assert frame.locked is True
 
-
 class TestMemoryAndCleanup:
-    """Test per gestione memoria e cleanup"""
+    """Tests for memory management and cleanup"""
 
     @patch('glob.glob')
     def test_repopulate_content_cleans_old_widgets(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che _populate_content pulisca vecchi widget"""
+        """Test that _populate_content cleans old widgets"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-50/anat/scan.nii.gz")]
 
         patterns = {"ct": [os.path.join(temp_workspace, "sub-50/anat/*.nii.gz")]}
@@ -1178,15 +1139,15 @@ class TestMemoryAndCleanup:
 
         initial_widget_count = frame.content_layout.count()
 
-        # Ri-popola
+        # Re-populate
         frame._populate_content()
 
-        # Count dovrebbe essere simile (widget vecchi rimossi)
+        # Count should be similar (old widgets removed)
         new_widget_count = frame.content_layout.count()
         assert new_widget_count > 0
 
     def test_widget_deletion_on_repopulate(self, qtbot, mock_context, temp_workspace):
-        """Test eliminazione widget su ri-popolamento"""
+        """Test widget deletion on re-population"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-51",
@@ -1196,25 +1157,25 @@ class TestMemoryAndCleanup:
         )
         qtbot.addWidget(frame)
 
-        # Aggiungi widget custom
+        # Add a custom widget
         from PyQt6.QtWidgets import QWidget
         custom_widget = QWidget()
         frame.content_layout.addWidget(custom_widget)
 
         assert custom_widget.parent() is not None
 
-        # Ri-popola
+        # Re-populate
         frame._populate_content()
 
-        # Widget custom dovrebbe essere schedulato per deletion
-        # (deleteLater è chiamato)
+        # Custom widget should be scheduled for deletion
+        # (deleteLater is called)
 
 
 class TestAccessibility:
-    """Test per accessibilità"""
+    """Tests for accessibility"""
 
     def test_toggle_button_cursor(self, qtbot, mock_context, temp_workspace):
-        """Test cursore del toggle button"""
+        """Test cursor of the toggle button"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-52",
@@ -1224,11 +1185,11 @@ class TestAccessibility:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe avere cursore PointingHand
+        # Should have PointingHand cursor
         assert frame.toggle_button.cursor().shape() == Qt.CursorShape.PointingHandCursor
 
     def test_toggle_button_checkable(self, qtbot, mock_context, temp_workspace):
-        """Test che toggle button sia checkable"""
+        """Test that toggle button is checkable"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-53",
@@ -1242,7 +1203,7 @@ class TestAccessibility:
 
     @patch('glob.glob')
     def test_save_button_minimum_height(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test altezza minima save button"""
+        """Test minimum height of save button"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-54/anat/scan.nii.gz")]
 
         patterns = {"ct": [os.path.join(temp_workspace, "sub-54/anat/*.nii.gz")]}
@@ -1260,10 +1221,10 @@ class TestAccessibility:
 
 
 class TestVisualEffects:
-    """Test per effetti visivi"""
+    """Tests for visual effects"""
 
     def test_drop_shadow_applied(self, qtbot, mock_context, temp_workspace):
-        """Test applicazione drop shadow"""
+        """Test drop shadow application"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-55",
@@ -1273,11 +1234,11 @@ class TestVisualEffects:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe avere effetto grafico
+        # Should have a graphics effect
         assert frame.graphicsEffect() is not None
 
     def test_frame_shape(self, qtbot, mock_context, temp_workspace):
-        """Test forma frame"""
+        """Test frame shape"""
         from PyQt6.QtWidgets import QFrame
 
         frame = CollapsiblePatientFrame(
@@ -1292,7 +1253,7 @@ class TestVisualEffects:
         assert frame.frameShape() == QFrame.Shape.StyledPanel
 
     def test_object_name_set(self, qtbot, mock_context, temp_workspace):
-        """Test object name impostato"""
+        """Test object name is set"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-57",
@@ -1305,13 +1266,13 @@ class TestVisualEffects:
         assert frame.objectName() == "collapsiblePatientFrame"
 
 
-# Test parametrizzati
+# Parametrized tests
 @pytest.mark.parametrize("multiple_choice,expected_locked", [
     (False, True),
     (True, False),
 ])
 def test_locked_state_by_multiple_choice(multiple_choice, expected_locked, qtbot, mock_context, temp_workspace):
-    """Test parametrizzato per stato locked basato su multiple_choice"""
+    """Parametrized test for locked state based on multiple_choice"""
     frame = CollapsiblePatientFrame(
         context=mock_context,
         patient_id="sub-param",
@@ -1329,7 +1290,7 @@ def test_locked_state_by_multiple_choice(multiple_choice, expected_locked, qtbot
     (Qt.ArrowType.DownArrow, True),
 ])
 def test_arrow_type_by_expansion_state(arrow_type, is_expanded, qtbot, mock_context, temp_workspace):
-    """Test parametrizzato per tipo freccia basato su espansione"""
+    """Parametrized test for arrow type based on expansion"""
     frame = CollapsiblePatientFrame(
         context=mock_context,
         patient_id="sub-arrow",
@@ -1351,7 +1312,7 @@ def test_arrow_type_by_expansion_state(arrow_type, is_expanded, qtbot, mock_cont
     "subject-01-session-1"
 ])
 def test_various_patient_id_formats(patient_id, qtbot, mock_context, temp_workspace):
-    """Test parametrizzato per vari formati patient ID"""
+    """Parametrized test for various patient ID formats"""
     frame = CollapsiblePatientFrame(
         context=mock_context,
         patient_id=patient_id,
