@@ -6,7 +6,7 @@ PIPELINE_DIR      = pediatric_fdopa_pipeline
 REQUIREMENTS      = requirements.txt
 PIPELINE_DIST     = pipeline_runner.dist
 PIPELINE_NO_DIST  = pipeline_runner
-DOC_DIR			  = docs
+DOC_DIR			  = ../pdoc/docs
 
 # -------------------------
 # OS Management
@@ -222,8 +222,9 @@ tests-coverage:
 doc:
 ifeq ($(OS),Windows_NT)
 	if exist "$(DOC_DIR)" rmdir /S /Q "$(DOC_DIR)"
-	pdoc -o $(DOC_DIR) --logo $(abspath resources\GliAAns-logo.png) --template-dir pdoc_template .\main.py .\controller.py .\utils.py .\logger.py .\ui .\threads .\components
+	cd main && set PYTHONPATH=. && pdoc -o "$(DOC_DIR)" --logo "$(abspath main\resources\GliAAns-logo.png)" --template-dir ../pdoc/pdoc_template . ui threads components
+	cd ..
 else
 	rm -rf $(DOC_DIR)
-	pdoc -o $(DOC_DIR) --logo $(abspath resources/GliAAns-logo.png) --template-dir pdoc_template ./main.py ./controller.py ./utils.py ./logger.py ./ui ./threads ./components
+	cd main && PYTHONPATH=. && pdoc -o $(DOC_DIR) --logo $(abspath main/resources/GliAAns-logo.png) --template-dir ../pdoc/pdoc_template . ui threads components && cd ..
 endif

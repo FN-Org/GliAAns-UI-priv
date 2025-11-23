@@ -3,7 +3,10 @@ import nibabel as nib
 import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication
+from logger import get_logger
 
+
+log = get_logger()
 
 class SaveNiftiThread(QThread):
     """
@@ -63,8 +66,11 @@ class SaveNiftiThread(QThread):
             - error(message): If an exception occurs.
         """
         try:
+            log.debug(f"Save nifti in {self.path}")
             # Save the NIfTI file
             nib.save(nib.Nifti1Image(self.data.astype(np.uint8), self.affine), self.path)
+
+            log.debug("Preparing json")
             json_dict = {
                 "Type": "ROI",
                 "Sources": [f"bids:{self.relative_path}"],
@@ -72,10 +78,11 @@ class SaveNiftiThread(QThread):
                 "Origin": self.source_dict
             }
 
+            log.debug("Writing json")
             # Write the JSON metadata
             with open(self.json_path, "w") as json_file:
                 json.dump(json_dict, json_file, indent=4)
-
+            log.debug("Send success")
             # Notify the main thread of success
             self.success.emit(self.path, self.json_path)
 
@@ -166,16 +173,17 @@ class ImageLoadThread(QThread):
             affine = canonical_img.affine
 
             self.progress.emit(70)
-
+            log.debug("Load voxel data")
             # Load voxel data
             img_data = np.asanyarray(canonical_img.dataobj, dtype=np.float32)
             self.progress.emit(80)
 
+            log.debug("Normalize image intensities")
             # Normalize image intensities
             img_data = self.normalize_data_matplotlib_style(img_data)
 
             self.progress.emit(100)
-
+            log.debug("Emit finished signal with image data and metadata.")
             # Emit the results to the main thread
             self.finished.emit(img_data, dims, affine, is_4d, self.is_overlay)
 
