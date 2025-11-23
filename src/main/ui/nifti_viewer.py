@@ -1837,7 +1837,7 @@ class NiftiViewer(QMainWindow):
                 self.pixmap_items[plane_idx].setPixmap(QPixmap.fromImage(qimage_scaled))
                 self.scenes[plane_idx].setSceneRect(0, 0, qimage_scaled.width(), qimage_scaled.height())
                 self.views[plane_idx].fitInView(self.scenes[plane_idx].sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-
+            log.debug("Updated display ended")
         except Exception as e:
             # Log any display update errors (e.g. shape mismatch or memory issue)
             log.error(f"Error updating display {plane_idx}: {e}")
@@ -2158,7 +2158,7 @@ class NiftiViewer(QMainWindow):
 
     def ROI_save(self):
         """Save the automatically generated ROI mask to disk"""
-
+        log.debug("Saving ROI mask to disk")
         original_path = self.file_path
         if not original_path:
             QMessageBox.critical(self, "Error", "No file loaded.")
@@ -2181,16 +2181,19 @@ class NiftiViewer(QMainWindow):
             log.error("Could not determine subject from path.")
             return
 
-        save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
 
+        save_dir = os.path.join(workspace_path, "derivatives", "manual_masks", subject, "anat")
+        log.debug(f"Save dir: {save_dir}")
         filename = os.path.basename(original_path)
         base_name = filename.replace(".nii.gz", "").replace(".nii", "")
-
+        log.debug(f"Base filename: {base_name}")
         # Prepare filenames and output paths
         id = self._get_next_file_id(save_dir)
-        new_base = f"{base_name}_ROI_id{id}_mask"
+        log.debug(f"Obtained version: {id}")
+        new_base = f"{base_name}_ROI_v{id}_mask"
         new_name = f"{new_base}.nii.gz"
 
+        log.debug("Show confirmation dialog")
         # Show confirmation dialog before saving
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Question)
@@ -2208,7 +2211,7 @@ class NiftiViewer(QMainWindow):
         if response != QMessageBox.StandardButton.Yes:
             return  # User canceled
 
-
+        log.debug("Make dir")
         os.makedirs(save_dir, exist_ok=True)
         full_save_path = os.path.join(save_dir, new_name)
         json_save_path = os.path.join(save_dir, f"{new_base}.json")
@@ -2237,7 +2240,7 @@ class NiftiViewer(QMainWindow):
             else:
                 origin_dict["Automatic drawing parameters"] = [new_params]
 
-
+        log.debug("Start thread")
         # Start threaded save operation
         self.threads.append(SaveNiftiThread(total_ROI, self.affine,
                                             full_save_path, json_save_path,
@@ -2275,18 +2278,21 @@ class NiftiViewer(QMainWindow):
         Returns:
             int: The next available numeric ID.
         """
-        pattern = re.compile(r"_id(\d+)_")
+        pattern = re.compile(r"_v(\d+)_")
         ids = []
+        log.debug("Searching versions")
+        if os.path.exists(folder_path):
+            for name in os.listdir(folder_path):
+                if os.path.isfile(os.path.join(folder_path, name)):
+                    match = pattern.search(name)
+                    if match:
+                        ids.append(int(match.group(1)))
 
-        for name in os.listdir(folder_path):
-            if os.path.isfile(os.path.join(folder_path, name)):
-                match = pattern.search(name)
-                if match:
-                    ids.append(int(match.group(1)))
-
-        next_id = max(ids) + 1 if ids else 1
-        return next_id
-
+            next_id = max(ids) + 1 if ids else 1
+            log.debug(f"Next v: {next_id}")
+            return next_id
+        else:
+            return 1
     def addOrigin_clicked(self):
         self.incrementalROI_data = self.incrementalROI_data if self.incrementalROI_data is not None else np.zeros(self.dims)
 

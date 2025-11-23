@@ -13,7 +13,7 @@ import sys
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QGuiApplication
-from PyQt6.QtWidgets import QApplication, QStyleFactory
+from PyQt6.QtWidgets import QApplication
 
 from controller import Controller
 from logger import setup_logger
