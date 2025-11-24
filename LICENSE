@@ -186,7 +186,7 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Copyright [2025] [FN-Org]
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -199,3 +199,27 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+Third-Party Software and License Notices
+This project includes or depends on third-party software components distributed under the Apache License, Version 2.0.
+In accordance with the terms of the Apache License, notices for these components are provided below.
+
+1. NVIDIA DeepLearningExamples – nnU-Net
+Repository: NVIDIA / DeepLearningExamples (PyTorch/Segmentation/nnU-Net)
+License: Apache License, Version 2.0
+Copyright © NVIDIA Corporation
+Source: https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Segmentation/nnUNet
+
+2. HD-BET (MIC-DKFZ)
+Repository: MIC-DKFZ / HD-BET
+License: Apache License, Version 2.0
+Copyright © German Cancer Research Center (DKFZ)
+Source: https://github.com/MIC-DKFZ/HD-BET
+
+3. Pediatric FDOPA Pipeline (Michele Mureddu)
+Repository: MicheleMureddu / Pediatric_fdopa_pipeline
+License: Apache License, Version 2.0
+Copyright © Michele Mureddu
+Source: https://github.com/MicheleMureddu/Pediatric_fdopa_pipeline
+All third-party components are redistributed in accordance with the Apache License, Version 2.0.
+A copy of the Apache License, Version 2.0 is included below.
