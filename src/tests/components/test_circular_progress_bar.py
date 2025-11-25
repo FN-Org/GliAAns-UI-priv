@@ -260,7 +260,7 @@ class TestSizeHint:
         assert size_hint1 != size_hint2
         assert size_hint2 == parent.size()
 
-cclass TestPaintEvent:
+class TestPaintEvent:
     """Tests for the paintEvent method."""
 
     def test_paint_event_called(self, qtbot):
