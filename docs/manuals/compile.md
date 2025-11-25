@@ -1,5 +1,5 @@
 # Compilation Guide
-This document provides instructions on how to compile the GliAAns-UI project from source. The build system is automated using a [Makefile](src/Makefile) that handles virtual environment creation, dependency installation, and binary compilation.
+This document provides instructions on how to compile the GliAAns-UI project from source. The build system is automated using a [Makefile](./../../src/Makefile) that handles virtual environment creation, dependency installation, and binary compilation.
 
 ## 1. Prerequisites
 Before compiling, ensure your development environment meets the following requirements:
@@ -58,8 +58,8 @@ What this does:
 > To enable Deep Learning features, you must perform the following steps after compilation:
 > 
 > - Navigate to the deep_learning folder inside the generated distribution (e.g., `src/main/dist/GliAAns-UI/deep_learning` or similar). 
-> - Consult the [README.md](src/main/deep_learning/README.md) file located there for specific hardware and driver requirements. 
-> - Execute the Deep Learning [Makefile](src/main/deep_learning/Makefile) (included in that folder) to generate the dedicated virtual environment containing all necessary dependencies.
+> - Consult the [README.md](./../../src/main/deep_learning/README.md) file located there for specific hardware and driver requirements. 
+> - Execute the Deep Learning [Makefile](./../../src/main/deep_learning/Makefile) (included in that folder) to generate the dedicated virtual environment containing all necessary dependencies.
 
 #### B. Standard GUI Build (No Deep Learning)
 
