@@ -696,3 +696,10 @@ Copyright © Michele Mureddu
 Source: https://github.com/MicheleMureddu/Pediatric_fdopa_pipeline
 All third-party components are redistributed in accordance with the Apache License, Version 2.0.
 A copy of the Apache License, Version 2.0 is included above.
+
+4. PyQt
+   Repository: Riverbank Computing
+   License: GPL v3 (GNU General Public License v3.0)
+   Copyright © Riverbank Computing Limited
+   Source: https://www.riverbankcomputing.com/software/pyqt/
+   Note: This software is used under the terms of the GNU GPL v3.
