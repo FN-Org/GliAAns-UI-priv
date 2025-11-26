@@ -99,6 +99,9 @@ make clean
 ```
 
 #### 6. Troubleshooting
-- **Nuitka Errors**: If Nuitka fails, ensure your C compiler (GCC/MinGW) is correctly installed and accessible.
+- **Nuitka Errors**: If Nuitka fails to compile, make sure you are using a proper C/C++ compiler toolchain. 
 
-- **Python Version**: If the Makefile fails immediately, verify that python3.11 is available. If your python executable is named differently (e.g., just python), you may need to edit the PYTHON = python3.11 line in the Makefile.
+  On Windows, ensure you are running the build inside the "Developer Command Prompt for Visual Studio" (or the _Visual Studio Developer PowerShell_) so that the required build tools are available in your environment.
+- **Python Version**: If the Makefile fails immediately, verify that `python3.11` is available. 
+
+  If your Python executable has a different name (e.g., just `python`), you may need to edit the `PYTHON = python3.11` line in the Makefile.

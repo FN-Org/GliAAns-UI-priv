@@ -41,6 +41,8 @@ class CircularProgress(QWidget):
         self.value = 0  # Current progress value (0–100)
         self.color = QColor(color)  # Active progress color
 
+        self.setMaximumSize(300, 300)
+
     def setValue(self, val: int):
         """
         Update the progress value and refresh the widget.

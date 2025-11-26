@@ -166,30 +166,8 @@ class ToolSelectionPage(Page):
             context["language_changed"].connect(self._translate_ui)
 
     # -------------------------------------------------------------------------
-    # UI Behavior and Navigation
+    # Navigation
     # -------------------------------------------------------------------------
-
-    # def resizeEvent(self, event):
-    #     """
-    #     Dynamically resize fonts when the window is resized.
-    #
-    #     The font size is scaled proportionally to the geometric mean of the
-    #     window width and height for a balanced visual effect.
-    #     """
-    #     window_width = self.width()
-    #     window_height = self.height()
-    #
-    #     # Calculate proportional font sizes
-    #     reference_size = (window_width * window_height) ** 0.5
-    #     base_font_size = max(10, int(reference_size / 45))
-    #     title_font_size = max(14, int(base_font_size * 1.4))
-    #
-    #     # Apply updated fonts
-    #     self.title.setFont(QFont("Arial", title_font_size, QFont.Weight.Bold))
-    #     for btn in self.radio_buttons:
-    #         btn.setFont(QFont("Arial", base_font_size))
-    #
-    #     super().resizeEvent(event)
 
     def on_selection(self):
         """Triggered when a radio button is toggled."""

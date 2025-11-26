@@ -254,8 +254,8 @@ class PipelinePatientSelectionPage(Page):
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
             os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
             # Deep learning segmentation output
-            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii"),
-            os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat", "*_seg.nii.gz")
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_seg", patient_id, "anat", "*_seg.nii"),
+            os.path.join(self.workspace_path, "derivatives", "deep_learning_seg", patient_id, "anat", "*_seg.nii.gz")
         ]
 
         segmentation_found = False
@@ -264,16 +264,16 @@ class PipelinePatientSelectionPage(Page):
             if glob.glob(pattern):
                 segmentation_found = True
                 # Identify segmentation source type
-                if "manual-masks" in pattern:
+                if "manual_masks" in pattern:
                     segmentation_type = "Manual Mask"
-                elif "deep_learning_masks" in pattern:
-                    segmentation_type = "deep_learning_masks Segmentation"
+                elif "deep_learning_seg" in pattern:
+                    segmentation_type = "deep_learning_seg Segmentation"
                 break
 
         requirements['segmentation'] = segmentation_found
         if not segmentation_found:
             missing_files.append(QCoreApplication.translate(
-                "PipelinePatientSelectionPage", "Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_masks /*_seg.nii[.gz])"))
+                "PipelinePatientSelectionPage", "Segmentation (manual_masks/*_mask.nii[.gz] or deep_learning_seg /*_seg.nii[.gz])"))
 
         # --- Final eligibility decision ---
         # Patient is eligible if all required files are present
@@ -711,9 +711,9 @@ class PipelinePatientSelectionPage(Page):
                 os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii"),
                 os.path.join(self.workspace_path, "derivatives", "manual_masks", patient_id, "anat", "*_mask.nii.gz"),
                 # Deep learning-based segmentations
-                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_seg", patient_id, "anat",
                              "*_seg.nii"),
-                os.path.join(self.workspace_path, "derivatives", "deep_learning_masks", patient_id, "anat",
+                os.path.join(self.workspace_path, "derivatives", "deep_learning_seg", patient_id, "anat",
                              "*_seg.nii.gz")
             ]
             tumor_files = []
