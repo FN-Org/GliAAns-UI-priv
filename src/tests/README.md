@@ -128,3 +128,8 @@ Below is a summary of the test components, their specific functionality targets,
 | Folder Card               | 12        | 48      | Passed |
 | Nifti File Dialog         | 22        | 66      | Passed |
 | Core                      |           |         |        |
+| Controller                | 9         | 29      | Passed |
+| Logger                    | 7         | 32      | Passed |
+| Page Contract             | /         | 10      | Passed |
+| Utils                     | 9         | 34      | Passed |
+| Threads                   |           |         |        |
