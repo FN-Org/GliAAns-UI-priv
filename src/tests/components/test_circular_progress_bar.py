@@ -565,10 +565,10 @@ class TestIntegration:
 
 
 class TestRenderingCalculations:
-    """Test per i calcoli di rendering."""
+    """Test for rendering calculations."""
 
     def test_square_widget_centering(self, qtbot):
-        """Test centraggio in widget quadrato."""
+        """Test centering in squared widget."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
         widget.resize(200, 200)
@@ -583,7 +583,7 @@ class TestRenderingCalculations:
         assert size == 200  # Con widget quadrato il minimo è 200
 
     def test_rectangular_widget_centering(self, qtbot):
-        """Test centraggio in widget rettangolare."""
+        """Test centering in rectangular widget."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
         widget.resize(300, 200)
@@ -595,10 +595,10 @@ class TestRenderingCalculations:
         height = widget.height()
         size = min(width, height)
 
-        assert size == 200  # L'altezza è la dimensione minore
+        assert size == 200
 
     def test_pen_width_calculation(self, qtbot):
-        """Test calcolo larghezza penna."""
+        """Test pen width calculation."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -614,7 +614,7 @@ class TestRenderingCalculations:
             assert expected_pen_width >= 5
 
     def test_font_size_calculation(self, qtbot):
-        """Test calcolo dimensione font."""
+        """Test font size calculation."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -631,10 +631,10 @@ class TestRenderingCalculations:
 
 
 class TestValueBoundaries:
-    """Test per i valori limite."""
+    """Test for value boundaries."""
 
     def test_boundary_value_zero(self, qtbot):
-        """Test valore limite 0."""
+        """Test for 0."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -645,7 +645,7 @@ class TestValueBoundaries:
         assert widget.value == 0
 
     def test_boundary_value_hundred(self, qtbot):
-        """Test valore limite 100."""
+        """Test for 100."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -656,7 +656,7 @@ class TestValueBoundaries:
         assert widget.value == 100
 
     def test_all_integer_values(self, qtbot):
-        """Test tutti i valori interi da 0 a 100."""
+        """Test for every value between 0 and 100."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -666,10 +666,10 @@ class TestValueBoundaries:
 
 
 class TestColorFormats:
-    """Test per vari formati di colore."""
+    """Test for color formats."""
 
     def test_hex_color_3_digits(self, qtbot):
-        """Test colore hex a 3 cifre."""
+        """Test color 3 hex digits."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -678,7 +678,7 @@ class TestColorFormats:
         assert isinstance(widget.color, QColor)
 
     def test_hex_color_6_digits(self, qtbot):
-        """Test colore hex a 6 cifre."""
+        """Test color 6 hex digits."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -687,7 +687,7 @@ class TestColorFormats:
         assert widget.color == QColor("#FF0000")
 
     def test_named_colors(self, qtbot):
-        """Test colori con nome."""
+        """Test color with names."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -698,7 +698,7 @@ class TestColorFormats:
             assert isinstance(widget.color, QColor)
 
     def test_qcolor_from_rgb(self, qtbot):
-        """Test QColor da valori RGB."""
+        """Test QColor with RGB color"""
         widget = CircularProgress()
         qtbot.addWidget(widget)
 
@@ -709,10 +709,10 @@ class TestColorFormats:
 
 
 class TestMemoryAndPerformance:
-    """Test per memoria e performance."""
+    """Test for memory and performace."""
 
     def test_no_memory_leak_on_repeated_updates(self, qtbot):
-        """Test che non ci siano memory leak con update ripetuti."""
+        """Test for memory leak."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
         widget.resize(200, 200)
@@ -724,7 +724,7 @@ class TestMemoryAndPerformance:
         assert widget.value == 50
 
     def test_rapid_repaints(self, qtbot):
-        """Test repaint rapidi."""
+        """Test repaint."""
         widget = CircularProgress()
         qtbot.addWidget(widget)
         widget.resize(200, 200)

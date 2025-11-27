@@ -9,9 +9,9 @@ from main.components.crosshair_graphic_view import CrosshairGraphicsView
 
 @pytest.fixture
 def mock_parent_viewer():
-    """Mock per il parent viewer."""
+    """Mock for the parent viewer."""
     parent = QWidget()
-    parent.img_data = Mock()  # Simula presenza dati immagine
+    parent.img_data = Mock()  # Simulates image data presence
     parent.handle_click_coordinates = Mock()
     parent.update_cross_view_lines = Mock()
     return parent
@@ -19,17 +19,17 @@ def mock_parent_viewer():
 
 @pytest.fixture
 def graphics_scene():
-    """Crea una QGraphicsScene per i test."""
+    """Creates a QGraphicsScene for testing."""
     scene = QGraphicsScene()
     scene.setSceneRect(0, 0, 512, 512)
     return scene
 
 
 class TestCrosshairGraphicsViewInitialization:
-    """Test per l'inizializzazione di CrosshairGraphicsView."""
+    """Tests for CrosshairGraphicsView initialization."""
 
     def test_initialization_basic(self, qtbot):
-        """Test inizializzazione base."""
+        """Test basic initialization."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -40,7 +40,7 @@ class TestCrosshairGraphicsViewInitialization:
         assert view.crosshair_visible is False
 
     def test_initialization_with_parent(self, qtbot, mock_parent_viewer):
-        """Test inizializzazione con parent."""
+        """Test initialization with parent."""
         view = CrosshairGraphicsView(view_idx=1, parent=mock_parent_viewer)
         qtbot.addWidget(view)
 
@@ -48,28 +48,28 @@ class TestCrosshairGraphicsViewInitialization:
         assert view.parent_viewer == mock_parent_viewer
 
     def test_initialization_different_view_indices(self, qtbot):
-        """Test inizializzazione con indici diversi."""
+        """Test initialization with different indices."""
         for idx in [0, 1, 2, 3, 10]:
             view = CrosshairGraphicsView(view_idx=idx)
             qtbot.addWidget(view)
             assert view.view_idx == idx
 
     def test_mouse_tracking_enabled(self, qtbot):
-        """Test che mouse tracking sia abilitato."""
+        """Test that mouse tracking is enabled."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
         assert view.hasMouseTracking()
 
     def test_drag_mode_set(self, qtbot):
-        """Test che drag mode sia NoDrag."""
+        """Test that drag mode is NoDrag."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
         assert view.dragMode() == QGraphicsView.DragMode.NoDrag
 
     def test_render_hints_set(self, qtbot):
-        """Test che render hints siano impostati."""
+        """Test that render hints are set."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -80,10 +80,10 @@ class TestCrosshairGraphicsViewInitialization:
 
 
 class TestSetupCrosshairs:
-    """Test per il metodo setup_crosshairs."""
+    """Tests for the setup_crosshairs method."""
 
     def test_setup_crosshairs_with_scene(self, qtbot, graphics_scene):
-        """Test setup crosshairs con scene."""
+        """Test setup crosshairs with scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -98,25 +98,25 @@ class TestSetupCrosshairs:
         assert not view.crosshair_v.isVisible()
 
     def test_setup_crosshairs_without_scene(self, qtbot):
-        """Test setup crosshairs senza scene."""
+        """Test setup crosshairs without scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
-        # Non dovrebbe crashare
+        # Should not crash
         view.setup_crosshairs()
 
         assert view.crosshair_h is None
         assert view.crosshair_v is None
 
     def test_setup_crosshairs_color(self, qtbot, graphics_scene):
-        """Test che i crosshair abbiano il colore corretto."""
+        """Test that crosshairs have the correct color."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
         view.setup_crosshairs()
 
-        # Verifica colore (giallo con alpha 180)
+        # Check color (yellow with alpha 180)
         pen_h = view.crosshair_h.pen()
         pen_v = view.crosshair_v.pen()
 
@@ -126,7 +126,7 @@ class TestSetupCrosshairs:
         assert pen_v.width() == 1
 
     def test_setup_crosshairs_multiple_calls(self, qtbot, graphics_scene):
-        """Test chiamate multiple a setup_crosshairs."""
+        """Test multiple calls to setup_crosshairs."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -137,16 +137,16 @@ class TestSetupCrosshairs:
 
         view.setup_crosshairs()
 
-        # Dovrebbero essere stati creati nuovi crosshair
+        # New crosshairs should have been created
         assert view.crosshair_h is not None
         assert view.crosshair_v is not None
 
 
 class TestMouseMoveEvent:
-    """Test per mouseMoveEvent."""
+    """Tests for mouseMoveEvent."""
 
     def test_mouse_move_emits_coordinate_changed(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che mouse move emetta coordinate_changed."""
+        """Test that mouse move emits coordinate_changed."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -162,13 +162,13 @@ class TestMouseMoveEvent:
             )
             view.mouseMoveEvent(event)
 
-        # Verifica signal emesso
+        # Check signal emitted
         assert blocker.signal_triggered
         args = blocker.args
         assert args[0] == 0  # view_idx
 
     def test_mouse_move_updates_crosshairs(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che mouse move aggiorni i crosshair."""
+        """Test that mouse move updates crosshairs."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -187,11 +187,11 @@ class TestMouseMoveEvent:
             mock_update.assert_called_once()
 
     def test_mouse_move_without_scene(self, qtbot, mock_parent_viewer):
-        """Test mouse move senza scene."""
+        """Test mouse move without scene."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = QMouseEvent(
             QMouseEvent.Type.MouseMove,
             QPointF(100, 100),
@@ -202,12 +202,12 @@ class TestMouseMoveEvent:
         view.mouseMoveEvent(event)
 
     def test_mouse_move_without_parent_viewer(self, qtbot, graphics_scene):
-        """Test mouse move senza parent viewer."""
+        """Test mouse move without parent viewer."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = QMouseEvent(
             QMouseEvent.Type.MouseMove,
             QPointF(100, 100),
@@ -218,12 +218,12 @@ class TestMouseMoveEvent:
         view.mouseMoveEvent(event)
 
     def test_mouse_move_without_img_data(self, qtbot, graphics_scene, mock_parent_viewer):
-        """Test mouse move senza img_data."""
+        """Test mouse move without img_data."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = QMouseEvent(
             QMouseEvent.Type.MouseMove,
             QPointF(100, 100),
@@ -234,14 +234,14 @@ class TestMouseMoveEvent:
         view.mouseMoveEvent(event)
 
     def test_mouse_move_out_of_bounds(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test mouse move fuori dai limiti."""
+        """Test mouse move out of bounds."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
         with patch.object(view, 'update_crosshairs') as mock_update:
-            # Coordinate fuori dai limiti
+            # Coordinates out of bounds
             event = QMouseEvent(
                 QMouseEvent.Type.MouseMove,
                 QPointF(1000, 1000),
@@ -251,11 +251,11 @@ class TestMouseMoveEvent:
             )
             view.mouseMoveEvent(event)
 
-            # update_crosshairs non dovrebbe essere chiamato
+            # update_crosshairs should not be called
             mock_update.assert_not_called()
 
     def test_mouse_move_negative_coordinates(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test mouse move con coordinate negative."""
+        """Test mouse move with negative coordinates."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -271,15 +271,15 @@ class TestMouseMoveEvent:
             )
             view.mouseMoveEvent(event)
 
-            # update_crosshairs non dovrebbe essere chiamato
+            # update_crosshairs should not be called
             mock_update.assert_not_called()
 
 
 class TestMousePressEvent:
-    """Test per mousePressEvent."""
+    """Tests for mousePressEvent."""
 
     def test_left_click_calls_handle_click_coordinates(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che left click chiami handle_click_coordinates."""
+        """Test that left click calls handle_click_coordinates."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -298,7 +298,7 @@ class TestMousePressEvent:
         assert args[0] == 0  # view_idx
 
     def test_right_click_ignored(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che right click sia ignorato."""
+        """Test that right click is ignored."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -312,11 +312,11 @@ class TestMousePressEvent:
         )
         view.mousePressEvent(event)
 
-        # handle_click_coordinates non dovrebbe essere chiamato
+        # handle_click_coordinates should not be called
         mock_parent_viewer.handle_click_coordinates.assert_not_called()
 
     def test_middle_click_ignored(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che middle click sia ignorato."""
+        """Test that middle click is ignored."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -333,7 +333,7 @@ class TestMousePressEvent:
         mock_parent_viewer.handle_click_coordinates.assert_not_called()
 
     def test_click_without_scene(self, qtbot, mock_parent_viewer):
-        """Test click senza scene."""
+        """Test click without scene."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
 
@@ -346,16 +346,16 @@ class TestMousePressEvent:
         )
         view.mousePressEvent(event)
 
-        # Non dovrebbe crashare
+        # Should not crash
         mock_parent_viewer.handle_click_coordinates.assert_not_called()
 
     def test_click_without_parent_viewer(self, qtbot, graphics_scene):
-        """Test click senza parent viewer."""
+        """Test click without parent viewer."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = QMouseEvent(
             QMouseEvent.Type.MouseButtonPress,
             QPointF(100, 150),
@@ -366,7 +366,7 @@ class TestMousePressEvent:
         view.mousePressEvent(event)
 
     def test_click_without_img_data(self, qtbot, graphics_scene, mock_parent_viewer):
-        """Test click senza img_data."""
+        """Test click without img_data."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -380,11 +380,11 @@ class TestMousePressEvent:
         )
         view.mousePressEvent(event)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert True
 
     def test_click_out_of_bounds(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click fuori dai limiti."""
+        """Test click out of bounds."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -398,16 +398,16 @@ class TestMousePressEvent:
         )
         view.mousePressEvent(event)
 
-        # handle_click_coordinates non dovrebbe essere chiamato
+        # handle_click_coordinates should not be called
         mock_parent_viewer.handle_click_coordinates.assert_not_called()
 
     def test_click_at_scene_edges(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click sui bordi della scene."""
+        """Test click at scene edges."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Angoli della scene
+        # Scene corners
         corners = [
             (0, 0),
             (511, 0),
@@ -431,10 +431,10 @@ class TestMousePressEvent:
 
 
 class TestUpdateCrosshairs:
-    """Test per update_crosshairs."""
+    """Tests for update_crosshairs."""
 
     def test_update_crosshairs_basic(self, qtbot, graphics_scene):
-        """Test update crosshairs base."""
+        """Test basic update crosshairs."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -442,7 +442,7 @@ class TestUpdateCrosshairs:
 
         view.update_crosshairs(100, 200)
 
-        # Verifica linee aggiornate
+        # Check updated lines
         line_h = view.crosshair_h.line()
         line_v = view.crosshair_v.line()
 
@@ -456,7 +456,7 @@ class TestUpdateCrosshairs:
         assert view.crosshair_v.isVisible()
 
     def test_update_crosshairs_different_positions(self, qtbot, graphics_scene):
-        """Test update con posizioni diverse."""
+        """Test update with different positions."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -474,24 +474,24 @@ class TestUpdateCrosshairs:
             assert line_v.x1() == x
 
     def test_update_crosshairs_without_scene(self, qtbot):
-        """Test update crosshairs senza scene."""
+        """Test update crosshairs without scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
-        # Non dovrebbe crashare
+        # Should not crash
         view.update_crosshairs(100, 200)
 
     def test_update_crosshairs_without_setup(self, qtbot, graphics_scene):
-        """Test update crosshairs senza setup."""
+        """Test update crosshairs without setup."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Non dovrebbe crashare (crosshair_h e crosshair_v sono None)
+        # Should not crash (crosshair_h and crosshair_v are None)
         view.update_crosshairs(100, 200)
 
     def test_update_crosshairs_makes_visible(self, qtbot, graphics_scene):
-        """Test che update renda visibili i crosshair."""
+        """Test that update makes crosshairs visible."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -507,7 +507,7 @@ class TestUpdateCrosshairs:
         assert view.crosshair_v.isVisible()
 
     def test_update_crosshairs_spans_full_scene(self, qtbot, graphics_scene):
-        """Test che i crosshair coprano l'intera scene."""
+        """Test that crosshairs span the full scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -518,20 +518,20 @@ class TestUpdateCrosshairs:
         line_h = view.crosshair_h.line()
         line_v = view.crosshair_v.line()
 
-        # Linea orizzontale: da 0 a width
+        # Horizontal line: from 0 to width
         assert line_h.x1() == 0
         assert line_h.x2() == 512
 
-        # Linea verticale: da 0 a height
+        # Vertical line: from 0 to height
         assert line_v.y1() == 0
         assert line_v.y2() == 512
 
 
 class TestSetCrosshairPosition:
-    """Test per set_crosshair_position."""
+    """Tests for set_crosshair_position."""
 
     def test_set_crosshair_position_basic(self, qtbot, graphics_scene):
-        """Test set crosshair position base."""
+        """Test basic set crosshair position."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -549,37 +549,37 @@ class TestSetCrosshairPosition:
         assert view.crosshair_v.isVisible()
 
     def test_set_crosshair_position_out_of_bounds(self, qtbot, graphics_scene):
-        """Test set position fuori dai limiti."""
+        """Test set position out of bounds."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Coordinate fuori dai limiti non dovrebbero aggiornare
+        # Out of bounds coordinates should not update
         view.set_crosshair_position(1000, 1000)
 
-        # Crosshair non dovrebbero essere visibili se erano nascosti
-        # (dipende dall'implementazione, potrebbe non aggiornare)
+        # Crosshairs should not be visible if they were hidden
+        # (depends on implementation, might not update)
 
     def test_set_crosshair_position_without_scene(self, qtbot):
-        """Test set position senza scene."""
+        """Test set position without scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
-        # Non dovrebbe crashare
+        # Should not crash
         view.set_crosshair_position(100, 200)
 
     def test_set_crosshair_position_without_setup(self, qtbot, graphics_scene):
-        """Test set position senza setup."""
+        """Test set position without setup."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Non dovrebbe crashare
+        # Should not crash
         view.set_crosshair_position(100, 200)
 
     def test_set_crosshair_position_at_origin(self, qtbot, graphics_scene):
-        """Test set position all'origine."""
+        """Test set position at origin."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -594,7 +594,7 @@ class TestSetCrosshairPosition:
         assert line_v.x1() == 0
 
     def test_set_crosshair_position_at_max(self, qtbot, graphics_scene):
-        """Test set position al massimo."""
+        """Test set position at max."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -610,10 +610,10 @@ class TestSetCrosshairPosition:
 
 
 class TestLeaveEvent:
-    """Test per leaveEvent."""
+    """Tests for leaveEvent."""
 
     def test_leave_event_calls_update_cross_view_lines(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che leaveEvent chiami update_cross_view_lines."""
+        """Test that leaveEvent calls update_cross_view_lines."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -625,42 +625,42 @@ class TestLeaveEvent:
         mock_parent_viewer.update_cross_view_lines.assert_called_once()
 
     def test_leave_event_without_crosshairs(self, qtbot, mock_parent_viewer):
-        """Test leaveEvent senza crosshairs."""
+        """Test leaveEvent without crosshairs."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = QEvent(QEvent.Type.Leave)
         view.leaveEvent(event)
 
     def test_leave_event_without_parent_viewer(self, qtbot, graphics_scene):
-        """Test leaveEvent senza parent viewer."""
+        """Test leaveEvent without parent viewer."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Non dovrebbe crashare
+        # Should not crash
         event = Mock()
-        # Potrebbe fallire se parent_viewer è None
+        # Might fail if parent_viewer is None
         try:
             view.leaveEvent(event)
         except AttributeError:
-            pass  # Accettabile se parent_viewer è None
+            pass  # Acceptable if parent_viewer is None
 
 
 class TestSignals:
-    """Test per i signal."""
+    """Tests for signals."""
 
     def test_coordinate_changed_signal_exists(self, qtbot):
-        """Test che il signal coordinate_changed esista."""
+        """Test that the coordinate_changed signal exists."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
         assert hasattr(view, 'coordinate_changed')
 
     def test_coordinate_changed_signal_parameters(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test parametri signal coordinate_changed."""
+        """Test coordinate_changed signal parameters."""
         view = CrosshairGraphicsView(view_idx=2, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -679,14 +679,14 @@ class TestSignals:
         args = blocker.args
         assert len(args) == 3
         assert args[0] == 2  # view_idx
-        # args[1] e args[2] sono x, y (potrebbero variare per mapToScene)
+        # args[1] and args[2] are x, y (might vary due to mapToScene)
 
 
 class TestEdgeCases:
-    """Test per casi limite."""
+    """Tests for edge cases."""
 
     def test_very_small_scene(self, qtbot):
-        """Test con scene molto piccola."""
+        """Test with very small scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -697,11 +697,11 @@ class TestEdgeCases:
 
         view.update_crosshairs(5, 5)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert view.crosshair_visible
 
     def test_very_large_scene(self, qtbot):
-        """Test con scene molto grande."""
+        """Test with very large scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -715,7 +715,7 @@ class TestEdgeCases:
         assert view.crosshair_visible
 
     def test_rectangular_scene(self, qtbot):
-        """Test con scene rettangolare."""
+        """Test with rectangular scene."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -733,13 +733,13 @@ class TestEdgeCases:
         assert line_v.y2() == 400
 
     def test_rapid_mouse_movements(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test movimenti rapidi del mouse."""
+        """Test rapid mouse movements."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Simula 100 movimenti rapidi
+        # Simulate 100 rapid movements
         for i in range(100):
             x = (i * 5) % 512
             y = (i * 3) % 512
@@ -752,11 +752,11 @@ class TestEdgeCases:
             )
             view.mouseMoveEvent(event)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert view.crosshair_visible
 
     def test_rapid_clicks(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click rapidi."""
+        """Test rapid clicks."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -773,15 +773,15 @@ class TestEdgeCases:
             )
             view.mousePressEvent(event)
 
-        # handle_click_coordinates dovrebbe essere stato chiamato 50 volte
+        # handle_click_coordinates should have been called 50 times
         assert mock_parent_viewer.handle_click_coordinates.call_count == 50
 
     def test_scene_change(self, qtbot):
-        """Test cambio scene."""
+        """Test scene change."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
-        # Prima scene
+        # First scene
         scene1 = QGraphicsScene()
         scene1.setSceneRect(0, 0, 256, 256)
         view.setScene(scene1)
@@ -789,22 +789,22 @@ class TestEdgeCases:
 
         crosshair_h1 = view.crosshair_h
 
-        # Seconda scene
+        # Second scene
         scene2 = QGraphicsScene()
         scene2.setSceneRect(0, 0, 512, 512)
         view.setScene(scene2)
         view.setup_crosshairs()
 
-        # Crosshair dovrebbero essere nuovi
+        # Crosshairs should be new
         assert view.crosshair_h is not crosshair_h1
 
     def test_coordinate_precision(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test precisione coordinate con float."""
+        """Test coordinate precision with float."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Coordinate float dovrebbero essere convertite in int
+        # Float coordinates should be converted to int
         event = QMouseEvent(
             QMouseEvent.Type.MouseButtonPress,
             QPointF(100.7, 200.3),
@@ -814,17 +814,17 @@ class TestEdgeCases:
         )
         view.mousePressEvent(event)
 
-        # Verifica che siano stati passati come int
+        # Check that they were passed as int
         args = mock_parent_viewer.handle_click_coordinates.call_args[0]
         assert isinstance(args[1], int)
         assert isinstance(args[2], int)
 
 
 class TestIntegration:
-    """Test di integrazione."""
+    """Integration tests."""
 
     def test_full_interaction_flow(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test flusso completo: setup -> mouse move -> click."""
+        """Test full flow: setup -> mouse move -> click."""
         view = CrosshairGraphicsView(view_idx=1, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -856,7 +856,7 @@ class TestIntegration:
         mock_parent_viewer.handle_click_coordinates.assert_called_once()
 
     def test_multiple_views_interaction(self, qtbot, mock_parent_viewer):
-        """Test interazione tra multiple view."""
+        """Test interaction between multiple views."""
         scene1 = QGraphicsScene()
         scene1.setSceneRect(0, 0, 512, 512)
 
@@ -875,7 +875,7 @@ class TestIntegration:
         view1.setup_crosshairs()
         view2.setup_crosshairs()
 
-        # Interazione su view1
+        # Interaction on view1
         event = QMouseEvent(
             QMouseEvent.Type.MouseButtonPress,
             QPointF(100, 100),
@@ -885,11 +885,11 @@ class TestIntegration:
         )
         view1.mousePressEvent(event)
 
-        # Verifica view_idx corretto
+        # Check correct view_idx
         args1 = mock_parent_viewer.handle_click_coordinates.call_args[0]
         assert args1[0] == 0
 
-        # Interazione su view2
+        # Interaction on view2
         mock_parent_viewer.handle_click_coordinates.reset_mock()
         view2.mousePressEvent(event)
 
@@ -897,19 +897,19 @@ class TestIntegration:
         assert args2[0] == 1
 
     def test_crosshair_synchronization(self, qtbot, graphics_scene):
-        """Test sincronizzazione crosshair."""
+        """Test crosshair synchronization."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Aggiorna via update_crosshairs
+        # Update via update_crosshairs
         view.update_crosshairs(100, 200)
 
         line_h1 = view.crosshair_h.line()
         assert line_h1.y1() == 200
 
-        # Aggiorna via set_crosshair_position
+        # Update via set_crosshair_position
         view.set_crosshair_position(150, 250)
 
         line_h2 = view.crosshair_h.line()
@@ -917,10 +917,10 @@ class TestIntegration:
 
 
 class TestBoundaryConditions:
-    """Test per condizioni al limite."""
+    """Tests for boundary conditions."""
 
     def test_click_at_zero_zero(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click a (0, 0)."""
+        """Test click at (0, 0)."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -937,12 +937,12 @@ class TestBoundaryConditions:
         mock_parent_viewer.handle_click_coordinates.assert_called_once()
 
     def test_click_at_max_coordinates(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click alle coordinate massime."""
+        """Test click at maximum coordinates."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Scene è 512x512, quindi max valido è 511,511
+        # Scene is 512x512, so valid max is 511,511
         event = QMouseEvent(
             QMouseEvent.Type.MouseButtonPress,
             QPointF(511, 511),
@@ -955,12 +955,12 @@ class TestBoundaryConditions:
         mock_parent_viewer.handle_click_coordinates.assert_called_once()
 
     def test_click_just_outside_bounds(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test click appena fuori dai limiti."""
+        """Test click just outside bounds."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # 512 è fuori (scene è 0-511)
+        # 512 is outside (scene is 0-511)
         event = QMouseEvent(
             QMouseEvent.Type.MouseButtonPress,
             QPointF(512, 512),
@@ -970,15 +970,15 @@ class TestBoundaryConditions:
         )
         view.mousePressEvent(event)
 
-        # Non dovrebbe chiamare handle_click_coordinates
+        # Should not call handle_click_coordinates
         mock_parent_viewer.handle_click_coordinates.assert_not_called()
 
 
 class TestViewIndexHandling:
-    """Test per la gestione del view_idx."""
+    """Tests for view_idx handling."""
 
     def test_different_view_indices_in_signals(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test che view_idx sia corretto nei signal."""
+        """Test that view_idx is correct in signals."""
         indices = [0, 1, 2, 5, 10]
 
         for idx in indices:
@@ -999,13 +999,13 @@ class TestViewIndexHandling:
             assert blocker.args[0] == idx
 
     def test_view_idx_persists(self, qtbot):
-        """Test che view_idx persista."""
+        """Test that view_idx persists."""
         view = CrosshairGraphicsView(view_idx=7)
         qtbot.addWidget(view)
 
         assert view.view_idx == 7
 
-        # Dopo varie operazioni
+        # After various operations
         scene = QGraphicsScene()
         view.setScene(scene)
         view.setup_crosshairs()
@@ -1014,10 +1014,10 @@ class TestViewIndexHandling:
 
 
 class TestMemoryAndCleanup:
-    """Test per memoria e cleanup."""
+    """Tests for memory and cleanup."""
 
     def test_scene_items_cleanup(self, qtbot, graphics_scene):
-        """Test cleanup degli item della scene."""
+        """Test cleanup of scene items."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -1026,29 +1026,29 @@ class TestMemoryAndCleanup:
 
         view.setup_crosshairs()
 
-        # Dovrebbero essere stati aggiunti 2 item (linee)
+        # 2 items (lines) should have been added
         assert len(graphics_scene.items()) == initial_items + 2
 
     def test_multiple_setup_doesnt_leak(self, qtbot, graphics_scene):
-        """Test che setup multipli non causino memory leak."""
+        """Test that multiple setups do not cause memory leaks."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Setup multipli
+        # Multiple setups
         for _ in range(10):
             view.setup_crosshairs()
 
-        # Gli item vecchi dovrebbero essere stati rimossi/sostituiti
-        # (dipende dall'implementazione)
+        # Old items should have been removed/replaced
+        # (depends on implementation)
         assert True
 
 
 class TestRenderHints:
-    """Test per render hints."""
+    """Tests for render hints."""
 
     def test_antialiasing_enabled(self, qtbot):
-        """Test che antialiasing sia abilitato."""
+        """Test that antialiasing is enabled."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -1056,7 +1056,7 @@ class TestRenderHints:
         assert hints & QPainter.RenderHint.Antialiasing
 
     def test_smooth_pixmap_transform_enabled(self, qtbot):
-        """Test che smooth pixmap transform sia abilitato."""
+        """Test that smooth pixmap transform is enabled."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -1064,7 +1064,7 @@ class TestRenderHints:
         assert hints & QPainter.RenderHint.SmoothPixmapTransform
 
     def test_render_hints_persist(self, qtbot, graphics_scene):
-        """Test che render hints persistano dopo operazioni."""
+        """Test that render hints persist after operations."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -1077,15 +1077,15 @@ class TestRenderHints:
 
 
 class TestErrorHandling:
-    """Test per la gestione degli errori."""
+    """Tests for error handling."""
 
     def test_mapToScene_with_invalid_point(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test mapToScene con punto non valido."""
+        """Test mapToScene with invalid point."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
 
-        # Punto molto fuori dai limiti
+        # Point far out of bounds
         event = QMouseEvent(
             QMouseEvent.Type.MouseMove,
             QPointF(999999, 999999),
@@ -1094,15 +1094,15 @@ class TestErrorHandling:
             Qt.KeyboardModifier.NoModifier
         )
 
-        # Non dovrebbe crashare
+        # Should not crash
         view.mouseMoveEvent(event)
 
     def test_operations_without_initialization(self, qtbot):
-        """Test operazioni senza inizializzazione completa."""
+        """Test operations without complete initialization."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
-        # Varie operazioni senza scene/crosshair setup
+        # Various operations without scene/crosshair setup
         view.update_crosshairs(100, 100)
         view.set_crosshair_position(100, 100)
 
@@ -1115,58 +1115,58 @@ class TestErrorHandling:
         )
         view.mouseMoveEvent(event)
 
-        # Non dovrebbe crashare
+        # Should not crash
         assert True
 
 
 class TestStateConsistency:
-    """Test per la consistenza dello stato."""
+    """Tests for state consistency."""
 
     def test_crosshair_visible_state_consistency(self, qtbot, graphics_scene):
-        """Test consistenza stato crosshair_visible."""
+        """Test crosshair_visible state consistency."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Inizialmente non visibile
+        # Initially not visible
         assert not view.crosshair_visible
         assert not view.crosshair_h.isVisible()
 
-        # Dopo update, visibile
+        # After update, visible
         view.update_crosshairs(100, 100)
         assert view.crosshair_visible
         assert view.crosshair_h.isVisible()
         assert view.crosshair_v.isVisible()
 
     def test_crosshair_position_consistency(self, qtbot, graphics_scene):
-        """Test consistenza posizione crosshair."""
+        """Test crosshair position consistency."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # Imposta posizione
+        # Set position
         view.update_crosshairs(123, 456)
 
         line_h = view.crosshair_h.line()
         line_v = view.crosshair_v.line()
 
-        # Verifica consistenza
+        # Check consistency
         assert line_h.y1() == line_h.y2() == 456
         assert line_v.x1() == line_v.x2() == 123
 
 
 class TestDocumentation:
-    """Test per la documentazione."""
+    """Tests for documentation."""
 
     def test_class_docstring(self):
-        """Test che la classe abbia docstring."""
+        """Test that the class has a docstring."""
         assert CrosshairGraphicsView.__doc__ is not None
         assert "crosshair" in CrosshairGraphicsView.__doc__.lower()
 
     def test_setup_crosshairs_docstring(self, qtbot):
-        """Test che setup_crosshairs abbia docstring."""
+        """Test that setup_crosshairs has a docstring."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
 
@@ -1174,10 +1174,10 @@ class TestDocumentation:
 
 
 class TestAccessibility:
-    """Test per l'accessibilità."""
+    """Tests for accessibility."""
 
     def test_crosshair_color_visible(self, qtbot, graphics_scene):
-        """Test che il colore dei crosshair sia visibile."""
+        """Test that crosshair color is visible."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -1186,14 +1186,14 @@ class TestAccessibility:
         pen = view.crosshair_h.pen()
         color = pen.color()
 
-        # Giallo con alpha dovrebbe essere visibile
+        # Yellow with alpha should be visible
         assert color.alpha() == 180
         assert color.red() == 255
         assert color.green() == 255
         assert color.blue() == 0
 
     def test_crosshair_width_appropriate(self, qtbot, graphics_scene):
-        """Test che la larghezza dei crosshair sia appropriata."""
+        """Test that crosshair width is appropriate."""
         view = CrosshairGraphicsView(view_idx=0)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -1202,30 +1202,30 @@ class TestAccessibility:
         pen_h = view.crosshair_h.pen()
         pen_v = view.crosshair_v.pen()
 
-        # Larghezza 1 dovrebbe essere visibile ma non invasiva
+        # Width 1 should be visible but not intrusive
         assert pen_h.width() == 1
         assert pen_v.width() == 1
 
 
 class TestPerformance:
-    """Test per le performance."""
+    """Tests for performance."""
 
     def test_many_coordinate_updates(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test con molti aggiornamenti coordinate."""
+        """Test with many coordinate updates."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
         view.setup_crosshairs()
 
-        # 1000 aggiornamenti
+        # 1000 updates
         for i in range(1000):
             view.update_crosshairs(i % 512, (i * 2) % 512)
 
-        # Non dovrebbe causare problemi di performance
+        # Should not cause performance issues
         assert view.crosshair_visible
 
     def test_signal_emission_performance(self, qtbot, mock_parent_viewer, graphics_scene):
-        """Test performance emission signal."""
+        """Test signal emission performance."""
         view = CrosshairGraphicsView(view_idx=0, parent=mock_parent_viewer)
         qtbot.addWidget(view)
         view.setScene(graphics_scene)
@@ -1238,7 +1238,7 @@ class TestPerformance:
 
         view.coordinate_changed.connect(count_signal)
 
-        # Molti eventi mouse
+        # Many mouse events
         for i in range(100):
             event = QMouseEvent(
                 QMouseEvent.Type.MouseMove,
@@ -1249,5 +1249,5 @@ class TestPerformance:
             )
             view.mouseMoveEvent(event)
 
-        # Signal dovrebbe essere stato emesso molte volte
+        # Signal should have been emitted many times
         assert signal_count > 0

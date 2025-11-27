@@ -772,11 +772,11 @@ class TestEdgeCases:
         # Should not crash
 
 class TestFilePatternMatching:
-    """Test per il matching dei pattern di file"""
+    """Test for file pattern matching"""
 
     @patch('glob.glob')
     def test_glob_called_with_correct_patterns(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che glob sia chiamato con pattern corretti"""
+        """Test glob call with correct patterns"""
         patterns = {
             "ct": [os.path.join(temp_workspace, "sub-37/anat/CT*.nii.gz")],
             "pet4d": [os.path.join(temp_workspace, "sub-37/pet/PET*.nii.gz")]
@@ -793,12 +793,11 @@ class TestFilePatternMatching:
         )
         qtbot.addWidget(frame)
 
-        # Verifica chiamate glob
         assert mock_glob.call_count >= 2
 
     @patch('glob.glob')
     def test_relative_path_conversion(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test conversione a path relativi"""
+        """Test relative path conversion"""
         abs_path = os.path.join(temp_workspace, "sub-38/anat/scan.nii.gz")
         mock_glob.return_value = [abs_path]
 
@@ -814,7 +813,6 @@ class TestFilePatternMatching:
         )
         qtbot.addWidget(frame)
 
-        # Combo dovrebbe contenere path relativo
         combo = frame.category_widgets["ct"]
         item_text = combo.itemText(0)
         assert not os.path.isabs(item_text)
@@ -822,9 +820,8 @@ class TestFilePatternMatching:
 
     @patch('glob.glob')
     def test_multiple_patterns_per_category(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test più pattern per categoria"""
+        """Test multiple patterns per category"""
 
-        # Simula glob che restituisce file diversi per pattern diversi
         def glob_side_effect(pattern):
             if "CT*" in pattern:
                 return [os.path.join(temp_workspace, "sub-39/anat/CT.nii.gz")]
@@ -850,17 +847,16 @@ class TestFilePatternMatching:
         )
         qtbot.addWidget(frame)
 
-        # Dovrebbe trovare file da entrambi i pattern
         combo = frame.category_widgets["ct"]
         assert combo.count() >= 1
 
 
 class TestComboBoxBehavior:
-    """Test per comportamento combobox"""
+    """Test combobox behavior"""
 
     @patch('glob.glob')
     def test_combo_current_index_set_from_files(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che current index sia impostato da files dict"""
+        """Test files dict manage combobox behavior"""
         mock_glob.return_value = [
             os.path.join(temp_workspace, "sub-40/anat/file1.nii.gz"),
             os.path.join(temp_workspace, "sub-40/anat/file2.nii.gz"),
@@ -884,7 +880,7 @@ class TestComboBoxBehavior:
 
     @patch('glob.glob')
     def test_combo_default_to_first_if_no_match(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test che combo default al primo se nessun match"""
+        """Test combobox behavior with default value if no match"""
         mock_glob.return_value = [
             os.path.join(temp_workspace, "sub-41/anat/new1.nii.gz"),
             os.path.join(temp_workspace, "sub-41/anat/new2.nii.gz")
@@ -907,7 +903,7 @@ class TestComboBoxBehavior:
 
     @patch('glob.glob')
     def test_combo_minimum_height(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test altezza minima combobox"""
+        """Test minimum height combobox behavior"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-42/anat/scan.nii.gz")]
 
         patterns = {"ct": [os.path.join(temp_workspace, "sub-42/anat/*.nii.gz")]}
@@ -926,10 +922,10 @@ class TestComboBoxBehavior:
 
 
 class TestAnimationBehavior:
-    """Test per comportamento animazioni"""
+    """Test animation behavior"""
 
     def test_animation_duration(self, qtbot, mock_context, temp_workspace):
-        """Test durata animazione"""
+        """Test animation duration"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-43",
@@ -942,7 +938,7 @@ class TestAnimationBehavior:
         assert frame.animation.duration() == 300
 
     def test_animation_easing_curve(self, qtbot, mock_context, temp_workspace):
-        """Test curva easing animazione"""
+        """Test easing curve"""
         from PyQt6.QtCore import QEasingCurve
 
         frame = CollapsiblePatientFrame(
@@ -957,7 +953,7 @@ class TestAnimationBehavior:
         assert frame.animation.easingCurve().type() == QEasingCurve.Type.InOutCubic
 
     def test_animation_target_property(self, qtbot, mock_context, temp_workspace):
-        """Test proprietà target dell'animazione"""
+        """Test target property"""
         frame = CollapsiblePatientFrame(
             context=mock_context,
             patient_id="sub-45",
@@ -972,11 +968,11 @@ class TestAnimationBehavior:
 
 
 class TestCategoryLabels:
-    """Test per label categorie"""
+    """Test for category labels"""
 
     @patch('glob.glob')
     def test_category_label_formatting(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test formattazione label categoria"""
+        """Test category label formatting"""
         mock_glob.return_value = [os.path.join(temp_workspace, "sub-46/anat/scan.nii.gz")]
 
         patterns = {"pet_4d_dynamic": [os.path.join(temp_workspace, "sub-46/pet/*.nii.gz")]}
@@ -996,12 +992,12 @@ class TestCategoryLabels:
 
 
 class TestIntegrationScenarios:
-    """Test di integrazione per scenari completi"""
+    """Test integration"""
 
     @patch('glob.glob')
     @patch('os.path.exists')
     def test_complete_workflow_locked_patient(self, mock_exists, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test workflow completo paziente locked"""
+        """Test workflow locked patient"""
         ct_file = os.path.join(temp_workspace, "sub-47/anat/CT.nii.gz")
         pet_file = os.path.join(temp_workspace, "sub-47/pet/PET4D.nii.gz")
         pet_json = os.path.join(temp_workspace, "sub-47/pet/PET4D.json")
@@ -1040,7 +1036,7 @@ class TestIntegrationScenarios:
 
     @patch('glob.glob')
     def test_complete_workflow_unlocked_patient(self, mock_glob, qtbot, mock_context, temp_workspace):
-        """Test workflow completo paziente unlocked"""
+        """Test workflow unlocked patient"""
         ct_files = [
             os.path.join(temp_workspace, "sub-48/anat/CT1.nii.gz"),
             os.path.join(temp_workspace, "sub-48/anat/CT2.nii.gz")
