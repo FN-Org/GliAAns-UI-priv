@@ -18,29 +18,29 @@ def import_page(qtbot, mock_context):
     return page
 
 class TestImportPageSetup:
-    """Test per l'inizializzazione di ImportPage"""
+    """Tests for ImportPage initialization"""
 
     def test_page_initialization(self, import_page):
-        """Verifica inizializzazione corretta"""
+        """Verify correct initialization"""
         assert import_page.workspace_path is not None
         assert import_page.threads == []
         assert import_page.progress_dialogs == []
         assert import_page.acceptDrops()
 
     def test_drop_label_created(self, import_page):
-        """Verifica che il label sia creato"""
+        """Verify that the label is created"""
         assert import_page.drop_label is not None
         assert import_page.drop_label.text() != ""
 
     def test_stylesheet_applied(self, import_page):
-        """Verifica che lo stylesheet sia applicato"""
+        """Verify that the stylesheet is applied"""
         stylesheet = import_page.styleSheet()
         assert "border" in stylesheet.lower()
         assert "dashed" in stylesheet.lower()
 
 
 class TestImportPageReadiness:
-    """Test per la logica di avanzamento/ritorno"""
+    """Tests for advance/return logic"""
 
     @pytest.fixture
     def temp_workspace(self):
@@ -49,18 +49,18 @@ class TestImportPageReadiness:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_not_ready_when_workspace_empty(self, import_page):
-        """Verifica che non sia pronto se workspace vuoto"""
+        """Verify it is not ready if workspace is empty"""
         assert not import_page.is_ready_to_advance()
 
     def test_ready_when_workspace_has_folder(self, import_page, temp_workspace):
-        """Verifica che sia pronto se workspace ha cartelle"""
+        """Verify it is ready if workspace has folders"""
         test_folder = os.path.join(temp_workspace, "patient_data")
         os.makedirs(test_folder)
 
         assert import_page.is_ready_to_advance()
 
     def test_ignores_hidden_files(self, import_page, temp_workspace):
-        """Verifica che i file nascosti siano ignorati"""
+        """Verify that hidden files are ignored"""
         hidden_file = os.path.join(temp_workspace, ".hidden")
         with open(hidden_file, "w") as f:
             f.write("test")
@@ -68,17 +68,17 @@ class TestImportPageReadiness:
         assert not import_page.is_ready_to_advance()
 
     def test_cannot_go_back(self, import_page):
-        """Verifica che non si possa tornare indietro"""
+        """Verify that going back is not possible"""
         assert not import_page.is_ready_to_go_back()
 
 
 class TestImportPageNavigation:
-    """Test per la navigazione tra pagine"""
+    """Tests for page navigation"""
 
 
 
     def test_next_creates_patient_selection_page(self, import_page, mock_context):
-        """Verifica che next() crei PatientSelectionPage"""
+        """Verify that next() creates PatientSelectionPage"""
         next_page = import_page.next(mock_context)
 
         assert next_page is not None
@@ -86,23 +86,23 @@ class TestImportPageNavigation:
         assert next_page in mock_context["history"]
 
     def test_next_returns_cached_page(self, import_page, mock_context):
-        """Verifica che next() ritorni la pagina cached"""
+        """Verify that next() returns the cached page"""
         first_call = import_page.next(mock_context)
         second_call = import_page.next(mock_context)
 
         assert first_call is second_call
 
     def test_back_returns_false(self, import_page):
-        """Verifica che back() ritorni False"""
+        """Verify that back() returns False"""
         assert import_page.back() == False
 
 
 class TestImportPageDragDrop:
-    """Test per funzionalità drag & drop"""
+    """Tests for drag & drop functionality"""
 
     @pytest.fixture
     def temp_source_folder(self):
-        """Crea cartella sorgente per drag&drop"""
+        """Creates source folder for drag&drop"""
         temp_dir = tempfile.mkdtemp()
         test_file = os.path.join(temp_dir, "test.txt")
         with open(test_file, "w") as f:
@@ -111,7 +111,7 @@ class TestImportPageDragDrop:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_drag_enter_accepts_urls(self, import_page):
-        """Verifica che dragEnterEvent accetti URL"""
+        """Verify that dragEnterEvent accepts URLs"""
         mime_data = QMimeData()
         mime_data.setUrls([QUrl.fromLocalFile("/tmp/test")])
 
@@ -122,7 +122,7 @@ class TestImportPageDragDrop:
         event.acceptProposedAction.assert_called_once()
 
     def test_drop_event_handles_folder(self, import_page, temp_source_folder):
-        """Verifica che dropEvent gestisca le cartelle"""
+        """Verify that dropEvent handles folders"""
         mime_data = QMimeData()
         mime_data.setUrls([QUrl.fromLocalFile(temp_source_folder)])
 
@@ -136,7 +136,7 @@ class TestImportPageDragDrop:
 
 
 class TestImportPageDialogs:
-    """Test per dialog e interazioni utente"""
+    """Tests for dialogs and user interactions"""
 
     @pytest.fixture
     def temp_source_folder(self):
@@ -145,7 +145,7 @@ class TestImportPageDialogs:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_mouse_press_opens_dialog(self, import_page):
-        """Verifica che il click sinistro apra il dialog"""
+        """Verify that left click opens the dialog"""
         with patch.object(import_page, 'open_folder_dialog') as mock_dialog:
             event = Mock()
             event.button.return_value = Qt.MouseButton.LeftButton
@@ -154,7 +154,7 @@ class TestImportPageDialogs:
             mock_dialog.assert_called_once()
 
     def test_open_folder_dialog_configuration(self, import_page, monkeypatch):
-        """Verifica configurazione del folder dialog"""
+        """Verify folder dialog configuration"""
         mock_dialog = Mock()
         mock_dialog.exec.return_value = False
         mock_dialog.findChildren.return_value = []
@@ -162,13 +162,13 @@ class TestImportPageDialogs:
         with patch('main.ui.import_page.QFileDialog', return_value=mock_dialog):
             import_page.open_folder_dialog()
 
-            # Verifica che il dialog sia configurato correttamente
+            # Verify that the dialog is configured correctly
             mock_dialog.setFileMode.assert_called_once()
             assert mock_dialog.setOption.call_count >= 1
 
 
 class TestImportPageThreads:
-    """Test per gestione thread di importazione"""
+    """Tests for import thread handling"""
 
     @pytest.fixture
     def temp_source_folder(self):
@@ -180,7 +180,7 @@ class TestImportPageThreads:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_handle_import_creates_thread(self, import_page, temp_source_folder):
-        """Verifica che _handle_import crei un thread"""
+        """Verify that _handle_import creates a thread"""
         with patch('main.ui.import_page.ImportThread') as MockThread, \
                 patch('main.ui.import_page.QProgressDialog'):
             mock_thread_instance = Mock()
@@ -198,7 +198,7 @@ class TestImportPageThreads:
             mock_thread_instance.start.assert_called_once()
 
     def test_handle_import_creates_progress_dialog(self, import_page, temp_source_folder):
-        """Verifica che _handle_import crei un progress dialog"""
+        """Verify that _handle_import creates a progress dialog"""
         with patch('main.ui.import_page.ImportThread'), \
                 patch('main.ui.import_page.QProgressDialog') as MockDialog:
             mock_dialog_instance = Mock()
@@ -212,7 +212,7 @@ class TestImportPageThreads:
             MockDialog.assert_called_once()
 
     def test_on_import_finished_removes_thread(self, import_page):
-        """Verifica che on_import_finished rimuova il thread"""
+        """Verify that on_import_finished removes the thread"""
         mock_thread = Mock()
         import_page.threads = [mock_thread]
 
@@ -226,7 +226,7 @@ class TestImportPageThreads:
             mock_dialog.close.assert_called_once()
 
     def test_on_import_finished_updates_buttons(self, import_page, mock_context):
-        """Verifica che on_import_finished aggiorni i pulsanti"""
+        """Verify that on_import_finished updates the buttons"""
         mock_thread = Mock()
         import_page.threads = [mock_thread]
         import_page.progress_dialogs = [Mock()]
@@ -237,7 +237,7 @@ class TestImportPageThreads:
             mock_context["update_main_buttons"].assert_called_once()
 
     def test_on_import_error_shows_message(self, import_page, monkeypatch):
-        """Verifica che on_import_error mostri un messaggio"""
+        """Verify that on_import_error shows a message"""
         mock_thread = Mock()
         import_page.threads = [mock_thread]
 
@@ -259,16 +259,16 @@ class TestImportPageThreads:
             mock_dialog.close.assert_called_once()
 
     def test_on_import_error_handles_removed_thread(self, import_page):
-        """Verifica che on_import_error gestisca thread già rimossi"""
+        """Verify that on_import_error handles already removed threads"""
         mock_thread = Mock()
-        # Thread non nella lista
+        # Thread not in list
 
         with patch.object(import_page, 'sender', return_value=mock_thread):
-            # Non dovrebbe generare eccezioni
+            # Should not raise exceptions
             import_page.on_import_error("Test error")
 
     def test_on_import_canceled_terminates_thread(self, import_page):
-        """Verifica che on_import_canceled termini il thread"""
+        """Verify that on_import_canceled terminates the thread"""
         mock_thread = Mock()
         mock_thread.cancel = Mock()
         mock_thread.terminate = Mock()
@@ -288,10 +288,10 @@ class TestImportPageThreads:
 
 
 class TestImportPageCleanup:
-    """Test per la pulizia delle risorse"""
+    """Tests for resource cleanup"""
 
     def test_close_event_cleans_dialogs(self, import_page):
-        """Verifica che closeEvent pulisca i dialog"""
+        """Verify that closeEvent cleans up dialogs"""
         mock_dialog = Mock()
         import_page.progress_dialogs = [mock_dialog]
 
@@ -304,7 +304,7 @@ class TestImportPageCleanup:
         assert len(import_page.progress_dialogs) == 0
 
     def test_close_event_cancels_threads(self, import_page):
-        """Verifica che closeEvent cancelli i thread"""
+        """Verify that closeEvent cancels threads"""
         mock_thread = Mock()
         mock_thread.cancel = Mock()
         import_page.threads = [mock_thread]
@@ -319,29 +319,29 @@ class TestImportPageCleanup:
 
 
 class TestImportPageTranslation:
-    """Test per le traduzioni"""
+    """Tests for translations"""
 
     def test_translate_ui_called_on_init(self, import_page):
-        """Verifica che _translate_ui sia chiamato all'init"""
+        """Verify that _translate_ui is called on init"""
         assert import_page.drop_label.text() != ""
 
     def test_translate_ui_updates_label(self, import_page):
-        """Verifica che _translate_ui aggiorni il label"""
+        """Verify that _translate_ui updates the label"""
         original_text = import_page.drop_label.text()
         import_page._translate_ui()
-        # Il testo dovrebbe essere lo stesso (o tradotto)
+        # The text should be the same (or translated)
         assert import_page.drop_label.text() != ""
 
     def test_language_changed_signal_connected(self, import_page, signal_emitter, qtbot):
-        """Verifica che il signal language_changed sia connesso"""
+        """Verify that the language_changed signal is connected"""
         with patch.object(import_page, '_translate_ui') as mock_translate:
             signal_emitter.language_changed.emit("it")
-            qtbot.wait(100)  # Attendi elaborazione signal
-            # Se connesso, _translate_ui dovrebbe essere chiamato
+            qtbot.wait(100)  # Wait for signal processing
+            # If connected, _translate_ui should be called
 
-# Test di integrazione
+# Integration tests
 class TestImportPageIntegration:
-    """Test di integrazione per flussi completi"""
+    """Integration tests for complete flows"""
     @pytest.fixture
     def temp_workspace(self):
         temp_dir = tempfile.mkdtemp()
@@ -351,7 +351,7 @@ class TestImportPageIntegration:
     @pytest.fixture
     def temp_source_folder(self):
         temp_dir = tempfile.mkdtemp()
-        # Crea struttura di test
+        # Create test structure
         patient_dir = os.path.join(temp_dir, "patient_001")
         os.makedirs(patient_dir)
         with open(os.path.join(patient_dir, "data.txt"), "w") as f:
@@ -360,18 +360,18 @@ class TestImportPageIntegration:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_full_import_workflow(self, import_page, temp_source_folder, mock_context):
-        """Test del flusso completo di importazione"""
-        # Inizialmente non pronto
+        """Test of the complete import workflow"""
+        # Initially not ready
         assert not import_page.is_ready_to_advance()
 
-        # Aggiungi cartella al workspace
+        # Add folder to workspace
         test_folder = os.path.join(import_page.workspace_path, "patient_001")
         os.makedirs(test_folder)
 
-        # Ora dovrebbe essere pronto
+        # Now it should be ready
         assert import_page.is_ready_to_advance()
 
-        # Naviga alla prossima pagina
+        # Navigate to the next page
         next_page = import_page.next(mock_context)
         assert next_page is not None
 

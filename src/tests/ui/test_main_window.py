@@ -8,15 +8,11 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMessageBox, QPushButton, QApplication
 from PyQt6.QtCore import QSettings, pyqtSignal, QObject, Qt
 
-# Assicurati che il path sia corretto per importare MainWindow
+# Ensure the path is correct to import MainWindow
 from main.ui.main_window import MainWindow
 
 
-# ---------------------------------------------------------------------
-# FIXTURES (Aggiunte per rendere il test autonomo)
-# ---------------------------------------------------------------------
-
-# È necessario un QObject per ospitare i segnali
+# A QObject is necessary to host signals
 class SignalHost(QObject):
     language_changed = pyqtSignal(str)
 
@@ -24,24 +20,24 @@ class SignalHost(QObject):
 @pytest.fixture(scope="function")
 def mock_context(request, qtbot):
     """
-    Crea un context fittizio (mock) completo per la MainWindow.
-    Viene eseguito una volta per funzione di test.
+    Creates a complete mock context for the MainWindow.
+    Runs once per test function.
     """
-    # 1. Crea un workspace temporaneo reale
+    # 1. Create a real temporary workspace
     temp_dir = tempfile.mkdtemp()
 
-    # Crea alcuni file fittizi per il test 'clear_folder'
+    # Create some dummy files for the 'clear_folder' test
     open(os.path.join(temp_dir, "file1.txt"), "w").close()
     os.mkdir(os.path.join(temp_dir, "subdir"))
 
-    # 2. Crea un QSettings reale ma isolato
+    # 2. Create a real but isolated QSettings
     settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, "GliAAnsTest", "GliAAnsTestApp")
-    settings.clear()  # Assicura uno stato pulito
+    settings.clear()  # Ensures a clean state
 
-    # 3. Oggetto per i segnali
+    # 3. Signal object
     signal_host = SignalHost()
 
-    # 4. Assembla il context
+    # 4. Assemble the context
     context = {
         "language_changed": signal_host.language_changed,
         "settings": settings,
@@ -52,15 +48,10 @@ def mock_context(request, qtbot):
         "return_to_import": Mock(),
         "update_main_buttons": Mock(),
 
-        # --- LA CORREZIONE È QUI ---
-        # Dobbiamo mantenere "vivo" l'oggetto QObject proprietario dei segnali,
-        # altrimenti viene distrutto dal garbage collector e causa un segfault
-        # quando la MainWindow cerca di connettersi al segnale.
         "_signal_host_ref": signal_host
-        # --- FINE CORREZIONE ---
     }
 
-    # 5. Aggiungi il teardown (pulizia)
+    # 5. Add teardown (cleanup)
     def cleanup():
         shutil.rmtree(temp_dir)
         settings.clear()
@@ -73,43 +64,31 @@ def mock_context(request, qtbot):
 @pytest.fixture
 def main_window(qtbot, mock_context):
     """
-    Fixture che crea la MainWindow e la "neutralizza" per i test.
+    Fixture that creates the MainWindow and "neutralizes" it for testing.
     """
     window = MainWindow(mock_context)
     qtbot.addWidget(window)
 
-    # --- CORREZIONE 1 (Già presente) ---
-    # Disconnette il segnale che causa la chiusura dell'app durante i test.
     try:
         window.destroyed.disconnect(QApplication.instance().quit)
     except TypeError:
         pass
 
-    # --- CORREZIONE 2 (NUOVA) ---
-    # Impedisce al widget di auto-distruggersi quando .close() è chiamato
-    # nel test (es. test_full_workflow), che causerebbe un RuntimeError
-    # quando pytest-qt cerca di chiuderlo di nuovo nel teardown.
     window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-    # --- FINE CORREZIONE 2 ---
 
     return window
 
-
-# ---------------------------------------------------------------------
-# TEST SUITE (Con correzioni minori)
-# ---------------------------------------------------------------------
-
 class TestMainWindowSetup:
-    """Test per la configurazione iniziale della MainWindow"""
+    """Tests for MainWindow initial configuration"""
 
     def test_window_initialization(self, main_window):
-        """Verifica che la finestra si inizializzi correttamente"""
+        """Verify that the window initializes correctly"""
         assert main_window.windowTitle() != ""
         assert main_window.width() >= 950
-        assert main_window.height() >= 650  # Corretto da 650 a 700 come da codice
+        assert main_window.height() >= 650  # Corrected from 650 to 700 as per code
 
     def test_menu_bar_created(self, main_window):
-        """Verifica che la menu bar sia creata con tutti i menu"""
+        """Verify that the menu bar is created with all menus"""
         menu_bar = main_window.menuBar()
         assert menu_bar is not None
 
@@ -119,12 +98,12 @@ class TestMainWindowSetup:
         assert "Settings" in menus or "Impostazioni" in menus
 
     def test_splitter_created(self, main_window):
-        """Verifica che lo splitter sia stato creato"""
+        """Verify that the splitter has been created"""
         assert main_window.splitter is not None
         assert main_window.splitter.orientation() == QtCore.Qt.Orientation.Horizontal
 
     def test_footer_with_buttons(self, main_window):
-        """Verifica che il footer contenga i pulsanti"""
+        """Verify that the footer contains the buttons"""
         assert main_window.footer is not None
         assert main_window.next_button is not None
         assert main_window.back_button is not None
@@ -132,7 +111,7 @@ class TestMainWindowSetup:
         assert isinstance(main_window.back_button, QPushButton)
 
     def test_language_actions_created(self, main_window):
-        """Verifica che le azioni per le lingue siano create"""
+        """Verify that language actions are created"""
         assert "en" in main_window.language_actions
         assert "it" in main_window.language_actions
         assert main_window.language_actions["en"].isCheckable()
@@ -140,17 +119,17 @@ class TestMainWindowSetup:
 
 
 class TestLanguageManagement:
-    """Test per la gestione delle lingue"""
+    """Tests for language management"""
 
     def test_set_language_emits_signal(self, main_window, qtbot):
-        """Verifica che set_language emetta il segnale corretto"""
+        """Verify that set_language emits the correct signal"""
         with qtbot.waitSignal(main_window.context["language_changed"], timeout=1000) as blocker:
             main_window.set_language("it")
 
         assert blocker.args == ["it"]
 
     def test_set_language_checks_correct_action(self, main_window):
-        """Verifica che l'azione corretta venga selezionata"""
+        """Verify that the correct action is checked"""
         main_window.set_language("it")
         assert main_window.language_actions["it"].isChecked()
 
@@ -158,7 +137,7 @@ class TestLanguageManagement:
         assert main_window.language_actions["en"].isChecked()
 
     def test_language_action_group_exclusive(self, main_window):
-        """Verifica che solo una lingua possa essere selezionata"""
+        """Verify that only one language can be selected"""
         main_window.language_actions["en"].trigger()
         assert main_window.language_actions["en"].isChecked()
         assert not main_window.language_actions["it"].isChecked()
@@ -169,10 +148,10 @@ class TestLanguageManagement:
 
 
 class TestWorkspaceOperations:
-    """Test per le operazioni sul workspace"""
+    """Tests for workspace operations"""
 
     def test_clear_folder_confirms_deletion(self, main_window, monkeypatch):
-        """Verifica che venga richiesta conferma prima di eliminare"""
+        """Verify that confirmation is requested before deleting"""
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.No)
 
@@ -183,19 +162,19 @@ class TestWorkspaceOperations:
             return_to_import=False
         )
 
-        # I file dovrebbero essere ancora presenti
+        # Files should still be present
         assert len(os.listdir(main_window.workspace_path)) == len(initial_files)
-        assert len(main_window.threads) == 0  # Nessun thread avviato
+        assert len(main_window.threads) == 0  # No threads started
 
     def test_clear_folder_deletes_on_confirmation(self, main_window, monkeypatch, qtbot):
-        """Verifica che i file vengano eliminati dopo conferma"""
+        """Verify that files are deleted after confirmation"""
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
-        # 1. Salva il numero INIZIALE di file
+        # 1. Save the INITIAL number of files
         initial_file_count = len(os.listdir(main_window.workspace_path))
 
-        # Il workspace ha 2 elementi (file1.txt, subdir)
+        # The workspace has 2 items (file1.txt, subdir)
         assert initial_file_count > 0
 
         main_window.clear_folder(
@@ -204,15 +183,15 @@ class TestWorkspaceOperations:
             return_to_import=False
         )
 
-        # 2. Verifica che siano stati creati tanti thread quanti erano i file INIZIALI
+        # 2. Verify that as many threads were created as there were INITIAL files
         assert len(main_window.threads) == initial_file_count
 
-        # Attendi che i thread finiscano per non "inquinare" il test successivo
+        # Wait for threads to finish so as not to "pollute" the next test
         for t in main_window.threads:
             t.wait(1000)
 
     def test_clear_folder_returns_to_import(self, main_window, monkeypatch, qtbot):
-        """Verifica che return_to_import venga chiamato quando richiesto"""
+        """Verify that return_to_import is called when requested"""
         monkeypatch.setattr(QMessageBox, 'question',
                             lambda *args, **kwargs: QMessageBox.StandardButton.Yes)
 
@@ -222,7 +201,7 @@ class TestWorkspaceOperations:
             return_to_import=True
         )
 
-        # Attendi che i thread finiscano per non "inquinare" il test successivo
+        # Wait for threads to finish so as not to "pollute" the next test
         for t in main_window.threads:
             t.wait(1000)
 
@@ -230,10 +209,10 @@ class TestWorkspaceOperations:
 
 
 class TestThreadManagement:
-    """Test per la gestione dei thread"""
+    """Tests for thread management"""
 
     def test_new_thread_adds_to_list(self, main_window):
-        """Verifica che un nuovo thread venga aggiunto alla lista"""
+        """Verify that a new thread is added to the list"""
         mock_thread = Mock(spec=['error', 'finished', 'start', 'wait'])
         mock_thread.error = Mock()
         mock_thread.error.connect = Mock()
@@ -249,7 +228,7 @@ class TestThreadManagement:
         mock_thread.start.assert_called_once()
 
     def test_copydelete_thread_error_removes_thread(self, main_window, monkeypatch):
-        """Verifica che un thread con errore venga rimosso"""
+        """Verify that a thread with error is removed"""
         mock_thread = Mock()
         main_window.threads.append(mock_thread)
 
@@ -261,7 +240,7 @@ class TestThreadManagement:
         assert mock_thread not in main_window.threads
 
     def test_copydelete_thread_success_removes_thread(self, main_window, monkeypatch):
-        """Verifica che un thread completato venga rimosso"""
+        """Verify that a completed thread is removed"""
         mock_thread = Mock()
         main_window.threads.append(mock_thread)
 
@@ -273,7 +252,7 @@ class TestThreadManagement:
         assert mock_thread not in main_window.threads
 
     def test_close_event_stops_threads(self, main_window, qtbot):
-        """Verifica che i thread vengano fermati alla chiusura"""
+        """Verify that threads are stopped on close"""
         mock_thread1 = Mock(spec=['finished', 'error', 'wait'])
         mock_thread1.finished = Mock()
         mock_thread1.finished.disconnect = Mock()
@@ -288,14 +267,14 @@ class TestThreadManagement:
         mock_thread2.error.disconnect = Mock()
         mock_thread2.wait = Mock()
 
-        # Aggiungi thread alla lista
+        # Add threads to list
         main_window.threads = [mock_thread1, mock_thread2]
 
         from PyQt6.QtGui import QCloseEvent
         event = QCloseEvent()
         main_window.closeEvent(event)
 
-        # Verifica che i metodi siano stati chiamati
+        # Verify that methods were called
         mock_thread1.finished.disconnect.assert_called_once()
         mock_thread1.error.disconnect.assert_called_once()
         mock_thread1.wait.assert_called_once()
@@ -304,17 +283,15 @@ class TestThreadManagement:
         mock_thread2.error.disconnect.assert_called_once()
         mock_thread2.wait.assert_called_once()
 
-        # --- CORREZIONE DEL TEST ---
-        # Con la closeEvent corretta, la lista DEVE essere vuota alla fine.
         assert len(main_window.threads) == 0
 
 
 class TestDebugLog:
-    """Test per la funzionalità di debug log"""
+    """Tests for debug log functionality"""
 
     @patch('main.ui.main_window.set_log_level')
     def test_toggle_debug_log_enables(self, mock_set_log_level, main_window):
-        """Verifica che il debug log possa essere abilitato"""
+        """Verify that debug log can be enabled"""
         main_window.toggle_debug_log(True)
 
         assert main_window.settings.value("debug_log", type=bool) == True
@@ -322,7 +299,7 @@ class TestDebugLog:
 
     @patch('main.ui.main_window.set_log_level')
     def test_toggle_debug_log_disables(self, mock_set_log_level, main_window):
-        """Verifica che il debug log possa essere disabilitato"""
+        """Verify that debug log can be disabled"""
         main_window.toggle_debug_log(False)
 
         assert main_window.settings.value("debug_log", type=bool) == False
@@ -330,10 +307,10 @@ class TestDebugLog:
 
 
 class TestWidgetManagement:
-    """Test per la gestione dei widget"""
+    """Tests for widget management"""
 
     def test_set_widgets_first_time(self, main_window, qtbot):
-        """Verifica l'aggiunta iniziale dei widget"""
+        """Verify initial widget addition"""
         from PyQt6.QtWidgets import QWidget
 
         left_widget = QWidget()
@@ -354,7 +331,7 @@ class TestWidgetManagement:
         left_widget.new_thread.connect.assert_called_once_with(main_window.new_thread)
 
     def test_export_file_info_shows_message(self, main_window, monkeypatch):
-        """Verifica che export_file_info mostri un messaggio informativo"""
+        """Verify that export_file_info shows an informational message"""
         message_shown = False
 
         def mock_information(*args, **kwargs):
@@ -367,28 +344,28 @@ class TestWidgetManagement:
         assert message_shown
 
 
-# Test di integrazione
+# Integration tests
 class TestIntegration:
-    """Test di integrazione per verificare il flusso completo"""
+    """Integration tests to verify the full flow"""
 
     def test_full_workflow(self, main_window, qtbot):
-        """Test del flusso completo: creazione, cambio lingua, operazioni"""
-        # Verifica inizializzazione (non visibile di default)
+        """Test full workflow: creation, language change, operations"""
+        # Verify initialization (not visible by default)
         assert not main_window.isVisible()
 
-        # Cambia lingua
+        # Change language
         with qtbot.waitSignal(main_window.context["language_changed"], timeout=1000):
             main_window.set_language("it")
         assert main_window.language_actions["it"].isChecked()
 
-        # Verifica che la finestra sia funzionante
+        # Verify that the window is functional
         main_window.show()
         qtbot.waitExposed(main_window)
         assert main_window.isVisible()
 
-        # Chiudi la finestra
+        # Close the window
         main_window.close()
 
-        # Aspetta che la finestra sia effettivamente nascosta
+        # Wait for the window to be actually hidden
         qtbot.waitUntil(lambda: not main_window.isVisible())
         assert not main_window.isVisible()

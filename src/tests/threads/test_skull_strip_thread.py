@@ -1112,27 +1112,27 @@ class TestTempDirectoryHandling:
         assert mock_rmtree.called
 
 class TestEdgeCases:
-    """Test per casi limite"""
+    """Tests for edge cases"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_empty_file_list(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test con lista file vuota"""
+        """Test with empty file list"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         thread = SkullStripThread([], temp_workspace, {'f_val': 0.5}, False, "fsl-bet")
 
-        # Non dovrebbe sollevare eccezioni
-        # Nota: potrebbe causare division by zero in progress_per_file
+        # Should not raise exceptions
+        # Note: might cause division by zero in progress_per_file
         try:
             thread.run()
         except ZeroDivisionError:
-            pytest.fail("Division by zero con lista vuota")
+            pytest.fail("Division by zero with empty list")
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_file_with_spaces_in_name(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test file con spazi nel nome"""
+        """Test file with spaces in name"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1162,7 +1162,7 @@ class TestEdgeCases:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_nifti_without_gz_extension(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test file NIfTI non compresso (.nii)"""
+        """Test uncompressed NIfTI file (.nii)"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1183,7 +1183,7 @@ class TestEdgeCases:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, 'w') as f:
                 f.write("stripped")
-            # Output dovrebbe comunque essere .nii.gz
+            # Output should still be .nii.gz
             assert dst.endswith(".nii.gz")
 
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
@@ -1194,7 +1194,7 @@ class TestEdgeCases:
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_extreme_f_values(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test con valori estremi di f_val"""
+        """Test with extreme f_val values"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1228,12 +1228,12 @@ class TestEdgeCases:
 
 
 class TestSignalEmissions:
-    """Test per le emissioni dei signal"""
+    """Tests for signal emissions"""
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_progress_updated_signal(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test emissione signal progress_updated"""
+        """Test progress_updated signal emission"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1262,13 +1262,13 @@ class TestSignalEmissions:
             thread.run()
 
         assert len(progress_messages) > 0
-        # Messaggio dovrebbe contenere info su file processato
+        # Message should contain info about processed file
         assert any("T1w.nii" in msg or "Processing" in msg for msg in progress_messages)
 
     @patch('main.threads.skull_strip_thread.setup_fsl_env')
     @patch('main.threads.skull_strip_thread.QProcess')
     def test_file_started_signal_order(self, mock_qprocess, mock_fsl_env, temp_workspace):
-        """Test ordine emissione signal file_started"""
+        """Test file_started signal emission order"""
         mock_fsl_env.return_value = ("/usr/local/fsl", "NIFTI_GZ")
 
         mock_process = Mock()
@@ -1300,6 +1300,6 @@ class TestSignalEmissions:
         with patch('shutil.move', side_effect=mock_move), patch('shutil.rmtree'):
             thread.run()
 
-        # Verifica ordine
+        # Verify order
         assert len(started_files) == 3
         assert started_files == filenames

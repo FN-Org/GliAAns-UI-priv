@@ -117,19 +117,39 @@ Currently, the project maintains an average code coverage of **96%** across the 
 
 Below is a summary of the test components, their specific functionality targets, and their current implementation status:
 
-| File                      | # classes | # tests | Status |
-|:--------------------------|:----------|:--------|:-------|
-| Components                |           |         |        |
-| Circular Progress Bar     | 11        | 56      | Passed |
-| Collapsible Patient Frame | 18        | 68      | Passed |
-| Crosshair Graphic View    | 19        | 72      | Passed |
-| File Role Dialog          | 12        | 57      | Passed |
-| File Selector Widget      | 16        | 59      | Passed |
-| Folder Card               | 12        | 48      | Passed |
-| Nifti File Dialog         | 22        | 66      | Passed |
-| Core                      |           |         |        |
-| Controller                | 9         | 29      | Passed |
-| Logger                    | 7         | 32      | Passed |
-| Page Contract             | /         | 10      | Passed |
-| Utils                     | 9         | 34      | Passed |
-| Threads                   |           |         |        |
+| File                       | # classes | # tests | Status |
+|:---------------------------|:----------|:--------|:-------|
+| Components                 |           |         |        |
+| Circular Progress Bar      | 11        | 56      | Passed |
+| Collapsible Patient Frame  | 18        | 68      | Passed |
+| Crosshair Graphic View     | 19        | 72      | Passed |
+| File Role Dialog           | 12        | 57      | Passed |
+| File Selector Widget       | 16        | 59      | Passed |
+| Folder Card                | 12        | 48      | Passed |
+| Nifti File Dialog          | 22        | 66      | Passed |
+| Core                       |           |         |        |
+| Controller                 | 9         | 29      | Passed |
+| Logger                     | 7         | 32      | Passed |
+| Page Contract              | /         | 10      | Passed |
+| Utils                      | 9         | 34      | Passed |
+| Threads                    |           |         |        |
+| Dl Worker                  | 16        | 39      | Passed |
+| Import Thread              | 18        | 63      | Passed |
+| Nifti Utils Threads        | 17        | 56      | Passed |
+| Skull Strip Thread         | 12        | 41      | Passed |
+| Utils Threads              | 14        | 54      | Passed |
+| Ui                         |           |         |        |
+| Dl Execution Page          | 25        | 92      | Passed |
+| Dl Selection Page          | 20        | 66      | Passed |
+| Import Page                | 9         | 27      | Passed |
+| Main Window                | 8         | 20      | Passed |
+| Nifti Mask Selection       | 9         | 22      | Passed |
+| Nifti Viewer               | 5         | 21      | Passed |
+| Patient Selection Page     | 10        | 37      | Passed |
+| Pipeline Execution Page    | 18        | 75      | Passed |
+| Pipeline Patient Selection | 10        | 31      | Passed |
+| Pipeline Review Page       | 10        | 36      | Passed |
+| Skull Stripping Page       | 10        | 45      | Passed |
+| Tool Selection Page        | 10        | 34      | Passed |
+| Workspace Tree View        | 9         | 37      | Passed |
+
