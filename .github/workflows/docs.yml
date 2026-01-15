@@ -35,15 +35,17 @@ jobs:
       # Invece di usare i venv isolati del Makefile per pdoc, installiamo
       # le dipendenze nell'ambiente globale del runner. È più sicuro per la CI.
       - name: Install Python dependencies
+        working-directory: ./src
         run: |
-          pip install -r ./src/main/requirements.txt
-          pip install -r ./src/tests/requirements-test.txt
+          pip install -r main/requirements.txt
+          pip install -r tests/requirements-test.txt
           pip install pdoc pytest pytest-cov
 
       # 5. Esegui i TEST usando il Makefile
       # Usiamo xvfb-run per simulare il monitor, altrimenti i test GUI falliscono.
       # NOTA: Dobbiamo assicurarci che il venv dei test esista come si aspetta il Makefile
       - name: Setup Test Venv & Run Tests
+        working-directory: ./src
         run: |
           make tests_python-setup
           xvfb-run make tests-coverage
@@ -52,15 +54,17 @@ jobs:
       # Il Makefile usa "PYTHONPATH=." che va benissimo.
       # Avendo installato i requirements al punto 4, pdoc riuscirà a importare tutto.
       - name: Generate Documentation
+        working-directory: ./src
         run: |
           make doc
 
       # 7. Crea la Landing Page unificata
       - name: Create Index HTML
+        working-directory: ./src
         run: |
           # Sposta la coverage dentro la cartella docs per averla ordinata
-          mkdir -p ../pdoc/docs/coverage
-          mv htmlcov/* ../pdoc/docs/coverage/
+          mkdir -p pdoc/docs/coverage
+          mv htmlcov/* pdoc/docs/coverage/
           
           # Crea la pagina menu
           echo '<!DOCTYPE html><html><head><title>GliAAns Docs</title><style>body{font-family:sans-serif;padding:50px;text-align:center;background:#f4f4f4;} .card{background:white;padding:20px;margin:20px auto;width:300px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);} a{text-decoration:none;color:#333;font-weight:bold;font-size:1.2em;} a:hover{color:#007bff;}</style></head><body><h1>GliAAns Documentation</h1><div class="card"><a href="index.html">📖 API Documentation</a></div><div class="card"><a href="coverage/index.html">✅ Test Coverage</a></div></body></html>' > ../pdoc/docs/landing.html
