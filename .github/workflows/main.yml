@@ -28,8 +28,7 @@ jobs:
       - name: Setup and Compile
         working-directory: ./src # <--- MODIFICA QUI
         run: |
-          make setup-all
-          make compile-app
+          make all
 
       # 3. ZIFFA IL CONTENUTO DELLA CARTELLA DI OUTPUT
       - name: Zip the output
