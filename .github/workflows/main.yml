@@ -1,0 +1,45 @@
+name: Build and Release App (No gpu)
+
+# 1. IL TRIGGER
+# Questo workflow parte SOLO quando pushi un tag che inizia con 'v' (es. v1.0.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # Fondamentale: serve per permettere al bot di creare la Release
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest # Cambia con 'windows-latest' o 'macos-latest' se serve
+
+    steps:
+      # Scarica il codice del repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE
+      - name: Setup and Compile
+        working-directory: ./src # <--- MODIFICA QUI
+        run: |
+          make setup-all
+          make compile-app
+
+      # 3. ZIFFA IL CONTENUTO DELLA CARTELLA DI OUTPUT
+      - name: Zip the output
+        # Qui diciamo alla shell di spostarsi nella cartella dove c'è la build
+        working-directory: ./src/main/dist/ # <--- MODIFICA QUI
+        run: |
+          # Zippa tutto il contenuto (.) in un file chiamato release.zip
+          zip -r GliAAns_${{ github.ref_name }}.zip ..
+
+      # 4. PUBBLICA LA RELEASE
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # Specifica il percorso del file zip creato nel passaggio precedente
+          files: ./src/main/dist/GliAAns_${{ github.ref_name }}.zip # <--- MODIFICA QUI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
