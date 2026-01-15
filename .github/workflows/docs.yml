@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9' # Metti la versione che usate voi
+          python-version: '3.11' # Metti la versione che usate voi
 
       # 3. Installa le dipendenze di sistema per PyQt (IMPORTANTE per GUI)
       # Senza questo, PyQt fallisce su GitHub perché non c'è un monitor reale
@@ -34,19 +34,19 @@ jobs:
       # 4. Installa le librerie Python
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r ./src/tests/requirements-test.txt
 
       # 5. Genera la Coverage (Test)
       # Nota: usiamo xvfb-run per simulare un monitor per la GUI
       - name: Run Tests and Generate Coverage
         run: |
           sudo apt-get install xvfb
-          xvfb-run pytest --cov=./src --cov-report=html:build_docs/coverage
+          xvfb-run pytest --cov=./src/tests --cov-report=html:build_docs/coverage
       
       # 6. Genera i Pdoc (Documentazione API)
       - name: Generate Pdoc
         run: |
-          pdoc ./src -o build_docs/pdoc
+          pdoc ./src/main -o build_docs/pdoc
 
       # 7. Crea la Landing Page (Index)
       # Creiamo al volo un file index.html che collega le due sezioni
