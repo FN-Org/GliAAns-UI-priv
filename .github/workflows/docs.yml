@@ -1,0 +1,62 @@
+name: Docs & Coverage Build
+
+# Esegui questa action ogni volta che fai push sul branch main
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Scarica il codice dalla repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Installa Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9' # Metti la versione che usate voi
+
+      # 3. Installa le dipendenze di sistema per PyQt (IMPORTANTE per GUI)
+      # Senza questo, PyQt fallisce su GitHub perché non c'è un monitor reale
+      - name: Install system dependencies for Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon-x11-0 libdbus-1-3 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils libx11-xcb1 libxcb-shape0 libxcb-cursor0
+
+      # 4. Installa le librerie Python
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # 5. Genera la Coverage (Test)
+      # Nota: usiamo xvfb-run per simulare un monitor per la GUI
+      - name: Run Tests and Generate Coverage
+        run: |
+          sudo apt-get install xvfb
+          xvfb-run pytest --cov=./src --cov-report=html:build_docs/coverage
+      
+      # 6. Genera i Pdoc (Documentazione API)
+      - name: Generate Pdoc
+        run: |
+          pdoc ./src -o build_docs/pdoc
+
+      # 7. Crea la Landing Page (Index)
+      # Creiamo al volo un file index.html che collega le due sezioni
+      - name: Create Landing Page
+        run: |
+          echo '<!DOCTYPE html><html><head><title>Docs</title><style>body{font-family:sans-serif;padding:40px;text-align:center;}a{display:block;margin:20px;font-size:1.5em;text-decoration:none;color:#0366d6;}</style></head><body><h1>Medical GUI Documentation</h1><a href="pdoc/index.html">📖 API Documentation (Pdoc)</a><a href="coverage/index.html">✅ Test Coverage Report</a></body></html>' > build_docs/index.html
+
+      # 8. Pubblica su GitHub Pages
+      # Prende la cartella 'build_docs' e la spara sul ramo 'gh-pages'
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build_docs
