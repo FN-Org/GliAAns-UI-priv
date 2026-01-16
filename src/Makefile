@@ -233,5 +233,5 @@ ifeq ($(OS),Windows_NT)
 	cd ..
 else
 	rm -rf $(DOC_DIR)
-	cd main && PYTHONPATH=. $(TESTS_PDOC) -o $(DOC_DIR) --logo $(abspath pdoc/GliAAns-logo.png) --template-dir ../pdoc/pdoc_template . ui threads components && cd ..
+	cd main && PYTHONPATH=. $(TESTS_PDOC) -o $(DOC_DIR) --logo ../pdoc/GliAAns-logo.png --template-dir ../pdoc/pdoc_template . ui threads components && cd ..
 endif
