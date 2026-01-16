@@ -66,18 +66,18 @@ jobs:
           make compile-app
 
       # 3. Zippa IL CONTENUTO DELLA CARTELLA DI OUTPUT
-      - name: Zip the output
+      - name: Zip the output (FLAT)
+        # 1. Ci spostiamo DENTRO la cartella dist
         working-directory: ./src/main/dist
         run: |
-          # L'opzione -x "*.zip" evita che l'archivio includa se stesso mentre viene creato
-          zip -r GliAAns_${{ github.ref_name }}.zip . -x "*.zip"
+          # 2. Creiamo lo zip nel livello superiore (..) così non si zippa addosso
+          zip -r ../GliAAns_${{ github.ref_name }}.zip .
 
-      # 4. PUBBLICA LA RELEASE
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          # Qui va bene, GitHub sostituisce la variabile prima di eseguire l'azione
-          files: ./src/main/dist/GliAAns_${{ github.ref_name }}.zip
+          # 3. Il file si trova in src/main (livello superiore rispetto a dist)
+          files: ./src/main/GliAAns_${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
