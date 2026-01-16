@@ -36,7 +36,6 @@ ifeq ($(OS),Windows_NT)
     HD_BET             = $(VENV_DIR)\Scripts\hd-bet.exe
     DCM2NIIX           = $(VENV_DIR)\Scripts\dcm2niix.exe
     NIPREPS_SYNTHSTRIP = $(VENV_DIR)/Scripts/nipreps-synthstrip
-	TESTS_PDOC         = ../$(TESTS_VENV_DIR)/bin/pdoc
 else
     # ---- Linux / macOS ----
     UNAME_S := $(shell uname -s)
@@ -70,6 +69,7 @@ else
     HD_BET             = $(VENV_DIR)/bin/hd-bet
     DCM2NIIX           = $(VENV_DIR)/bin/dcm2niix
     NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
+	TESTS_PDOC         = ../$(TESTS_VENV_DIR)/bin/pdoc
 endif
 
 # -------------------------
