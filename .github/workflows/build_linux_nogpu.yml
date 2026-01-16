@@ -67,17 +67,17 @@ jobs:
 
       # 3. Zippa IL CONTENUTO DELLA CARTELLA DI OUTPUT
       - name: Zip the output
-        working-directory: ./src/main/ #
+        working-directory: ./src/main/dist
         run: |
-          # Zippa tutto il contenuto (.) in un file chiamato release.zip
-          zip -r GliAAns_${{ github.ref_name }}.zip .
+          # L'opzione -x "*.zip" evita che l'archivio includa se stesso mentre viene creato
+          zip -r GliAAns_${{ github.ref_name }}.zip . -x "*.zip"
 
       # 4. PUBBLICA LA RELEASE
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          # Specifica il percorso del file zip creato nel passaggio precedente
-          files: ./src/main/dist/GliAAns_${{ github.ref_name }}.zip # <--- MODIFICA QUI
+          # Qui va bene, GitHub sostituisce la variabile prima di eseguire l'azione
+          files: ./src/main/dist/GliAAns_${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
