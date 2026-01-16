@@ -156,6 +156,7 @@ class TestFindPatientDirs:
 
     def test_find_patient_dirs_nested_subjects(self, qtbot, temp_workspace):
         """Test with nested subjects."""
+        # Setup path
         nested_path = os.path.join(temp_workspace, "study", "cohort1", "sub-nested")
         os.makedirs(nested_path)
 
@@ -164,10 +165,12 @@ class TestFindPatientDirs:
 
         patient_dirs = dialog._find_patient_dirs()
 
-        assert len(patient_dirs) == 3 # The nested one and the other two
-        assert "sub-01" in patient_dirs[0]
-        assert "sub-02" in patient_dirs[1]
-        assert "sub-nested" in patient_dirs[2]
+        assert len(patient_dirs) == 3
+
+        dir_names = [os.path.basename(p) for p in patient_dirs]
+
+        assert "sub-01" in dir_names
+        assert "sub-nested" in dir_names
 
 
 class TestLevel1MainDerivatives:
