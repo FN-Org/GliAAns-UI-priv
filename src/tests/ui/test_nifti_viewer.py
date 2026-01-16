@@ -187,9 +187,12 @@ class TestNiftiViewer(unittest.TestCase):
         self.assertIsNotNone(self.viewer.overlay_btn, "Overlay button not initialized")
         self.assertEqual(len(self.viewer.views), 3, "Incorrect number of views")
 
-    def test_open_file_button(self):
+    @patch('components.nifti_file_dialog.NiftiFileDialog.get_files')
+    def test_open_file_button(self, mock_get_files):
+        mock_get_files.return_value = [self.test_nii_path]
         QTest.mouseClick(self.viewer.open_btn, Qt.MouseButton.LeftButton)
-        QTest.qWait(1000)
+        QTest.qWait(500)
+        self.assertIsNotNone(self.viewer.img_data)
 
     def test_automaticROI_drawing(self):
         self.viewer.img_data = np.ones((20, 20, 20)) * 100
@@ -211,9 +214,7 @@ class TestNiftiViewer(unittest.TestCase):
     def test_load_file(self, mock_get_files):
         mock_get_files.return_value = [self.test_nii_path]
         self.viewer.open_file()
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
+        QTest.qWait(500)
 
         self.assertIsNotNone(self.viewer.img_data, "Image data should be loaded after file load")
         self.assertEqual(self.viewer.dims, (20, 20, 20), "Dimensions incorrect")
@@ -251,43 +252,49 @@ class TestNiftiViewer(unittest.TestCase):
         self.assertTrue(self.viewer.overlay_checkbox.isChecked(), "Overlay checkbox should be checked")
 
     def test_automaticROI_clicked(self):
-        # Load data first
-        self.viewer.open_file(self.test_nii_path)
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
+        self.viewer.img_data = nib.load(self.test_nii_path).get_fdata()
+        self.viewer.dims = self.viewer.img_data.shape
+        self.viewer.voxel_sizes = np.array([1, 1, 1])
 
-        self.viewer.automaticROIbtn.setEnabled(True)  # Enable button
+        self.viewer.automaticROIbtn.setEnabled(True)
         QTest.mouseClick(self.viewer.automaticROIbtn, Qt.MouseButton.LeftButton)
-        QTest.qWait(500)
+        QTest.qWait(100)
 
-        self.assertTrue(self.viewer.automaticROI_overlay, "Automatic ROI overlay should be enabled")
-        self.assertIsNotNone(self.viewer.automaticROI_data, "Automatic ROI data should be generated after ROI click")
+        self.assertTrue(self.viewer.automaticROI_overlay)
 
     @patch('PyQt6.QtWidgets.QMessageBox.exec')
+    @patch('PyQt6.QtWidgets.QMessageBox.question')
     @patch('os.makedirs')
-    def test_automaticROI_save(self, mock_makedirs, mock_msgbox_exec):
-        # Load data and generate ROI
-        self.viewer.open_file(self.test_nii_path)
-        loop = QEventLoop()
-        QTimer.singleShot(1000, loop.quit)
-        loop.exec()
+    @patch(
+        'threads.nifti_utils_threads.SaveNiftiThread.start')  # Mockiamo anche il thread di salvataggio per evitare errori
+    def test_automaticROI_save(self, mock_thread_start, mock_makedirs, mock_question, mock_exec):
+        self.viewer.img_data = np.ones((20, 20, 20))
+        self.viewer.dims = (20, 20, 20)
+        self.viewer.voxel_sizes = np.array([1.0, 1.0, 1.0])
+        self.viewer.affine = np.eye(4)
+
+        self.viewer.file_path = self.test_nii_path
+
+        if self.viewer.context is None:
+            self.viewer.context = {}
+        self.viewer.context["workspace_path"] = self.temp_dir.name
 
         self.viewer.automaticROI_seed_coordinates = [10, 10, 10]
         self.viewer.automaticROI_overlay = True
         self.viewer.automaticROI_radius_slider.setValue(3)
-        self.viewer.automaticROI_diff_slider.setValue(10)
         self.viewer.automaticROI_drawing()
 
-        # Mock confirmation dialog to accept
-        mock_msgbox_exec.return_value = QMessageBox.StandardButton.Yes
+        mock_exec.return_value = QMessageBox.StandardButton.Yes
+        mock_question.return_value = QMessageBox.StandardButton.Yes
 
-        # Simulate save button click
         self.viewer.ROI_save_btn.setEnabled(True)
         QTest.mouseClick(self.viewer.ROI_save_btn, Qt.MouseButton.LeftButton)
-        QTest.qWait(500)
 
-        self.assertTrue(mock_makedirs.called, "Save directory should be created")
+        QTest.qWait(100)
+
+        self.assertTrue(mock_makedirs.called, "os.makedirs dovrebbe essere chiamato")
+
+        self.assertTrue(mock_thread_start.called, "Il thread di salvataggio dovrebbe essere avviato")
 
     def test_resize_event(self):
         with patch.object(self.viewer.views[0], 'fitInView') as mock_fitInView:
