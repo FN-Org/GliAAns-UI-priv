@@ -60,7 +60,6 @@ jobs:
       - name: Generate documentation
         working-directory: ./src
         run: |
-          pip install pdoc
           make doc
 
       # Prepara una cartella "deploy" pulita per GitHub Pages
