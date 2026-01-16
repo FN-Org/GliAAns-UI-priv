@@ -78,22 +78,59 @@ jobs:
           <html>
           <head>
             <meta charset="utf-8">
-            <title>GliAAns Docs</title>
+            <title>GliAAns-UI Docs</title>
             <style>
-              body{font-family:sans-serif;padding:50px;text-align:center;background:#f4f4f4;}
-              .card{background:white;padding:20px;margin:20px auto;width:300px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
-              a{text-decoration:none;color:#333;font-weight:bold;font-size:1.2em;}
-              a:hover{color:#007bff;}
+              body {
+                font-family: sans-serif;
+                padding: 50px;
+                text-align: center;
+                background: #f4f4f4;
+              }
+              .logo {
+                max-width: 150px;
+                height: auto;
+                margin-bottom: 20px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+              }
+              .card {
+                background: white;
+                padding: 20px;
+                margin: 20px auto;
+                width: 300px;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                transition: transform 0.2s;
+              }
+              .card:hover {
+                transform: translateY(-5px);
+              }
+              a {
+                text-decoration: none;
+                color: #333;
+                font-weight: bold;
+                font-size: 1.2em;
+              }
+              a:hover {
+                color: #007bff;
+              }
             </style>
           </head>
           <body>
-            <h1>GliAAns Documentation</h1>
+            
+            <img src="GliAAns-logo.png" alt="GliAAns Logo" class="logo">
+            
+            <h1>GliAAns-UI Code Documentation</h1>
+            
             <div class="card">
-              <a href="docs/index.html">📖 API Documentation</a>
+              <a href="docs/index.html">Documentation</a>
             </div>
+            
             <div class="card">
-              <a href="coverage/index.html">✅ Test Coverage</a>
+              <a href="coverage/index.html">Test Coverage</a>
             </div>
+            
           </body>
           </html>
           EOF
@@ -102,6 +139,7 @@ jobs:
           cp -r pdoc/docs deploy/
           cp -r pdoc/coverage deploy/
           cp -r pdoc/landing.html deploy/
+          cp -r pdoc/GliAAns-logo.png deploy/
           mv deploy/landing.html deploy/index.html
 
       # Pubblica su GitHub Pages senza toccare la repo
