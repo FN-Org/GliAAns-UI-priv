@@ -168,10 +168,13 @@ all: setup-all app
 app: compile-pipeline compile-app
 
 .PHONY: app-dl
-app-dl: compile-app
+app-dl: app
 	cd main && cp -r deep_learning/ dist/GliAAns-UI
 	cd main/dist/GliAAns-UI && mv deep_learning/Makefile .
 	cd main/dist/GliAAns-UI && mv deep_learning/README.md .
+
+.PHONY: all-dl
+all-dl: setup-all app-dl
 
 # -------------------------
 # Cleaning
@@ -201,19 +204,22 @@ endif
 # -------------------------
 # Tests
 # -------------------------
+SRC_DIR      := main
+TEST_SCRIPT  := tests/run_all_tests.sh
+
 .PHONY: tests
 tests:
-	env PATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-	    PYTHONPATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/main \
-	    VIRTUAL_ENV=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv \
-	    /bin/bash /Users/niky/Documents/1_projects/GliAAns-UI/src/tests/run_all_tests.sh
+	env PATH=tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+	    PYTHONPATH=main \
+	    VIRTUAL_ENV=tests/.venv \
+	    /bin/bash tests/run_all_tests.sh
 
 .PHONY: tests-coverage
 tests-coverage:
-	env PATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-	    PYTHONPATH=/Users/niky/Documents/1_projects/GliAAns-UI/src/main \
-	    VIRTUAL_ENV=/Users/niky/Documents/1_projects/GliAAns-UI/src/tests/.venv \
-	    /bin/bash /Users/niky/Documents/1_projects/GliAAns-UI/src/tests/run_all_tests.sh -c
+	env PATH=tests/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+	    PYTHONPATH=main \
+	    VIRTUAL_ENV=tests/.venv \
+	    /bin/bash tests/run_all_tests.sh -c
 
 # -------------------------
 # Create documentation
