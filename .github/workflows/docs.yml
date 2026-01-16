@@ -70,7 +70,7 @@ jobs:
 
           # Sposta la coverage dentro docs
           mkdir -p pdoc/docs/coverage
-          mv htmlcov/* pdoc/docs/coverage/
+          mv ./tests/htmlcov/* pdoc/docs/coverage/
 
           # Landing page
           cat > pdoc/docs/landing.html << 'EOF'
