@@ -51,7 +51,7 @@ jobs:
           make compile-pipeline
 
       - name: Clean pipeline python setup
-        working-directory: ./src
+        working-directory: ./src/main
         run: |
           rm -r pediatric_fdopa_pipeline
 
@@ -83,10 +83,10 @@ jobs:
 
       # 3. Zippa IL CONTENUTO DELLA CARTELLA DI OUTPUT
       - name: Zip the output
-        working-directory: ./src/main/dist/ #
+        working-directory: ./src/main/ #
         run: |
           # Zippa tutto il contenuto (.) in un file chiamato release.zip
-          zip -r GliAAns_${{ github.ref_name }}.zip ..
+          zip -r GliAAns_${{ github.ref_name }}.zip .
 
       # 4. PUBBLICA LA RELEASE
       - name: Release
