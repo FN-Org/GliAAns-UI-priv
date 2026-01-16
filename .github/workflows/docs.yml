@@ -73,7 +73,7 @@ jobs:
           mv ./tests/htmlcov/* pdoc/coverage/
 
           # Landing page
-          cat > pdoc/docs/landing.html << 'EOF'
+          cat > pdoc/landing.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
