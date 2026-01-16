@@ -69,8 +69,8 @@ jobs:
           mkdir -p deploy
 
           # Sposta la coverage dentro docs
-          mkdir -p pdoc/docs/coverage
-          mv ./tests/htmlcov/* pdoc/docs/coverage/
+          mkdir -p pdoc/coverage
+          mv ./tests/htmlcov/* pdoc/coverage/
 
           # Landing page
           cat > pdoc/docs/landing.html << 'EOF'
@@ -89,7 +89,7 @@ jobs:
           <body>
             <h1>GliAAns Documentation</h1>
             <div class="card">
-              <a href="index.html">📖 API Documentation</a>
+              <a href="docs/index.html">📖 API Documentation</a>
             </div>
             <div class="card">
               <a href="coverage/index.html">✅ Test Coverage</a>
@@ -99,7 +99,8 @@ jobs:
           EOF
 
           # Copia tutto in una cartella di deploy isolata
-          cp -r pdoc/docs/* deploy/
+          cp -r pdoc/docs deploy/
+          cp -r pdoc/coverage deploy/
           mv deploy/landing.html deploy/index.html
 
       # Pubblica su GitHub Pages senza toccare la repo
