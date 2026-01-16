@@ -1,11 +1,7 @@
 name: Build and Release App (No gpu)
 
 # 1. IL TRIGGER
-# Questo workflow parte SOLO quando pushi un tag che inizia con 'v' (es. v1.0.0)
-on:
-  push:
-    tags:
-      - 'v*'
+
 
 permissions:
   contents: write # Fondamentale: serve per permettere al bot di creare la Release
