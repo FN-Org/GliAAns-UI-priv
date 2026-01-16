@@ -101,6 +101,7 @@ jobs:
           # Copia tutto in una cartella di deploy isolata
           cp -r pdoc/docs deploy/
           cp -r pdoc/coverage deploy/
+          cp -r pdoc/landing.html deploy/
           mv deploy/landing.html deploy/index.html
 
       # Pubblica su GitHub Pages senza toccare la repo
