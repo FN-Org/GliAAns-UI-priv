@@ -36,6 +36,7 @@ ifeq ($(OS),Windows_NT)
     HD_BET             = $(VENV_DIR)\Scripts\hd-bet.exe
     DCM2NIIX           = $(VENV_DIR)\Scripts\dcm2niix.exe
     NIPREPS_SYNTHSTRIP = $(VENV_DIR)/Scripts/nipreps-synthstrip
+	TESTS_PDOC         = ../$(TESTS_VENV_DIR)/bin/pdoc
 else
     # ---- Linux / macOS ----
     UNAME_S := $(shell uname -s)
@@ -232,5 +233,5 @@ ifeq ($(OS),Windows_NT)
 	cd ..
 else
 	rm -rf $(DOC_DIR)
-	cd main && PYTHONPATH=. pdoc -o $(DOC_DIR) --logo $(abspath main/resources/GliAAns-logo.png) --template-dir ../pdoc/pdoc_template . ui threads components && cd ..
+	cd main && PYTHONPATH=. $(TESTS_PDOC) -o $(DOC_DIR) --logo $(abspath main/resources/GliAAns-logo.png) --template-dir ../pdoc/pdoc_template . ui threads components && cd ..
 endif
