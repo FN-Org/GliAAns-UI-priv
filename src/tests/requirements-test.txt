@@ -9,3 +9,4 @@ numpy
 nibabel
 matplotlib
 numba
+pdoc
