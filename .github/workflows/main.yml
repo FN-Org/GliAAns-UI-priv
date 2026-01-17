@@ -30,6 +30,24 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+
+      - name: Free up RAM
+        run: |
+          sudo systemctl stop mysql
+          sudo systemctl stop postgresql
+          sudo systemctl stop mongodb || true
+          sudo systemctl stop docker || true
+
+      - name: Create Swap Space
+        run: |
+          # Crea un file di swap da 8GB
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          # Verifica che sia attivo
+          sudo swapon --show
+        
       # Scarica il codice del repository
       - name: Checkout code
         uses: actions/checkout@v4
