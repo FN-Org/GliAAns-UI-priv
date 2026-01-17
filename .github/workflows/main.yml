@@ -1,6 +1,10 @@
 name: Build and Release App (No gpu)
 
 # 1. IL TRIGGER
+on:
+  push:
+    tags:
+      - 'v*'
 
 
 permissions:
@@ -41,20 +45,20 @@ jobs:
         run: |
           make all
 
-      # 3. ZIFFA IL CONTENUTO DELLA CARTELLA DI OUTPUT
-      - name: Zip the output
-        # Qui diciamo alla shell di spostarsi nella cartella dove c'è la build
-        working-directory: ./src/main/dist/ # <--- MODIFICA QUI
+      # 3. ZIppa IL CONTENUTO DELLA CARTELLA DI OUTPUT
+      - name: Zip the output (FLAT)
+        # 1. Ci spostiamo DENTRO la cartella dist
+        working-directory: ./src/main/dist
         run: |
-          # Zippa tutto il contenuto (.) in un file chiamato release.zip
-          zip -r GliAAns_${{ github.ref_name }}.zip ..
+          # 2. Creiamo lo zip nel livello superiore (..) così non si zippa addosso
+          zip -r ../GliAAns_${{ github.ref_name }}.zip .
 
       # 4. PUBBLICA LA RELEASE
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          # Specifica il percorso del file zip creato nel passaggio precedente
-          files: ./src/main/dist/GliAAns_${{ github.ref_name }}.zip # <--- MODIFICA QUI
+          # 3. Il file si trova in src/main (livello superiore rispetto a dist)
+          files: ./src/main/GliAAns_${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
