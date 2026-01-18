@@ -76,20 +76,21 @@ jobs:
         run: |
           make all
 
-      # 3. ZIppa IL CONTENUTO DELLA CARTELLA DI OUTPUT
-      - name: Zip the output (FLAT)
+      - name: Zip the output (SPLIT 1.7GB)
         # 1. Ci spostiamo DENTRO la cartella dist
         working-directory: ./src/main/dist
         run: |
-          # 2. Creiamo lo zip nel livello superiore (..) così non si zippa addosso
-          zip -r ../GliAAns_${{ github.ref_name }}.zip .
+          # 2. Aggiungiamo '-s 1700m' per spezzare in volumi da 1700MB (circa 1.7GB)
+          # Questo creerà file come: nome.z01, nome.z02 ... e infine nome.zip
+          zip -r -s 1700m ../GliAAns_${{ github.ref_name }}.zip .
 
-      # 4. PUBBLICA LA RELEASE
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          # 3. Il file si trova in src/main (livello superiore rispetto a dist)
-          files: ./src/main/GliAAns_${{ github.ref_name }}.zip
+          # 3. IMPORTANTE: Aggiungiamo l'asterisco (*) alla fine.
+          # Questo dice alla action di caricare TUTTI i file che iniziano con quel nome
+          # (quindi caricherà sia il .zip che i vari .z01, .z02, ecc.)
+          files: ./src/main/GliAAns_${{ github.ref_name }}*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
