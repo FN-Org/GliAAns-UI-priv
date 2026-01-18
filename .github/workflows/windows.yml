@@ -1,11 +1,9 @@
 name: Build Windows
-
 # 1. IL TRIGGER
 on:
   push:
     tags:
       - 'w*'
-
 
 permissions:
   contents: write # Fondamentale: serve per permettere al bot di creare la Release
@@ -15,7 +13,6 @@ jobs:
     runs-on: windows-latest # Cambia con 'windows-latest' o 'macos-latest' se serve
 
     steps:
-        
       # Scarica il codice del repository
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,18 +21,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE
+
+      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE (USANDO CMD)
       - name: Setup pipeline python
-        working-directory: ./src # <--- MODIFICA QUI
+        working-directory: ./src
+        shell: cmd  # <--- MODIFICATO: Forza l'uso del Command Prompt
         run: |
           make pipeline_python-setup
-          
+
       - name: compile pipeline
         working-directory: ./src
+        shell: cmd  # <--- MODIFICATO: Forza l'uso del Command Prompt
         run: |
           make compile-pipeline
 
+      # NOTA: rm -r è sintassi PowerShell/Bash. In CMD sarebbe 'rmdir /s /q'.
+      # Lascio questo in PowerShell come richiesto ("tutto il resto power shell")
       - name: Clean pipeline python setup
         working-directory: ./src/main
         run: |
