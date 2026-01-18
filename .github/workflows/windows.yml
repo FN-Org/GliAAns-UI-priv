@@ -22,12 +22,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE (USANDO CMD)
+      # Corregge il nome dell'eseguibile per Windows
+      - name: Fix Python Executable Name
+        shell: cmd
+        run: |
+          copy "%pythonLocation%\python.exe" "%pythonLocation%\python3.11.exe"
+
+      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE
       - name: Setup pipeline python
         working-directory: ./src
-        shell: cmd  # <--- MODIFICATO: Forza l'uso del Command Prompt
+        shell: cmd
+        # Aggiungiamo SHELL=cmd per impedire a Make di usare Bash
         run: |
-          make pipeline_python-setup
+          make pipeline_python-setup SHELL=cmd
 
       - name: compile pipeline
         working-directory: ./src
