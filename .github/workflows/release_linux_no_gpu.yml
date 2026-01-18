@@ -96,13 +96,13 @@ jobs:
           make compile-app
 
       # 3. Zippa IL CONTENUTO DELLA CARTELLA DI OUTPUT
-      - name: Zip the output (SPLIT 1.7GB)
+      - name: Zip the output (SPLIT 1.9GB)
         # 1. Ci spostiamo DENTRO la cartella dist
         working-directory: ./src/main/dist
         run: |
           # 2. Aggiungiamo '-s 1700m' per spezzare in volumi da 1700MB (circa 1.7GB)
           # Questo creerà file come: nome.z01, nome.z02 ... e infine nome.zip
-          zip -r -s 1700m ../GliAAns_${{ github.ref_name }}.zip .
+          zip -r -s 1900m ../GliAAns_${{ github.ref_name }}_linux_no_gpu.zip .
 
       - name: Release
         uses: softprops/action-gh-release@v1
