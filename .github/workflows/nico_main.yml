@@ -1,4 +1,4 @@
-name: Build and Release App (No gpu)
+name: Build Nico
 
 # 1. IL TRIGGER
 on:
