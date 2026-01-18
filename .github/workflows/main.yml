@@ -31,12 +31,25 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: Free up RAM
+      - name: Free up RAM (Aggressive)
         run: |
-          sudo systemctl stop mysql
-          sudo systemctl stop postgresql
+          # Spegni database
+          sudo systemctl stop mysql || true
+          sudo systemctl stop postgresql || true
           sudo systemctl stop mongodb || true
+          
+          # Spegni Docker (mangia moltissima RAM anche in idle)
+          # ATTENZIONE: Fallo solo se NON usi container in questo job!
           sudo systemctl stop docker || true
+          
+          # Spegni tool di Android (spesso precaricati e pesanti)
+          sudo systemctl stop android-debug-bridge || true
+          
+          # Pulisci la cache di apt (recupera un po' di spazio disco e inode)
+          sudo apt-get clean
+          
+          # Verifica memoria libera
+          free -h
 
       - name: Create Swap Space
         run: |
