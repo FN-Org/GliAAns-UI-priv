@@ -116,6 +116,7 @@ $(PIPELINE_DIST): $(PIPELINE_VENV_DIR)
 	cd main && $(PIPELINE_PYTHON) -m nuitka $(PIPELINE_RUNNER) \
 	    --standalone \
 	    --remove-output \
+		--assume-yes-for-downloads \
 	    --nofollow-import-to=unittest \
 	    --nofollow-import-to=test \
 	    --nofollow-import-to=tkinter \
