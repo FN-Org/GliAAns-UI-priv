@@ -5,7 +5,7 @@ name: Build linux no gpu
 on:
   push:
     tags:
-      - 'v*'
+      - 'r*'
 
 permissions:
   contents: write # Fondamentale: serve per permettere al bot di creare la Release
