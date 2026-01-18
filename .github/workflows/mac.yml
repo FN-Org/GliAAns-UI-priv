@@ -15,31 +15,6 @@ jobs:
     runs-on: macos-latest # Cambia con 'windows-latest' o 'macos-latest' se serve
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: true
-          
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Create Swap Space
-        run: |
-          # Crea un file di swap da 4GB
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          # Verifica che sia attivo
-          sudo swapon --show
         
       # Scarica il codice del repository
       - name: Checkout code
