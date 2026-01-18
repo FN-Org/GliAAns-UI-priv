@@ -4,7 +4,7 @@ name: Build and Release App (No gpu)
 on:
   push:
     tags:
-      - 'r*'
+      - 'main*'
 
 
 permissions:
