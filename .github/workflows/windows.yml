@@ -40,7 +40,7 @@ jobs:
         working-directory: ./src
         shell: cmd  # <--- MODIFICATO: Forza l'uso del Command Prompt
         run: |
-          make compile-pipeline
+          make compile-pipeline SHELL=cmd
 
       # NOTA: rm -r è sintassi PowerShell/Bash. In CMD sarebbe 'rmdir /s /q'.
       # Lascio questo in PowerShell come richiesto ("tutto il resto power shell")
@@ -52,12 +52,12 @@ jobs:
       - name: Main app python setup
         working-directory: ./src
         run: |
-          make main_python-setup
+          make main_python-setup SHELL=cmd
 
       - name: Compile main app
         working-directory: ./src
         run: |
-          make compile-app
+          make compile-app SHELL=cmd
 
       # 3. ZIppa IL CONTENUTO DELLA CARTELLA DI OUTPUT
       - name: Zip the output (FLAT)
