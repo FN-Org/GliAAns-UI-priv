@@ -1,0 +1,95 @@
+name: Build Mac
+
+# 1. IL TRIGGER
+on:
+  push:
+    tags:
+      - 'm*'
+
+
+permissions:
+  contents: write # Fondamentale: serve per permettere al bot di creare la Release
+
+jobs:
+  build_and_release:
+    runs-on: macos-latest # Cambia con 'windows-latest' o 'macos-latest' se serve
+
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: true
+          
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Create Swap Space
+        run: |
+          # Crea un file di swap da 4GB
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          # Verifica che sia attivo
+          sudo swapon --show
+        
+      # Scarica il codice del repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      # 2. VAI NELLA CARTELLA SPECIFICA E FAI MAKE
+      - name: Setup pipeline python
+        working-directory: ./src # <--- MODIFICA QUI
+        run: |
+          make pipeline_python-setup
+          
+      - name: compile pipeline
+        working-directory: ./src
+        run: |
+          make compile-pipeline
+
+      - name: Clean pipeline python setup
+        working-directory: ./src/main
+        run: |
+          rm -r pediatric_fdopa_pipeline
+
+      - name: Main app python setup
+        working-directory: ./src
+        run: |
+          make main_python-setup
+
+      - name: Compile main app
+        working-directory: ./src
+        run: |
+          make compile-app
+
+      # 3. ZIppa IL CONTENUTO DELLA CARTELLA DI OUTPUT
+      - name: Zip the output (FLAT)
+        # 1. Ci spostiamo DENTRO la cartella dist
+        working-directory: ./src/main/dist
+        run: |
+          # 2. Creiamo lo zip nel livello superiore (..) così non si zippa addosso
+          zip -r ../GliAAns_${{ github.ref_name }}.zip .
+
+      # 4. PUBBLICA LA RELEASE
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # 3. Il file si trova in src/main (livello superiore rispetto a dist)
+          files: ./src/main/GliAAns_${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
