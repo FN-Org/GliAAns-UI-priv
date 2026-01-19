@@ -67,7 +67,7 @@ else
     TESTS_REQUIREMENTS = tests/requirements-test.txt
     ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
-    DCM2NIIX           = $(VENV_DIR)/lib/python3.11/site-packages/dcm2niix/dcm2niix
+    DCM2NIIX           = $(VENV_DIR)/lib/python3.14/site-packages/dcm2niix/dcm2niix
     NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
 	TESTS_PDOC         = ../$(TESTS_VENV_DIR)/bin/pdoc
 endif
