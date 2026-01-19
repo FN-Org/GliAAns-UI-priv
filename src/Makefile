@@ -156,7 +156,7 @@ compile-app: $(APP_VENV_DIR)
 	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
 	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
 	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
-		--collect-all "hd-bet" \
+		--collect-all "HD_BET" \
 		--collect-all "nipreps_synthstrip" \
 	    --name GliAAns-UI \
 	    --noconfirm \
