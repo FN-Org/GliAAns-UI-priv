@@ -47,7 +47,7 @@ else
         ICON      = resources/GliAAns-logo.icns
         ICON_FLAG = --macos-app-icon=$(ICON)
     endif
-    PYTHON             = python3.14
+    PYTHON             = python3.11
     SEP		 		   = :
     APP_VENV_DIR       = main/$(VENV_DIR)
     MAIN_PYTHON        = $(VENV_DIR)/bin/python
@@ -67,7 +67,7 @@ else
     TESTS_REQUIREMENTS = tests/requirements-test.txt
     ATLAS              = $(PIPELINE_DIR)/atlas
     HD_BET             = $(VENV_DIR)/bin/hd-bet
-    DCM2NIIX           = $(VENV_DIR)/lib/python3.14/site-packages/dcm2niix/dcm2niix
+    DCM2NIIX           = $(VENV_DIR)/lib/python3.11/site-packages/dcm2niix/dcm2niix
     NIPREPS_SYNTHSTRIP = $(VENV_DIR)/bin/nipreps-synthstrip
 	TESTS_PDOC         = ../$(TESTS_VENV_DIR)/bin/pdoc
 endif
