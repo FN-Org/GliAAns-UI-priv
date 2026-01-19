@@ -143,22 +143,41 @@ compile-pipeline: $(PIPELINE_NO_DIST)
 # -------------------------
 # App compilation with PyInstaller
 # -------------------------
+# --- Configurazione Percorsi Dinamici ---
+# 1. Trova la cartella 'bin' dell'ambiente virtuale (dove stanno gli script shim di hd-bet/synthstrip)
+VENV_BIN_DIR := $(shell $(MAIN_PYTHON) -c "import sys; print(sys.prefix + '/bin')")
+
+# 2. Trova la cartella site-packages
+SITE_PKG_DIR := $(shell $(MAIN_PYTHON) -c "import site; print(site.getsitepackages()[0])")
+
+# 3. Trova il VERO binario di dcm2niix cercando dentro site-packages
+#    (cerca un file eseguibile che inizi con dcm2niix)
+DCM_REAL_BIN := $(shell find $(SITE_PKG_DIR)/dcm2niix -type f -name "dcm2niix*" -executable | head -n 1)
+
+# --- Target ---
 .PHONY: compile-app
 compile-app: $(APP_VENV_DIR)
+	@echo "--- Configurazione PyInstaller ---"
+	@echo "Venv Bin Path:  $(VENV_BIN_DIR)"
+	@echo "Dcm2niix Real:  $(DCM_REAL_BIN)"
+	@echo "Compilazione in corso..."
+	
 	cd main && $(MAIN_PYTHON) -OO -m PyInstaller \
 		--clean \
-	    --onedir \
-	    --noconsole \
-	    --icon=$(ICON) \
-	    --add-data "resources$(SEP)resources" \
-	    --add-data "translations$(SEP)translations" \
-	    --add-data "pipeline_runner$(SEP)pipeline_runner" \
-	    --add-binary "$(HD_BET)$(SEP)hd-bet" \
-	    --add-binary "$(DCM2NIIX)$(SEP)dcm2niix" \
-	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
-	    --name GliAAns-UI \
-	    --noconfirm \
-	    main.py
+		--onedir \
+		--noconsole \
+		--icon="resources/icon.png" \
+		--add-data "resources:resources" \
+		--add-data "translations:translations" \
+		--add-data "pipeline_runner:pipeline_runner" \
+		--add-binary "$(DCM_REAL_BIN):dcm2niix" \
+		--add-binary "$(VENV_BIN_DIR)/hd-bet:hd-bet" \
+		--add-binary "$(VENV_BIN_DIR)/nipreps-synthstrip:nipreps_synthstrip" \
+		--collect-all "HD_BET" \
+		--collect-all "nipreps_synthstrip" \
+		--name GliAAns-UI \
+		--noconfirm \
+		main.py
 
 # -------------------------
 # Principal targets
