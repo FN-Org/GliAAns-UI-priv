@@ -47,7 +47,7 @@ else
         ICON      = resources/GliAAns-logo.icns
         ICON_FLAG = --macos-app-icon=$(ICON)
     endif
-    PYTHON             = python3.11
+    PYTHON             = python3.14
     SEP		 		   = :
     APP_VENV_DIR       = main/$(VENV_DIR)
     MAIN_PYTHON        = $(VENV_DIR)/bin/python
