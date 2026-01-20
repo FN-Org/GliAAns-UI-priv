@@ -145,7 +145,7 @@ compile-pipeline: $(PIPELINE_NO_DIST)
 # -------------------------
 .PHONY: compile-app
 compile-app: $(APP_VENV_DIR)
-	cd main && $(MAIN_PYTHON) -OO -m PyInstaller \
+	cd main && $(MAIN_PIP) install --upgrade pyinstaller-hooks-contrib && $(MAIN_PYTHON) -OO -m PyInstaller \
 		--clean \
 	    --onedir \
 	    --noconsole \
