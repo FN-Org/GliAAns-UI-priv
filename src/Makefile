@@ -158,6 +158,7 @@ compile-app: $(APP_VENV_DIR)
 	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
 		--collect-all "HD_BET" \
 		--collect-all "nipreps_synthstrip" \
+		--hidden-import "typing_extensions" \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
