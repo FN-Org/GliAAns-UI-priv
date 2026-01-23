@@ -9,4 +9,5 @@ hd-bet
 pyinstaller
 torch==2.6.0
 nipreps-synthstrip
+typing_extensions
 pdoc
