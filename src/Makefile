@@ -159,6 +159,28 @@ compile-app: $(APP_VENV_DIR)
 		--collect-all "HD_BET" \
 		--collect-all "nipreps_synthstrip" \
 		--hidden-import "typing_extensions" \
+		--collect-all "nnunetv2" \
+	    --collect-all "dynamic_network_architectures" \
+	    --collect-all "acvl_utils" \
+	    --collect-all "batchgenerators" \
+	    --collect-all "batchgeneratorsv2" \
+	    --collect-all "simpleitk" \
+	    --collect-all "connected_components_3d" \
+	    --collect-all "timm" \
+	    --collect-all "scipy" \
+	    --collect-all "skimage" \
+	    --collect-all "pandas" \
+	    --collect-all "imagecodecs" \
+	    --collect-all "tifffile" \
+	    --collect-all "torchgen" \
+	    --collect-all "triton" \
+	    --collect-all "sklearn" \
+	    --hidden-import "torchgen.model" \
+	    --hidden-import "sklearn.utils._cython_blas" \
+	    --hidden-import "sklearn.neighbors.typedefs" \
+	    --hidden-import "sklearn.neighbors.quad_tree" \
+	    --hidden-import "sklearn.tree._utils" \
+	    --hidden-import "scipy.special.cython_special" \
 	    --name GliAAns-UI \
 	    --noconfirm \
 	    main.py
