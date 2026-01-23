@@ -158,7 +158,7 @@ compile-app: $(APP_VENV_DIR)
 	    --add-binary "$(NIPREPS_SYNTHSTRIP)$(SEP)nipreps-synthstrip" \
 		--collect-all "HD_BET" \
 		--collect-all "nipreps_synthstrip" \
-		--hidden-import "typing_extensions" \
+		--collect-all "typing_extensions" \
 		--collect-all "nnunetv2" \
 	    --collect-all "dynamic_network_architectures" \
 	    --collect-all "acvl_utils" \
@@ -172,7 +172,7 @@ compile-app: $(APP_VENV_DIR)
 	    --collect-all "pandas" \
 	    --collect-all "imagecodecs" \
 	    --collect-all "tifffile" \
-	    --collect-all "torchgen" \
+	    --collect-all "torch" \
 	    --collect-all "triton" \
 	    --collect-all "sklearn" \
 	    --hidden-import "torchgen.model" \
