@@ -145,8 +145,8 @@ jobs:
           cp main/resources/GliAAns-logo.png deploy/
           mkdir -p deploy/assets
           # Assicurati che questi percorsi siano corretti rispetto alla root del repo
-          cp docs/assets/*.png deploy/assets/
-          cp docs/assets/*.mp4 deploy/assets/
+          cp ./../docs/assets/*.png deploy/assets/
+          cp ./../docs/assets/*.mp4 deploy/assets/
 
       # Pubblica su GitHub Pages senza toccare la repo
       - name: Deploy to GitHub Pages
