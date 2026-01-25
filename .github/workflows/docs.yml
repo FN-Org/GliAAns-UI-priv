@@ -62,85 +62,92 @@ jobs:
         run: |
           make doc
 
-      # Prepara una cartella "deploy" pulita per GitHub Pages
       - name: Prepare deploy folder
         working-directory: ./src
         run: |
           mkdir -p deploy
-
-          # Sposta la coverage dentro docs
+          
+          # 1. Sposta la coverage e i doc
           mkdir -p pdoc/coverage
           mv ./tests/htmlcov/* pdoc/coverage/
+          cp -r pdoc/docs deploy/
+          cp -r pdoc/coverage deploy/
 
-          # Landing page
-          cat > pdoc/landing.html << 'EOF'
+          # 2. Crea la Gallery Page (gallery.html)
+          cat > deploy/gallery.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>GliAAns-UI Gallery</title>
+            <style>
+              body { font-family: sans-serif; padding: 50px; text-align: center; background: #f4f4f4; }
+              .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 8px; }
+              .media-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+              img, video { width: 100%; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+              .back-btn { display: inline-block; margin-top: 30px; text-decoration: none; color: #007bff; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Project Showcase</h1>
+              <div class="media-grid">
+                <img src="assets/screen1.png" alt="Screenshot 1">
+                <img src="assets/screen2.png" alt="Screenshot 2">
+                <img src="assets/screen3.png" alt="Screenshot 3">
+              </div>
+              <div style="margin-top: 30px;">
+                <h3>Demo Video</h3>
+                <video controls>
+                  <source src="assets/demo.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <a href="index.html" class="back-btn">← Back to Home</a>
+            </div>
+          </body>
+          </html>
+          EOF
+
+          # 3. Aggiorna la Landing Page (index.html) aggiungendo il bottone Gallery
+          cat > deploy/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
             <meta charset="utf-8">
             <title>GliAAns-UI Docs</title>
             <style>
-              body {
-                font-family: sans-serif;
-                padding: 50px;
-                text-align: center;
-                background: #f4f4f4;
-              }
-              .logo {
-                max-width: 150px;
-                height: auto;
-                margin-bottom: 20px;
-                display: block;
-                margin-left: auto;
-                margin-right: auto;
-              }
-              .card {
-                background: white;
-                padding: 20px;
-                margin: 20px auto;
-                width: 300px;
-                border-radius: 8px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                transition: transform 0.2s;
-              }
-              .card:hover {
-                transform: translateY(-5px);
-              }
-              a {
-                text-decoration: none;
-                color: #333;
-                font-weight: bold;
-                font-size: 1.2em;
-              }
-              a:hover {
-                color: #007bff;
-              }
+              body { font-family: sans-serif; padding: 50px; text-align: center; background: #f4f4f4; }
+              .logo { max-width: 150px; margin: 0 auto 20px; display: block; }
+              .card { background: white; padding: 20px; margin: 20px auto; width: 300px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
+              .card:hover { transform: translateY(-5px); }
+              .card.gallery { border: 2px solid #007bff; }
+              a { text-decoration: none; color: #333; font-weight: bold; font-size: 1.2em; }
+              a:hover { color: #007bff; }
             </style>
           </head>
           <body>
-            
             <img src="GliAAns-logo.png" alt="GliAAns Logo" class="logo">
-            
             <h1>GliAAns-UI Code Documentation</h1>
-            
             <div class="card">
               <a href="docs/index.html">Documentation</a>
             </div>
-            
             <div class="card">
               <a href="coverage/index.html">Test Coverage</a>
             </div>
-            
+            <div class="card gallery">
+              <a href="gallery.html" style="color: #007bff;">Visual Showcase (Screenshots)</a>
+            </div>
           </body>
           </html>
           EOF
 
-          # Copia tutto in una cartella di deploy isolata
-          cp -r pdoc/docs deploy/
-          cp -r pdoc/coverage deploy/
-          cp -r pdoc/landing.html deploy/
-          cp -r main/resources/GliAAns-logo.png deploy/
-          mv deploy/landing.html deploy/index.html
+          # 4. Copia le risorse statiche (Loghi, Screenshot, Video)
+          cp main/resources/GliAAns-logo.png deploy/
+          mkdir -p deploy/assets
+          # Assicurati che questi percorsi siano corretti rispetto alla root del repo
+          cp docs/assets/*.png deploy/assets/ || true
+          cp docs/assets/*.mp4 deploy/assets/ || true
 
       # Pubblica su GitHub Pages senza toccare la repo
       - name: Deploy to GitHub Pages
